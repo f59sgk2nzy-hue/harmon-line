@@ -9,6 +9,12 @@ npm install
 npm run dev
 ```
 
+Unit checks for period scores, subdivision labels, poll-clock timezone, and redirect hosts:
+
+```bash
+npm test
+```
+
 Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s games in US/Eastern**. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it.
 
 Production-style start:
