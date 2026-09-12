@@ -2,10 +2,11 @@
 
 import { PlayByPlay } from "@/components/play-by-play";
 import { TeamLogo } from "@/components/team-logo";
-import { formatKickoff } from "@/lib/dates";
-import { useLivePoll } from "@/lib/hooks";
+import { formatKickoff, formatPollClock } from "@/lib/dates";
+import { hasPeriodScores, periodLabel } from "@/lib/espn-parse";
+import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import type { GameDetailResponse, TeamSide } from "@/lib/types";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 
@@ -89,7 +90,7 @@ export function GameDetailView({
   }, [gameId]);
 
   const live = detail?.game.status.state === "in";
-  useLivePoll(refresh, { live: Boolean(live), liveMs: 8_000, idleMs: 30_000 });
+  useLivePoll(refresh, { intervalMs: BOARD_REFRESH_MS });
 
   if (!detail) {
     return (
@@ -110,12 +111,12 @@ export function GameDetailView({
   const { game, scoringPlays, drives, leaders, playByPlayAvailable, coverage } = detail;
   const awayHasBall = game.situation?.possessionTeamId === game.away.id;
   const homeHasBall = game.situation?.possessionTeamId === game.home.id;
-  const maxQ = Math.max(4, game.away.linescores.length, game.home.linescores.length);
-  const stamp = new Date(detail.generatedAt).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  const showQuarters =
+    hasPeriodScores(game.away.linescores) || hasPeriodScores(game.home.linescores);
+  const maxQ = showQuarters
+    ? Math.max(4, game.away.linescores.length, game.home.linescores.length)
+    : 0;
+  const stamp = formatPollClock(detail.generatedAt);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-3 py-4 pb-16 sm:px-5">
@@ -127,9 +128,19 @@ export function GameDetailView({
           <ArrowLeft className="size-3.5" />
           BOARD
         </Link>
-        <p className="font-mono text-[10px] tracking-[0.14em] text-white/40">
-          {game.subdivision}  ·  POLLED {stamp}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="font-mono text-[10px] tracking-[0.14em] text-white/40">
+            {game.subdivision}  ·  POLLED {stamp}
+          </p>
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            className="inline-flex items-center gap-1 rounded-sm border border-white/15 px-2 py-0.5 font-display text-[10px] tracking-[0.14em] text-white/70 hover:border-white/40 hover:text-white"
+          >
+            <RefreshCw className="size-3" />
+            REFRESH
+          </button>
+        </div>
       </div>
 
       <section className="score-cell overflow-hidden">
@@ -155,7 +166,11 @@ export function GameDetailView({
             winner={game.status.state !== "post" || game.home.winner}
           />
         </div>
-        <div className="grid gap-3 border-t border-white/10 px-4 py-3 sm:grid-cols-[1fr_180px]">
+        <div
+          className={`grid gap-3 border-t border-white/10 px-4 py-3 ${
+            showQuarters ? "sm:grid-cols-[1fr_180px]" : ""
+          }`}
+        >
           <div>
             <p className="font-display text-[11px] tracking-[0.16em] text-[#f3c14b]">
               {live && game.situation?.downDistanceText
@@ -170,21 +185,23 @@ export function GameDetailView({
                 "Waiting on the next published snap."}
             </p>
           </div>
-          <div className="border border-white/10 bg-black/40">
-            <div className="grid grid-cols-3 gap-2 px-2 py-1 font-display text-[10px] tracking-[0.12em] text-white/40">
-              <span>QTR</span>
-              <span className="text-center">{game.away.abbreviation}</span>
-              <span className="text-center">{game.home.abbreviation}</span>
+          {showQuarters ? (
+            <div className="border border-white/10 bg-black/40">
+              <div className="grid grid-cols-3 gap-2 px-2 py-1 font-display text-[10px] tracking-[0.12em] text-white/40">
+                <span>QTR</span>
+                <span className="text-center">{game.away.abbreviation}</span>
+                <span className="text-center">{game.home.abbreviation}</span>
+              </div>
+              {Array.from({ length: maxQ }).map((_, index) => (
+                <QuarterRow
+                  key={index}
+                  label={periodLabel(index)}
+                  away={game.away.linescores[index] ?? "—"}
+                  home={game.home.linescores[index] ?? "—"}
+                />
+              ))}
             </div>
-            {Array.from({ length: maxQ }).map((_, index) => (
-              <QuarterRow
-                key={index}
-                label={index < 4 ? `Q${index + 1}` : index === 4 ? "OT" : `${index - 3}OT`}
-                away={game.away.linescores[index] ?? (game.status.state === "pre" ? "-" : 0)}
-                home={game.home.linescores[index] ?? (game.status.state === "pre" ? "-" : 0)}
-              />
-            ))}
-          </div>
+          ) : null}
         </div>
       </section>
 

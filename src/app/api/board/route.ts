@@ -1,7 +1,7 @@
 import { boardHref, parseStatusFilter } from "@/lib/board-url";
 import { parseDateParam } from "@/lib/dates";
 import { parseDivision, parseSubdivision } from "@/lib/espn";
-import { NextResponse } from "next/server";
+import { redirectPreservingHost } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
 
@@ -15,5 +15,5 @@ export function GET(request: Request) {
     status: parseStatusFilter(src.searchParams.get("status")),
     q: src.searchParams.get("q") ?? "",
   });
-  return NextResponse.redirect(new URL(dest, src.origin), 303);
+  return redirectPreservingHost(request, dest);
 }

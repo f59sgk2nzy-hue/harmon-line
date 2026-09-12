@@ -4,15 +4,15 @@ import { GameCard } from "@/components/game-card";
 import { BottomLine } from "@/components/ticker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { boardHref } from "@/lib/board-url";
-import { formatBoardDate, shiftEspnDate } from "@/lib/dates";
-import { useLivePoll } from "@/lib/hooks";
+import { formatBoardDate, formatPollClock, shiftEspnDate } from "@/lib/dates";
+import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import type {
   DivisionId,
   ScoreboardResponse,
   StatusFilter,
   SubdivisionId,
 } from "@/lib/types";
-import { ChevronLeft, ChevronRight, Radio } from "lucide-react";
+import { ChevronLeft, ChevronRight, Radio, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 
@@ -100,11 +100,7 @@ export function ScoreboardView({
     }
   }, [date, division, subdivision]);
 
-  useLivePoll(refresh, {
-    live: Boolean(board?.liveCount),
-    liveMs: 12_000,
-    idleMs: 40_000,
-  });
+  useLivePoll(refresh, { intervalMs: BOARD_REFRESH_MS });
 
   const games = useMemo(
     () => filterGames(board, conference, status, query),
@@ -129,13 +125,7 @@ export function ScoreboardView({
     });
 
   const live = board?.liveCount ?? 0;
-  const lastStamp = updatedAt
-    ? new Date(updatedAt).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-      })
-    : null;
+  const lastStamp = updatedAt ? formatPollClock(updatedAt) : null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col pb-14">
@@ -232,7 +222,7 @@ export function ScoreboardView({
             </div>
 
             <form
-              action="/api/board"
+              action="/"
               method="get"
               className="flex min-w-0 flex-1 items-center gap-1"
             >
@@ -292,24 +282,34 @@ export function ScoreboardView({
           ) : null}
 
           <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] tracking-wide text-white/50">
-            <p className="flex items-center gap-2">
-              <Radio className="size-3 text-[#ff3b3b]" />
-              {live} LIVE ON FEED
-              <span className="text-white/25">|</span>
-              {board ? `${games.length} shown / ${board.games.length} on board` : "Loading"}
-              {conference !== "all" || status !== "all" || query.trim() ? (
-                <>
-                  <span className="text-white/25">|</span>
-                  FILTERED
-                </>
-              ) : null}
-              {lastStamp ? (
-                <>
-                  <span className="text-white/25">|</span>
-                  POLLED {lastStamp}
-                </>
-              ) : null}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="flex items-center gap-2">
+                <Radio className="size-3 text-[#ff3b3b]" />
+                {live} LIVE ON FEED
+                <span className="text-white/25">|</span>
+                {board ? `${games.length} shown / ${board.games.length} on board` : "Loading"}
+                {conference !== "all" || status !== "all" || query.trim() ? (
+                  <>
+                    <span className="text-white/25">|</span>
+                    FILTERED
+                  </>
+                ) : null}
+                {lastStamp ? (
+                  <>
+                    <span className="text-white/25">|</span>
+                    POLLED {lastStamp}
+                  </>
+                ) : null}
+              </p>
+              <button
+                type="button"
+                onClick={() => void refresh()}
+                className="inline-flex items-center gap-1 rounded-sm border border-white/15 px-2 py-0.5 font-display text-[10px] tracking-[0.14em] text-white/70 hover:border-white/40 hover:text-white"
+              >
+                <RefreshCw className="size-3" />
+                REFRESH
+              </button>
+            </div>
             <p className="text-[#f3c14b]/80">{formatBoardDate(date)}</p>
           </div>
         </div>
