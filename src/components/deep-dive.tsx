@@ -386,7 +386,7 @@ export function DeepDiveView({
       </section>
 
       <div className="mt-6">
-        <DisclaimerModal shortText={disclaimer} longText={disclaimerLong} />
+        <DisclaimerModal id="disclaimer-bottom" shortText={disclaimer} longText={disclaimerLong} />
       </div>
       <DisclaimerFooter text={disclaimer} />
     </div>

@@ -57,7 +57,7 @@ function ScheduleRow({ game }: { game: TeamScheduleGame }) {
         </Link>
         <Link
           href={deepDiveHref(game.id)}
-          className="inline-flex min-h-11 items-center font-display text-[10px] tracking-[0.16em] text-[#f3c14b] no-underline"
+          className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-2 font-display text-[10px] tracking-[0.16em] text-white no-underline"
         >
           SIM
         </Link>
@@ -120,7 +120,7 @@ export function TeamPageView({
         </p>
       </div>
 
-      <section className="score-cell overflow-hidden">
+      <section className="score-cell">
         <div className="flex items-center gap-3 px-3 py-3 sm:px-4 sm:py-4">
           <TeamLogo
             src={team.logo}
@@ -141,9 +141,11 @@ export function TeamPageView({
               {team.standing ? `  ·  ${team.standing}` : ""}
             </p>
           </div>
+        </div>
+        <div className="border-t border-white/10 px-3 py-2 sm:px-4">
           <Link
             href={teamDeepDiveHref(team.id)}
-            className="inline-flex min-h-11 shrink-0 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[10px] tracking-[0.16em] text-white no-underline"
+            className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[10px] tracking-[0.16em] text-white no-underline"
           >
             DEEP DIVE / SIM
           </Link>
