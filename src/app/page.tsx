@@ -1,4 +1,5 @@
 import { BoardHeader } from "@/components/header";
+import { HighlightsStrip } from "@/components/highlights-strip";
 import { ScoreboardView } from "@/components/scoreboard-view";
 import { parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, parseDateParam } from "@/lib/dates";
@@ -36,6 +37,7 @@ export default async function Home({
   return (
     <>
       <BoardHeader dateLabel={formatBoardDate(date)} week={initial?.week} />
+      <HighlightsStrip />
       <ScoreboardView
         key={`${division}-${date}-${subdivision}-${conference}-${status}-${query}`}
         initial={initial}
