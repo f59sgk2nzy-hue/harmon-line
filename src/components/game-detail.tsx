@@ -22,17 +22,19 @@ function ScoreColumn({
 }) {
   return (
     <div className={`flex min-w-0 items-center gap-3 ${winner ? "" : "opacity-80"}`}>
-      <TeamLogo
-        src={team.logo}
-        alt=""
-        abbreviation={team.abbreviation}
-        color={team.color}
-        size={48}
-      />
+      <Link href={teamHref(team.id)} className="shrink-0 no-underline">
+        <TeamLogo
+          src={team.logo}
+          alt=""
+          abbreviation={team.abbreviation}
+          color={team.color}
+          size={48}
+        />
+      </Link>
       <div className="min-w-0">
         <Link
           href={teamHref(team.id)}
-          className="font-display text-xl leading-none tracking-wide text-white no-underline sm:text-3xl"
+          className="inline-block min-h-11 font-display text-xl leading-none tracking-wide text-white no-underline sm:text-3xl"
         >
           {team.rank ? <span className="mr-1 text-[#f3c14b]">{team.rank}</span> : null}
           {team.shortName.toUpperCase()}
