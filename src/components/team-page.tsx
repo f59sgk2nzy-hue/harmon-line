@@ -121,7 +121,7 @@ export function TeamPageView({
         style={
           wash
             ? {
-                backgroundImage: `linear-gradient(100deg, ${wash}26, transparent 58%)`,
+                backgroundImage: `linear-gradient(100deg, ${wash}40, transparent 62%)`,
               }
             : undefined
         }

@@ -182,7 +182,7 @@ export function ScoreboardView({
   return (
     <div className="flex min-h-0 flex-1 flex-col pb-14">
       <div className="sticky top-0 z-30 border-b border-white/10 bg-[#0e0e0e]/82 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-3 py-3 sm:px-5">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-3 py-2 sm:gap-3 sm:px-5 sm:py-3">
           <div className="flex flex-wrap items-center gap-2">
             {DIVISIONS.map((item) => {
               const active = division === item.id;
@@ -303,7 +303,7 @@ export function ScoreboardView({
               />
               <button
                 type="submit"
-                className="pressable h-9 rounded-sm bg-[#cc0000] px-3 font-display text-xs tracking-[0.14em] text-white shadow-[0_0_14px_rgb(204_0_0_/_28%)]"
+                className="pressable h-8 rounded-sm bg-[#cc0000] px-3 font-display text-xs tracking-[0.14em] text-white shadow-[0_0_14px_rgb(204_0_0_/_28%)] sm:h-9"
               >
                 FIND
               </button>
@@ -374,7 +374,7 @@ export function ScoreboardView({
 
       <main className="page-enter mx-auto w-full max-w-6xl flex-1 px-3 py-4 sm:px-5">
         {board ? (
-          <div className="board-glass mb-4 border-l-4 border-[#cc0000] px-3 py-2.5">
+          <div className="board-glass mb-3 hidden border-l-4 border-[#cc0000] px-3 py-2.5 sm:mb-4 sm:block">
             <p className="font-display text-xs tracking-[0.16em] text-[#f3c14b]">
               {board.coverage.headline}
             </p>
@@ -416,13 +416,22 @@ export function ScoreboardView({
                 : "Clear the conference, status, or search filter to see the rest of the slate."
             }
             action={
-              <button
-                type="button"
-                onClick={() => applyClientFilter({ conference: "all", status: "all", q: "" })}
-                className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
-              >
-                CLEAR FILTERS
-              </button>
+              board.games.length === 0 ? (
+                <Link
+                  href={hrefFor({ date: shiftEspnDate(date, -1) })}
+                  className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
+                >
+                  TRY PREVIOUS DAY
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => applyClientFilter({ conference: "all", status: "all", q: "" })}
+                  className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
+                >
+                  CLEAR FILTERS
+                </button>
+              )
             }
           />
         ) : null}

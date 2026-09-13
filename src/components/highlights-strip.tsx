@@ -82,7 +82,7 @@ export function HighlightsStrip({
       className="border-b border-white/10 bg-[#0c0c0c]/90 backdrop-blur-md"
     >
       <div className="mx-auto max-w-6xl">
-        <div className="mb-2 flex flex-wrap items-end justify-between gap-2 px-3 pt-2.5 sm:px-5">
+        <div className="mb-1.5 flex flex-wrap items-end justify-between gap-2 px-3 pt-2 sm:mb-2 sm:px-5 sm:pt-2.5">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="inline-block h-4 w-1 shrink-0 bg-[#cc0000] shadow-[0_0_10px_rgb(204_0_0_/_55%)]" />
@@ -129,7 +129,7 @@ export function HighlightsStrip({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className="highlights-scroller flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-3 pb-3 scroll-pl-3 scroll-pr-8 sm:px-5 sm:scroll-pl-5 sm:scroll-pr-5"
+          className="highlights-scroller flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-3 pb-2 scroll-pl-3 scroll-pr-8 sm:px-5 sm:pb-3 sm:scroll-pl-5 sm:scroll-pr-5"
         >
           {videos.length === 0
             ? Array.from({ length: 4 }).map((_, index) => (
