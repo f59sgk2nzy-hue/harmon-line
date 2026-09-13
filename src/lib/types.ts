@@ -197,3 +197,113 @@ export type GameDetailResponse = {
   playByPlayAvailable: boolean;
   coverage: CoverageNote;
 };
+
+export type TeamSeasonStats = {
+  available: boolean;
+  gamesPlayed: number | null;
+  pointsPerGame: number | null;
+  pointsTotal: number | null;
+  pointsAllowedPerGame: number | null;
+  passingYardsPerGame: number | null;
+  rushingYardsPerGame: number | null;
+  yardsPerRush: number | null;
+  yardsPerPass: number | null;
+  completionPct: number | null;
+  thirdDownPct: number | null;
+  turnoverDifferential: number | null;
+  giveaways: number | null;
+  takeaways: number | null;
+  rushingTouchdowns: number | null;
+  passingTouchdowns: number | null;
+  totalTouchdowns: number | null;
+  interceptionsThrown: number | null;
+  sacks: number | null;
+  fieldGoalsMade: number | null;
+  fieldGoalAttempts: number | null;
+  rushingYardsAllowedPerGame: number | null;
+  passingYardsAllowedPerGame: number | null;
+};
+
+export type ScheduleScoring = {
+  games: number;
+  pointsPerGame: number | null;
+  pointsAllowedPerGame: number | null;
+};
+
+export type PublishedMarket = {
+  provider: string;
+  details: string | null;
+  overUnder: number | null;
+  spread: number | null;
+  homeMoneyLine: number | null;
+  awayMoneyLine: number | null;
+};
+
+export type SimHistogramBin = {
+  start: number;
+  end: number;
+  count: number;
+  pct: number;
+};
+
+export type GameSimulation = {
+  label: "SIMULATION";
+  trials: number;
+  seed: number;
+  homeWinPct: number;
+  awayWinPct: number;
+  tiePct: number;
+  meanMargin: number;
+  marginLow: number;
+  marginHigh: number;
+  meanTotal: number;
+  totalLow: number;
+  totalHigh: number;
+  sigmaMargin: number;
+  expectedHomeScore: number;
+  expectedAwayScore: number;
+  histogram: SimHistogramBin[];
+  assumptions: string[];
+  inputsUsed: string[];
+  inputsMissing: string[];
+};
+
+export type PropConfidence = "HIGH" | "MEDIUM" | "LOW";
+export type PropMarketKind = "game-total" | "side" | "team-rush-td" | "player-published";
+
+export type PropAngle = {
+  id: string;
+  market: PropMarketKind;
+  title: string;
+  lean: string;
+  confidence: PropConfidence;
+  why: string;
+  basis: "team-stats" | "published-leaders" | "simulation" | "published-market";
+  playerName: string | null;
+  oddsAvailable: { line: string; provider: string } | null;
+};
+
+export type MatchupAnalysis = {
+  markedAs: "ANALYSIS";
+  headline: string;
+  paragraphs: string[];
+};
+
+export type DeepDiveResponse = {
+  source: "espn";
+  demo: false;
+  generatedAt: string;
+  game: GameSummary;
+  homeStats: TeamSeasonStats;
+  awayStats: TeamSeasonStats;
+  market: PublishedMarket | null;
+  simulation: GameSimulation;
+  analysis: MatchupAnalysis;
+  props: PropAngle[];
+  coverage: {
+    stats: CoverageNote;
+    market: CoverageNote;
+    players: CoverageNote;
+  };
+  disclaimer: string;
+};
