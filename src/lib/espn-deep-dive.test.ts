@@ -110,7 +110,7 @@ describe("assembleDeepDive", () => {
   it("labels CFBD-filled cells as evidence and never pretends a missing key returned stats", () => {
     const dive = assembleDeepDive({
       game: GAME,
-      leaders: [{ category: "Passing Yards", name: "Quinn Ewers", displayValue: "250 YDS" }],
+      leaders: [{ category: "Passing Yards", name: "Quinn Ewers", displayValue: "250 YDS", teamId: "251" }],
       homeStatsRaw: {},
       awayStatsRaw: {},
       homeSchedule: [],
