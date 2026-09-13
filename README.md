@@ -17,6 +17,8 @@ npm test
 
 Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s games in US/Eastern**. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it.
 
+**DELL / Home Screen / Tailscale:** prefer production (`npm run build && npm start`). `next dev` gates the HMR websocket (`/_next/hmr`) with an Origin check. Opening the board as `http://127.0.0.1:43173` or a LAN/Tailscale IP can fail that check (`Unauthorized`), so React never hydrates. The highlights strip is server-rendered so cards still paint, but production has no HMR and is the reliable way to pin or share the board. `next.config` sets `allowedDevOrigins` for `localhost`, `127.0.0.1`, Tailscale MagicDNS (`**.ts.net`), and this machine’s LAN/Tailscale IPv4 addresses.
+
 Production-style start:
 
 ```bash
@@ -73,7 +75,7 @@ The home board shows a swipeable **HIGHLIGHTS / REACTIONS** row under the ESPN r
 
 **Mobile / PWA:** the strip is built for Add to Home Screen first — native horizontal touch swipe, snap scrolling, a peek of the next card, 44px play control, and no hover-only UI. Chevrons appear only on wider screens. The home viewport uses `viewport-fit=cover` so the red header and bottom line clear the notch / home indicator.
 
-**Performance:** the strip fetches `/api/highlights` on its own (cached ~2 minutes on the server, refreshed every 15 minutes in the browser). It does not run inside the scoreboard poll. Thumbnails are `loading="lazy"`.
+**Performance:** the home page server-renders the strip from the same YouTube loader as `/api/highlights`, so thumbnails and titles paint in the HTML even if the browser never hydrates (for example when `next dev` HMR is blocked). The client still refreshes `/api/highlights` every 15 minutes when hydration works. The feed is cached ~2 minutes on the server and does not run inside the scoreboard poll. Thumbnails are `loading="lazy"`.
 
 **Refresh:** the board and game pages refresh every **10 minutes** (600 seconds) from the public ESPN feed. Use the **REFRESH** control to pull immediately. The “last polled” clock is always **US/Eastern**.
 

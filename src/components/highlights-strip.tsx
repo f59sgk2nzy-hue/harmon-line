@@ -1,21 +1,24 @@
 "use client";
 
-import { HIGHLIGHTS_REFRESH_MS, sampleHighlightVideos, type HighlightsResponse } from "@/lib/youtube";
+import { useLivePoll } from "@/lib/hooks";
+import {
+  HIGHLIGHTS_REFRESH_MS,
+  highlightsSourceNote,
+  sampleHighlightsBoard,
+  type HighlightsResponse,
+} from "@/lib/youtube";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
-function sourceNote(board: HighlightsResponse): string {
-  if (board.sample) {
-    return "SAMPLE CARDS  ·  LIVE YOUTUBE FEED UNAVAILABLE  ·  NOT LIVE SCORES";
-  }
-  if (board.source === "mixed") return "YOUTUBE RSS + DATA API  ·  NO DEMO SCORES";
-  if (board.source === "youtube-data-api") return "YOUTUBE DATA API  ·  NO DEMO SCORES";
-  return "YOUTUBE RSS  ·  NO API KEY  ·  NO DEMO SCORES";
-}
-
-export function HighlightsStrip() {
-  const [board, setBoard] = useState<HighlightsResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export function HighlightsStrip({
+  initial,
+  initialError,
+}: {
+  initial?: HighlightsResponse | null;
+  initialError?: string | null;
+}) {
+  const [board, setBoard] = useState<HighlightsResponse | null>(initial ?? null);
+  const [error, setError] = useState<string | null>(initialError ?? null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, moved: false, x: 0, scroll: 0 });
 
@@ -30,26 +33,11 @@ export function HighlightsStrip() {
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Highlights request failed");
-      setBoard((prev) =>
-        prev ?? {
-          source: "sample",
-          sample: true,
-          seasonYear: new Date().getUTCFullYear(),
-          generatedAt: new Date().toISOString(),
-          apiKeyConfigured: false,
-          videos: sampleHighlightVideos(new Date().getUTCFullYear()),
-        }
-      );
+      setBoard((prev) => prev ?? sampleHighlightsBoard());
     }
   }, []);
 
-  useEffect(() => {
-    void load();
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") void load();
-    }, HIGHLIGHTS_REFRESH_MS);
-    return () => window.clearInterval(timer);
-  }, [load]);
+  useLivePoll(load, { intervalMs: HIGHLIGHTS_REFRESH_MS, runOnMount: !initial });
 
   const scrollByCard = (direction: -1 | 1) => {
     const el = scrollerRef.current;
@@ -110,7 +98,7 @@ export function HighlightsStrip() {
             <p className="mt-1 font-mono text-[10px] tracking-[0.12em] text-white/45">
               <span className="sm:hidden">SWIPE FOR CLIPS</span>
               <span className="hidden sm:inline">
-                {board ? sourceNote(board) : "LOADING YOUTUBE FEED"}
+                {highlightsSourceNote(board)}
                 {error ? `  ·  ${error}` : ""}
               </span>
             </p>

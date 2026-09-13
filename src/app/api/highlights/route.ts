@@ -1,4 +1,4 @@
-import { loadHighlights, sampleHighlightVideos, currentCfbSeasonYear } from "@/lib/youtube";
+import { loadHighlights, sampleHighlightsBoard } from "@/lib/youtube";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -16,22 +16,11 @@ export async function GET() {
       },
     });
   } catch {
-    const seasonYear = currentCfbSeasonYear(now);
-    return NextResponse.json(
-      {
-        source: "sample",
-        sample: true,
-        seasonYear,
-        generatedAt: now.toISOString(),
-        apiKeyConfigured: Boolean(process.env.YOUTUBE_API_KEY?.trim()),
-        videos: sampleHighlightVideos(seasonYear),
+    return NextResponse.json(sampleHighlightsBoard(now), {
+      status: 200,
+      headers: {
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
       },
-      {
-        status: 200,
-        headers: {
-          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
-        },
-      }
-    );
+    });
   }
 }

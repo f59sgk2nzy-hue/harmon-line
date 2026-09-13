@@ -4,6 +4,7 @@ import { ScoreboardView } from "@/components/scoreboard-view";
 import { parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, parseDateParam } from "@/lib/dates";
 import { getScoreboard, parseDivision, parseSubdivision } from "@/lib/espn";
+import { loadHighlights, sampleHighlightsBoard } from "@/lib/youtube";
 
 export const dynamic = "force-dynamic";
 
@@ -34,10 +35,19 @@ export default async function Home({
     initialError = error instanceof Error ? error.message : "Scoreboard unavailable";
   }
 
+  let highlights = null;
+  let highlightsError: string | null = null;
+  try {
+    highlights = await loadHighlights({ apiKey: process.env.YOUTUBE_API_KEY });
+  } catch (error) {
+    highlightsError = error instanceof Error ? error.message : "Highlights unavailable";
+    highlights = sampleHighlightsBoard();
+  }
+
   return (
     <>
       <BoardHeader dateLabel={formatBoardDate(date)} week={initial?.week} />
-      <HighlightsStrip />
+      <HighlightsStrip initial={highlights} initialError={highlightsError} />
       <ScoreboardView
         key={`${division}-${date}-${subdivision}-${conference}-${status}-${query}`}
         initial={initial}
