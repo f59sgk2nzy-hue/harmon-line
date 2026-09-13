@@ -4,6 +4,7 @@ import {
   assembleHighlights,
   classifyVideoKind,
   currentCfbSeasonYear,
+  isCollegeFootballVideo,
   isCurrentSeasonVideo,
   mixHighlightFeed,
   parseYoutubeAtom,
@@ -83,6 +84,29 @@ describe("currentCfbSeasonYear", () => {
 
   it("keeps January bowl games on the previous fall season", () => {
     assert.equal(currentCfbSeasonYear(new Date("2027-01-12T18:00:00.000Z")), 2026);
+  });
+});
+
+describe("isCollegeFootballVideo", () => {
+  it("drops conference soccer clips that leak from mixed sports channels", () => {
+    assert.equal(
+      isCollegeFootballVideo("Zach Neuls' Header Goal vs. Rutgers | UCLA Men's Soccer", "Big Ten Network"),
+      false
+    );
+  });
+
+  it("keeps CFB highlights and CFB-only channel uploads", () => {
+    assert.equal(
+      isCollegeFootballVideo(
+        "Highlights & Analysis: Michigan Gets Statement Win Over #11 Oklahoma",
+        "Big Ten Network"
+      ),
+      true
+    );
+    assert.equal(
+      isCollegeFootballVideo("Week 2 College Football Rankings: Is your team in the Top 10?", "ESPN College Football"),
+      true
+    );
   });
 });
 

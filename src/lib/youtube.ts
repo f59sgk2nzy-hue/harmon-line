@@ -58,6 +58,29 @@ export function currentCfbSeasonYear(now = new Date()): number {
   return month <= 2 ? year - 1 : year;
 }
 
+const NON_FOOTBALL =
+  /\b(soccer|basketball|baseball|softball|volleyball|hockey|lacrosse|wrestling|gymnast|track and field|swimming|water polo)\b/i;
+const FOOTBALL_SIGNAL =
+  /\b(football|cfb|fbs|fcs|heisman|touchdown|quarterback|kickoff|college football|ncaaf|cy-hawk)\b/i;
+const CFB_PROGRAMS =
+  /\b(alabama|auburn|georgia|florida|lsu|tennessee|kentucky|ole miss|mississippi|arkansas|missouri|oklahoma|texas|baylor|tcu|houston|ohio state|michigan|penn state|oregon|washington|usc|ucla|iowa|wisconsin|nebraska|illinois|indiana|purdue|minnesota|maryland|rutgers|notre dame|clemson|miami|florida state|north carolina|nc state|virginia|louisville|syracuse|pitt|stanford|colorado|utah|arizona|kansas|byu|cincinnati|ucf|memphis|tulane|navy|army|boise state|liberty)\b/i;
+const MIXED_SPORTS_CHANNELS = new Set(["big ten network", "barstool bench mob"]);
+const CFB_ONLY_CHANNELS = new Set(
+  CFB_YOUTUBE_CHANNELS.filter((c) => !MIXED_SPORTS_CHANNELS.has(c.label.toLowerCase())).map((c) =>
+    c.label.toLowerCase()
+  )
+);
+
+export function isCollegeFootballVideo(title: string, channel: string): boolean {
+  if (NON_FOOTBALL.test(title)) return false;
+  if (FOOTBALL_SIGNAL.test(title) || FOOTBALL_SIGNAL.test(channel)) return true;
+  const ch = channel.toLowerCase();
+  if (ch.includes("college football") || ch.includes("cfb") || CFB_ONLY_CHANNELS.has(ch)) {
+    return true;
+  }
+  return CFB_PROGRAMS.test(title);
+}
+
 export function isCurrentSeasonVideo(publishedAt: string, seasonYear: number): boolean {
   const date = new Date(publishedAt);
   if (Number.isNaN(date.getTime())) return false;
@@ -242,8 +265,10 @@ export function assembleHighlights({
   now?: Date;
 }): HighlightsResponse {
   const seasonYear = currentCfbSeasonYear(now);
-  const live = [...rssVideos, ...apiVideos].filter((video) =>
-    isCurrentSeasonVideo(video.publishedAt, seasonYear)
+  const live = [...rssVideos, ...apiVideos].filter(
+    (video) =>
+      isCurrentSeasonVideo(video.publishedAt, seasonYear) &&
+      isCollegeFootballVideo(video.title, video.channel)
   );
   const videos = mixHighlightFeed(live, FEED_LIMIT);
 
