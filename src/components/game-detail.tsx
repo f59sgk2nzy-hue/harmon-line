@@ -4,6 +4,7 @@ import { PlayByPlay } from "@/components/play-by-play";
 import { TeamLogo } from "@/components/team-logo";
 import { formatKickoff, formatPollClock } from "@/lib/dates";
 import { hasPeriodScores, periodLabel } from "@/lib/espn-parse";
+import { teamHref } from "@/lib/espn-team";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import type { GameDetailResponse, TeamSide } from "@/lib/types";
 import { ArrowLeft, RefreshCw } from "lucide-react";
@@ -29,11 +30,14 @@ function ScoreColumn({
         size={48}
       />
       <div className="min-w-0">
-        <p className="font-display text-xl leading-none tracking-wide text-white sm:text-3xl">
+        <Link
+          href={teamHref(team.id)}
+          className="font-display text-xl leading-none tracking-wide text-white no-underline sm:text-3xl"
+        >
           {team.rank ? <span className="mr-1 text-[#f3c14b]">{team.rank}</span> : null}
           {team.shortName.toUpperCase()}
           {possess ? <span className="ml-2 text-sm text-[#f3c14b]">●</span> : null}
-        </p>
+        </Link>
         <p className="mt-1 font-mono text-[11px] text-white/50">
           {team.abbreviation}
           {team.record ? ` · ${team.record}` : ""}

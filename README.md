@@ -49,6 +49,18 @@ None required. Copy `.env.example` only if you want to point at a different ESPN
 
 **Honesty rule:** The app never invents live scores. If ESPN is unreachable you get an error state, not a silent demo. There is no sample-score mode.
 
+## Team pages
+
+Tap a school name on a scoreboard card or game page to open `/team/{espnId}`. That page loads ESPN’s public team endpoints (same hosts as the scoreboard, no API key):
+
+| Piece | Endpoint | What you see |
+| --- | --- | --- |
+| Profile | `/teams/{id}` | Name, record, standing, conference, rank |
+| Schedule | `/teams/{id}/schedule` | Recent results (W/L + score) and upcoming games |
+| Roster | `/teams/{id}/roster` | Jersey, position, class, size — grouped by offense/defense/specialists |
+
+**Gaps:** D2 and NAIA rosters/schedules are often missing on this feed. The page shows a labeled empty state (`ROSTER NOT ON THIS FEED` / `SCHEDULE NOT PUBLISHED`) instead of inventing players or scores. Opponent names on the team page also link through when ESPN published an id.
+
 ## Highlights / Reactions strip
 
 The home board shows a swipeable **HIGHLIGHTS / REACTIONS** row under the ESPN red header and above the game grid. It mixes game highlights / big plays with reaction videos for the current college football season.
@@ -89,6 +101,7 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 - Filter D1 / D2 / NAIA, plus FBS vs FCS on Division I
 - Filter by conference, live/upcoming/final, team search, and date
 - Open a game for the scorebug, quarter lines, scoring plays, and a drive-by-drive feed (or a clear “no PBP” state)
+- Tap a school name on the board or a game to open recent scores, the upcoming slate, and the roster
 - Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips
 - Watch the bottom-line ticker for the full slate
 - Install the board on a phone home screen or pin it as a Windows app
