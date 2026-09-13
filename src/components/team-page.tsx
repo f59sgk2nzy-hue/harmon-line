@@ -1,9 +1,11 @@
+import { EmptyState } from "@/components/empty-state";
 import { TeamLogo } from "@/components/team-logo";
 import { formatBoardDate, isoToEspnDate } from "@/lib/dates";
 import { teamHref } from "@/lib/espn-team";
 import type { TeamPageResponse, TeamScheduleGame } from "@/lib/types";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { ViewTransition } from "react";
 
 function resultTone(result: TeamScheduleGame["result"]): string {
   if (result === "W") return "bg-[#0d3d0d] text-[#8ee08e]";
@@ -18,7 +20,7 @@ function ScheduleRow({ game }: { game: TeamScheduleGame }) {
     : "";
   const at = game.homeAway === "away" ? "@" : "vs";
   return (
-    <div className="grid grid-cols-[36px_1fr_auto] items-center gap-2 px-3 py-2.5 sm:grid-cols-[40px_1fr_auto]">
+    <div className="grid grid-cols-[36px_1fr_auto] items-center gap-2 px-2 py-1 sm:grid-cols-[40px_1fr_auto] sm:px-3">
       <span
         className={`inline-flex size-8 items-center justify-center rounded-sm font-display text-xs tracking-[0.08em] ${resultTone(game.result)}`}
       >
@@ -27,19 +29,24 @@ function ScheduleRow({ game }: { game: TeamScheduleGame }) {
       <div className="min-w-0">
         <Link
           href={teamHref(game.opponent.id)}
-          className="flex items-center gap-2 no-underline"
+          transitionTypes={["nav-forward"]}
+          className="pressable tap-row flex items-center gap-2 px-1 no-underline"
         >
-          <TeamLogo
-            src={game.opponent.logo}
-            alt=""
-            abbreviation={game.opponent.abbreviation}
-            size={22}
-          />
-          <span className="truncate font-display text-sm tracking-wide text-white">
+          <ViewTransition name={`team-logo-${game.opponent.id}`} share="morph" default="none">
+            <span className="inline-flex">
+              <TeamLogo
+                src={game.opponent.logo}
+                alt=""
+                abbreviation={game.opponent.abbreviation}
+                size={22}
+              />
+            </span>
+          </ViewTransition>
+          <span className="truncate font-display text-sm tracking-wide text-white sm:text-base">
             {at} {game.opponent.name.toUpperCase()}
           </span>
         </Link>
-        <p className="mt-0.5 truncate font-mono text-[10px] text-white/45">
+        <p className="mt-0.5 truncate px-1 font-mono text-[10px] text-white/45">
           {game.state === "pre" ? game.shortDetail : dateLabel}
           {game.broadcast ? `  ·  ${game.broadcast}` : ""}
           {game.venue ? `  ·  ${game.venue}` : ""}
@@ -47,21 +54,13 @@ function ScheduleRow({ game }: { game: TeamScheduleGame }) {
       </div>
       <Link
         href={`/game/${game.id}`}
-        className="shrink-0 text-right font-display text-lg leading-none text-white no-underline"
+        transitionTypes={["nav-forward"]}
+        className="pressable tap-row inline-flex min-h-12 min-w-16 items-center justify-end px-2 text-right font-display text-lg leading-none text-white no-underline sm:text-xl"
       >
         {game.teamScore != null && game.opponentScore != null
           ? `${game.teamScore}–${game.opponentScore}`
           : "—"}
       </Link>
-    </div>
-  );
-}
-
-function EmptyBlock({ headline, detail }: { headline: string; detail: string }) {
-  return (
-    <div className="px-3 py-6">
-      <p className="font-display text-xs tracking-[0.16em] text-[#f3c14b]">{headline}</p>
-      <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/55">{detail}</p>
     </div>
   );
 }
@@ -75,16 +74,20 @@ export function TeamPageView({
 }) {
   if (!data) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-10 pb-16">
-        <Link href="/" className="font-display text-xs tracking-[0.16em] text-white/60">
+      <div className="page-enter mx-auto max-w-5xl px-4 py-10 pb-16">
+        <Link
+          href="/"
+          transitionTypes={["nav-back"]}
+          className="pressable font-display text-xs tracking-[0.16em] text-white/60"
+        >
           ← BACK TO THE BOARD
         </Link>
-        <p className="mt-6 font-display text-2xl tracking-[0.12em] text-white">
-          {error ?? "Team unavailable"}
-        </p>
-        <p className="mt-2 font-mono text-xs text-white/50">
-          Live scores and rosters are never invented. If ESPN has no page for this school, it stays empty.
-        </p>
+        <EmptyState
+          className="mt-6"
+          kicker="ESPN TEAM FEED"
+          headline={error ?? "TEAM UNAVAILABLE"}
+          detail="Live scores and rosters are never invented. If ESPN has no page for this school, it stays empty."
+        />
       </div>
     );
   }
@@ -95,13 +98,15 @@ export function TeamPageView({
     acc[key] = acc[key] ? [...acc[key]!, player] : [player];
     return acc;
   }, {});
+  const wash = team.color ? `#${team.color.replace("#", "")}` : null;
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-3 py-4 pb-16 sm:px-5">
+    <div className="page-enter mx-auto w-full max-w-5xl px-3 py-4 pb-16 sm:px-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 font-display text-xs tracking-[0.16em] text-white/70"
+          transitionTypes={["nav-back"]}
+          className="pressable inline-flex min-h-10 items-center gap-1.5 font-display text-xs tracking-[0.16em] text-white/70"
         >
           <ArrowLeft className="size-3.5" />
           BOARD
@@ -111,21 +116,34 @@ export function TeamPageView({
         </p>
       </div>
 
-      <section className="score-cell overflow-hidden">
+      <section
+        className="score-cell overflow-hidden"
+        style={
+          wash
+            ? {
+                backgroundImage: `linear-gradient(100deg, ${wash}40, transparent 62%)`,
+              }
+            : undefined
+        }
+      >
         <div className="flex items-center gap-3 px-3 py-3 sm:px-4 sm:py-4">
-          <TeamLogo
-            src={team.logo}
-            alt=""
-            abbreviation={team.abbreviation}
-            color={team.color}
-            size={56}
-          />
+          <ViewTransition name={`team-logo-${team.id}`} share="morph" default="none">
+            <span className="inline-flex">
+              <TeamLogo
+                src={team.logo}
+                alt=""
+                abbreviation={team.abbreviation}
+                color={team.color}
+                size={56}
+              />
+            </span>
+          </ViewTransition>
           <div className="min-w-0">
-            <p className="font-display text-xl leading-none tracking-wide text-white sm:text-3xl">
+            <p className="font-display text-2xl leading-none tracking-wide text-white sm:text-4xl">
               {team.rank ? <span className="mr-1 text-[#f3c14b]">{team.rank}</span> : null}
               {team.name.toUpperCase()}
             </p>
-            <p className="mt-1.5 font-mono text-[11px] text-white/55">
+            <p className="mt-2 font-mono text-[11px] text-white/55">
               {team.abbreviation}
               {team.record ? `  ·  ${team.record}` : ""}
               {team.conferenceName ? `  ·  ${team.conferenceName}` : ""}
@@ -136,24 +154,38 @@ export function TeamPageView({
       </section>
 
       <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 sm:hidden">
-        <a href="#recent" className="shrink-0 rounded-sm bg-[#cc0000] px-2 py-1 font-display text-[10px] tracking-[0.16em] text-white no-underline">
+        <a
+          href="#recent"
+          className="pressable chip-hit chip-red shrink-0 no-underline"
+        >
           RECENT
         </a>
-        <a href="#upcoming" className="shrink-0 rounded-sm border border-white/15 px-2 py-1 font-display text-[10px] tracking-[0.16em] text-white/80 no-underline">
+        <a
+          href="#upcoming"
+          className="pressable chip-hit chip-idle shrink-0 border border-white/15 no-underline"
+        >
           SCHEDULE
         </a>
-        <a href="#roster" className="shrink-0 rounded-sm border border-white/15 px-2 py-1 font-display text-[10px] tracking-[0.16em] text-white/80 no-underline">
+        <a
+          href="#roster"
+          className="pressable chip-hit chip-idle shrink-0 border border-white/15 no-underline"
+        >
           ROSTER
         </a>
       </nav>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <section id="recent" className="border border-white/10 bg-[#111]">
+        <section id="recent" className="board-glass">
           <h2 className="border-b border-white/10 px-3 py-2 font-display text-xs tracking-[0.18em] text-[#f3c14b]">
             RECENT
           </h2>
           {recent.length === 0 ? (
-            <EmptyBlock headline={coverage.schedule.headline} detail={coverage.schedule.detail} />
+            <EmptyState
+              className="border-0 bg-transparent shadow-none"
+              kicker={coverage.schedule.headline}
+              headline="NO RECENT GAMES"
+              detail={coverage.schedule.detail}
+            />
           ) : (
             <div className="divide-y divide-white/5">
               {recent.map((game) => (
@@ -163,13 +195,15 @@ export function TeamPageView({
           )}
         </section>
 
-        <section id="upcoming" className="border border-white/10 bg-[#111]">
+        <section id="upcoming" className="board-glass">
           <h2 className="border-b border-white/10 px-3 py-2 font-display text-xs tracking-[0.18em] text-[#f3c14b]">
             UPCOMING
           </h2>
           {upcoming.length === 0 ? (
-            <EmptyBlock
-              headline={recent.length === 0 ? coverage.schedule.headline : "NO UPCOMING GAMES ON FEED"}
+            <EmptyState
+              className="border-0 bg-transparent shadow-none"
+              kicker={recent.length === 0 ? coverage.schedule.headline : "ESPN SCHEDULE"}
+              headline="NO UPCOMING GAMES ON FEED"
               detail={
                 recent.length === 0
                   ? coverage.schedule.detail
@@ -186,7 +220,7 @@ export function TeamPageView({
         </section>
       </div>
 
-      <section id="roster" className="mt-4 border border-white/10 bg-[#111]">
+      <section id="roster" className="board-glass mt-4">
         <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
           <h2 className="font-display text-xs tracking-[0.18em] text-[#f3c14b]">ROSTER</h2>
           <p className="font-mono text-[10px] text-white/40">
@@ -194,7 +228,12 @@ export function TeamPageView({
           </p>
         </div>
         {roster.length === 0 ? (
-          <EmptyBlock headline={coverage.roster.headline} detail={coverage.roster.detail} />
+          <EmptyState
+            className="border-0 bg-transparent shadow-none"
+            kicker={coverage.roster.headline}
+            headline="ROSTER NOT ON THIS FEED"
+            detail={coverage.roster.detail}
+          />
         ) : (
           <div>
             {Object.entries(groups).map(([group, players]) => (
@@ -206,7 +245,7 @@ export function TeamPageView({
                   {players.map((player) => (
                     <li
                       key={player.id}
-                      className="grid grid-cols-[2.25rem_1fr_auto] items-center gap-2 px-3 py-2"
+                      className="grid min-h-12 grid-cols-[2.25rem_1fr_auto] items-center gap-2 px-3 py-2"
                     >
                       <span className="font-display text-sm text-[#f3c14b]">
                         {player.jersey ? `#${player.jersey}` : "—"}

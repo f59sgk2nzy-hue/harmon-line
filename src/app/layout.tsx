@@ -12,7 +12,7 @@ const sourceSans = Source_Sans_3({
 const oswald = Oswald({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const geistMono = Geist_Mono({

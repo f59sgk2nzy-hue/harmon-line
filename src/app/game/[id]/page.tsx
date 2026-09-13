@@ -1,5 +1,6 @@
 import { BoardHeader } from "@/components/header";
 import { GameDetailView } from "@/components/game-detail";
+import { PageTransition } from "@/components/page-transition";
 import { formatBoardDate, todayEspnDate } from "@/lib/dates";
 import { getGameDetail } from "@/lib/espn";
 
@@ -32,7 +33,9 @@ export default async function GamePage({
   return (
     <>
       <BoardHeader dateLabel={dateLabel} week={initial?.game.week} />
-      <GameDetailView gameId={id} initial={initial} initialError={initialError} />
+      <PageTransition>
+        <GameDetailView gameId={id} initial={initial} initialError={initialError} />
+      </PageTransition>
     </>
   );
 }

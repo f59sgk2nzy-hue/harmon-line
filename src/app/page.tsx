@@ -1,5 +1,6 @@
 import { BoardHeader } from "@/components/header";
 import { HighlightsStrip } from "@/components/highlights-strip";
+import { PageTransition } from "@/components/page-transition";
 import { ScoreboardView } from "@/components/scoreboard-view";
 import { parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, parseDateParam } from "@/lib/dates";
@@ -47,18 +48,20 @@ export default async function Home({
   return (
     <>
       <BoardHeader dateLabel={formatBoardDate(date)} week={initial?.week} />
-      <HighlightsStrip initial={highlights} initialError={highlightsError} />
-      <ScoreboardView
-        key={`${division}-${date}-${subdivision}-${conference}-${status}-${query}`}
-        initial={initial}
-        initialError={initialError}
-        date={date}
-        division={division}
-        subdivision={subdivision}
-        conference={conference}
-        status={status}
-        query={query}
-      />
+      <PageTransition>
+        <HighlightsStrip initial={highlights} initialError={highlightsError} />
+        <ScoreboardView
+          key={`${division}-${date}-${subdivision}`}
+          initial={initial}
+          initialError={initialError}
+          date={date}
+          division={division}
+          subdivision={subdivision}
+          conference={conference}
+          status={status}
+          query={query}
+        />
+      </PageTransition>
     </>
   );
 }

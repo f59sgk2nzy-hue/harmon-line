@@ -18,7 +18,10 @@ export function BottomLine({ games }: { games: GameSummary[] }) {
   const loop = items.length > 0 ? [...items, ...items] : [];
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 flex h-10 border-t border-black bg-black pb-[env(safe-area-inset-bottom)] text-white">
+    <div
+      className="fixed inset-x-0 bottom-0 z-40 flex h-10 border-t border-black bg-black pb-[env(safe-area-inset-bottom)] text-white"
+      style={{ viewTransitionName: "bottom-line" }}
+    >
       <div className="espn-red-bar flex shrink-0 items-center px-3 font-display text-[11px] tracking-[0.2em] sm:text-xs">
         BOTTOM LINE
       </div>
@@ -35,7 +38,8 @@ export function BottomLine({ games }: { games: GameSummary[] }) {
                 className="inline-flex items-center gap-3 font-mono text-[11px] tracking-wide text-white sm:text-xs"
               >
                 {game.status.state === "in" && (
-                  <span className="live-dot font-display text-[10px] tracking-[0.16em] text-[#ff3b3b]">
+                  <span className="live-pill px-1.5 font-display text-[10px] tracking-[0.16em]">
+                    <span className="live-dot" />
                     LIVE
                   </span>
                 )}

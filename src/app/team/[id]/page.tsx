@@ -1,4 +1,5 @@
 import { BoardHeader } from "@/components/header";
+import { PageTransition } from "@/components/page-transition";
 import { TeamPageView } from "@/components/team-page";
 import { formatBoardDate, todayEspnDate } from "@/lib/dates";
 import { getTeamPage } from "@/lib/espn-team";
@@ -37,7 +38,9 @@ export default async function TeamPage({
   return (
     <>
       <BoardHeader dateLabel={data?.team.abbreviation ?? formatBoardDate(todayEspnDate())} />
-      <TeamPageView data={data} error={error} />
+      <PageTransition>
+        <TeamPageView data={data} error={error} />
+      </PageTransition>
     </>
   );
 }
