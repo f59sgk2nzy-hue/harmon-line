@@ -2,8 +2,23 @@ import { BoardHeader } from "@/components/header";
 import { TeamPageView } from "@/components/team-page";
 import { formatBoardDate, todayEspnDate } from "@/lib/dates";
 import { getTeamPage } from "@/lib/espn-team";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const data = await getTeamPage(id);
+    return { title: `${data.team.name} — The Harmon Line` };
+  } catch {
+    return { title: "Team — The Harmon Line" };
+  }
+}
 
 export default async function TeamPage({
   params,

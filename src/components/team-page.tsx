@@ -1,5 +1,5 @@
 import { TeamLogo } from "@/components/team-logo";
-import { formatBoardDate, formatKickoff, isoToEspnDate } from "@/lib/dates";
+import { formatBoardDate, isoToEspnDate } from "@/lib/dates";
 import { teamHref } from "@/lib/espn-team";
 import type { TeamPageResponse, TeamScheduleGame } from "@/lib/types";
 import { ArrowLeft } from "lucide-react";
@@ -40,7 +40,7 @@ function ScheduleRow({ game }: { game: TeamScheduleGame }) {
           </span>
         </Link>
         <p className="mt-0.5 truncate font-mono text-[10px] text-white/45">
-          {game.state === "pre" ? formatKickoff(game.date) : dateLabel}
+          {game.state === "pre" ? game.shortDetail : dateLabel}
           {game.broadcast ? `  ·  ${game.broadcast}` : ""}
           {game.venue ? `  ·  ${game.venue}` : ""}
         </p>
