@@ -1,5 +1,6 @@
 "use client";
 
+import { useLivePoll } from "@/lib/hooks";
 import {
   HIGHLIGHTS_REFRESH_MS,
   highlightsSourceNote,
@@ -7,7 +8,7 @@ import {
   type HighlightsResponse,
 } from "@/lib/youtube";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export function HighlightsStrip({
   initial,
@@ -36,13 +37,7 @@ export function HighlightsStrip({
     }
   }, []);
 
-  useEffect(() => {
-    if (!initial) void load();
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") void load();
-    }, HIGHLIGHTS_REFRESH_MS);
-    return () => window.clearInterval(timer);
-  }, [initial, load]);
+  useLivePoll(load, { intervalMs: HIGHLIGHTS_REFRESH_MS, runOnMount: !initial });
 
   const scrollByCard = (direction: -1 | 1) => {
     const el = scrollerRef.current;
