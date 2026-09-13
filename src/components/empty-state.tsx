@@ -14,7 +14,7 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn("empty-panel px-5 py-10 text-center sm:px-8 sm:py-12", className)}>
+    <div className={cn("empty-panel px-5 py-6 text-center sm:px-8 sm:py-12", className)}>
       <p className="font-display text-[11px] tracking-[0.22em] text-[#f3c14b]">{kicker}</p>
       <p className="mt-3 font-display text-xl tracking-[0.12em] text-white sm:text-2xl">
         {headline}

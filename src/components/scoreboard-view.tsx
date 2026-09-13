@@ -336,43 +336,33 @@ export function ScoreboardView({
             </div>
           ) : null}
 
-          <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] tracking-wide text-white/50">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="flex flex-wrap items-center gap-2">
-                <span className="live-pill font-display text-[10px] tracking-[0.16em]">
-                  <span className={live > 0 ? "live-dot" : "live-dot live-dot-idle"} />
-                  {live} LIVE
-                </span>
-                <span className="text-white/25">|</span>
+          <div className="flex items-center justify-between gap-2 font-mono text-[10px] tracking-wide text-white/50">
+            <p className="flex min-w-0 flex-wrap items-center gap-2">
+              <span className="live-pill font-display text-[10px] tracking-[0.16em]">
+                <span className={live > 0 ? "live-dot" : "live-dot live-dot-idle"} />
+                {live} LIVE
+              </span>
+              <span className="hidden sm:inline">
                 {board ? `${games.length} shown / ${board.games.length} on board` : "Loading"}
-                {localConference !== "all" || localStatus !== "all" || localQuery.trim() ? (
-                  <>
-                    <span className="text-white/25">|</span>
-                    FILTERED
-                  </>
-                ) : null}
-                {lastStamp ? (
-                  <>
-                    <span className="text-white/25">|</span>
-                    POLLED {lastStamp}
-                  </>
-                ) : null}
-              </p>
-              <button
-                type="button"
-                onClick={() => void refresh()}
-                className="pressable inline-flex items-center gap-1 rounded-sm border border-white/15 px-2 py-1 font-display text-[10px] tracking-[0.14em] text-white/70"
-              >
-                <RefreshCw className="size-3" />
-                REFRESH
-              </button>
-            </div>
-            <p className="text-[#f3c14b]/80">{formatBoardDate(date)}</p>
+                {localConference !== "all" || localStatus !== "all" || localQuery.trim()
+                  ? "  ·  FILTERED"
+                  : ""}
+                {lastStamp ? `  ·  POLLED ${lastStamp}` : ""}
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className="pressable inline-flex items-center gap-1 rounded-sm border border-white/15 px-2 py-1 font-display text-[10px] tracking-[0.14em] text-white/70"
+            >
+              <RefreshCw className="size-3" />
+              REFRESH
+            </button>
           </div>
         </div>
       </div>
 
-      <main className="page-enter mx-auto w-full max-w-6xl flex-1 px-3 py-4 sm:px-5">
+      <main className="page-enter mx-auto w-full max-w-6xl flex-1 px-3 py-3 pb-6 sm:px-5 sm:py-4">
         {board ? (
           <div className="board-glass mb-3 hidden border-l-4 border-[#cc0000] px-3 py-2.5 sm:mb-4 sm:block">
             <p className="font-display text-xs tracking-[0.16em] text-[#f3c14b]">
