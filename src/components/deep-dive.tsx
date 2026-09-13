@@ -162,7 +162,7 @@ export function DeepDiveView({
           </p>
           <span
             data-sim-label
-            className="rounded-sm bg-[#cc0000] px-2 py-0.5 font-display text-[10px] tracking-[0.2em] text-white"
+            className="inline-flex min-h-7 items-center rounded-sm bg-[#cc0000] px-2.5 font-display text-[11px] tracking-[0.2em] text-white"
           >
             SIMULATION
           </span>
@@ -172,6 +172,9 @@ export function DeepDiveView({
           <div className="text-center">
             <p className="font-display text-[10px] tracking-[0.18em] text-[#f3c14b]">
               INFERENCE  ·  EXPECTED SCORE
+            </p>
+            <p className="mt-2 inline-flex min-h-7 items-center rounded-sm bg-[#cc0000] px-2.5 font-display text-[11px] tracking-[0.2em] text-white">
+              SIMULATION
             </p>
             <p className="mt-1 font-display text-3xl leading-none text-white sm:text-4xl">
               {Math.round(simulation.expectedAwayScore)}

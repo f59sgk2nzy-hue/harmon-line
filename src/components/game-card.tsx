@@ -131,7 +131,7 @@ export function GameCard({ game }: { game: GameSummary }) {
         <div className="flex shrink-0 items-center gap-2">
           <Link
             href={deepDiveHref(game.id)}
-            className="inline-flex min-h-8 items-center font-display text-[10px] tracking-[0.16em] text-[#f3c14b] no-underline"
+            className="inline-flex min-h-11 items-center font-display text-[10px] tracking-[0.16em] text-[#f3c14b] no-underline"
           >
             SIM
           </Link>

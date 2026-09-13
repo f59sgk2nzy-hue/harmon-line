@@ -20,7 +20,7 @@ export function DisclaimerModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-2 inline-flex min-h-11 items-center font-display text-[10px] tracking-[0.16em] text-[#f3c14b] underline-offset-2 hover:underline"
+        className="mt-2 inline-flex min-h-11 items-center rounded-sm border border-[#f3c14b] bg-[#3d1a00] px-3 font-display text-[10px] tracking-[0.16em] text-[#f3c14b]"
       >
         FULL DISCLAIMER · 1-800-GAMBLER
       </button>
