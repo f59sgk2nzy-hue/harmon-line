@@ -8,7 +8,9 @@ import {
   isCurrentSeasonVideo,
   mixHighlightFeed,
   parseYoutubeAtom,
+  highlightsSourceNote,
   sampleHighlightVideos,
+  sampleHighlightsBoard,
   youtubeThumbnailUrl,
 } from "./youtube";
 
@@ -238,5 +240,36 @@ describe("sampleHighlightVideos", () => {
     assert.ok(cards.every((v) => v.title.includes("SAMPLE")));
     assert.ok(cards.some((v) => v.kind === "highlight"));
     assert.ok(cards.some((v) => v.kind === "reaction"));
+  });
+});
+
+describe("sampleHighlightsBoard", () => {
+  it("is the labeled SAMPLE fallback, not a live YouTube feed", () => {
+    const board = sampleHighlightsBoard(new Date("2026-09-13T18:00:00.000Z"));
+    assert.equal(board.sample, true);
+    assert.equal(board.source, "sample");
+    assert.equal(board.seasonYear, 2026);
+    assert.ok(board.videos.length > 0);
+    assert.ok(board.videos.every((v) => v.sample && v.title.includes("SAMPLE")));
+  });
+});
+
+describe("highlightsSourceNote", () => {
+  it("says LOADING only when there is no board yet", () => {
+    assert.equal(highlightsSourceNote(null), "LOADING YOUTUBE FEED");
+  });
+
+  it("labels live RSS vs SAMPLE fallback so SSR cards are not mistaken for a hang", () => {
+    const live = assembleHighlights({
+      rssVideos: parseYoutubeAtom(SAMPLE_ATOM, "highlight"),
+      apiVideos: [],
+      apiKeyConfigured: false,
+      now: new Date("2026-09-13T18:00:00.000Z"),
+    });
+    assert.equal(highlightsSourceNote(live), "YOUTUBE RSS  ·  NO API KEY  ·  NO DEMO SCORES");
+    assert.equal(
+      highlightsSourceNote(sampleHighlightsBoard(new Date("2026-09-13T18:00:00.000Z"))),
+      "SAMPLE CARDS  ·  LIVE YOUTUBE FEED UNAVAILABLE  ·  NOT LIVE SCORES"
+    );
   });
 });

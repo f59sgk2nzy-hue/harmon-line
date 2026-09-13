@@ -206,6 +206,28 @@ export function mixHighlightFeed(videos: HighlightVideo[], limit = FEED_LIMIT): 
   return mixed;
 }
 
+export function sampleHighlightsBoard(now = new Date()): HighlightsResponse {
+  const seasonYear = currentCfbSeasonYear(now);
+  return {
+    source: "sample",
+    sample: true,
+    seasonYear,
+    generatedAt: now.toISOString(),
+    apiKeyConfigured: Boolean(process.env.YOUTUBE_API_KEY?.trim()),
+    videos: sampleHighlightVideos(seasonYear),
+  };
+}
+
+export function highlightsSourceNote(board: HighlightsResponse | null): string {
+  if (!board) return "LOADING YOUTUBE FEED";
+  if (board.sample) {
+    return "SAMPLE CARDS  ·  LIVE YOUTUBE FEED UNAVAILABLE  ·  NOT LIVE SCORES";
+  }
+  if (board.source === "mixed") return "YOUTUBE RSS + DATA API  ·  NO DEMO SCORES";
+  if (board.source === "youtube-data-api") return "YOUTUBE DATA API  ·  NO DEMO SCORES";
+  return "YOUTUBE RSS  ·  NO API KEY  ·  NO DEMO SCORES";
+}
+
 export function sampleHighlightVideos(seasonYear: number): HighlightVideo[] {
   const search = (q: string) =>
     `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
