@@ -28,7 +28,7 @@ export function PlayByPlay({
 
   if (!available) {
     return (
-      <div className="border border-white/10 bg-[#111] px-4 py-8">
+      <div className="board-glass px-4 py-8">
         <p className="font-display text-lg tracking-[0.14em] text-white">
           PLAY-BY-PLAY NOT ON THIS FEED
         </p>
@@ -45,7 +45,7 @@ export function PlayByPlay({
   }
 
   return (
-    <div className="border border-white/10 bg-[#101010]">
+    <div className="board-glass">
       <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
         <h2 className="font-display text-sm tracking-[0.2em] text-[#f3c14b]">
           PLAY-BY-PLAY

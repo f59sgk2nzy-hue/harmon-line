@@ -1,9 +1,11 @@
 "use client";
 
+import { EmptyState } from "@/components/empty-state";
+import { FilterChip } from "@/components/filter-chip";
 import { GameCard } from "@/components/game-card";
 import { BottomLine } from "@/components/ticker";
 import { Skeleton } from "@/components/ui/skeleton";
-import { boardHref } from "@/lib/board-url";
+import { boardHref, parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, formatPollClock, shiftEspnDate } from "@/lib/dates";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import type {
@@ -12,9 +14,9 @@ import type {
   StatusFilter,
   SubdivisionId,
 } from "@/lib/types";
-import { ChevronLeft, ChevronRight, Radio, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const DIVISIONS: { id: DivisionId; label: string; hint: string }[] = [
   { id: "d1", label: "DIV I", hint: "FBS + FCS" },
@@ -79,6 +81,21 @@ export function ScoreboardView({
   const [board, setBoard] = useState<ScoreboardResponse | null>(initial);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [updatedAt, setUpdatedAt] = useState(initial?.generatedAt ?? null);
+  const [localConference, setLocalConference] = useState(conference);
+  const [localStatus, setLocalStatus] = useState(status);
+  const [localQuery, setLocalQuery] = useState(query);
+  const queryTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    const onPop = () => {
+      const params = new URLSearchParams(window.location.search);
+      setLocalConference(params.get("conference") ?? "all");
+      setLocalStatus(parseStatusFilter(params.get("status")));
+      setLocalQuery(params.get("q") ?? "");
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -103,8 +120,8 @@ export function ScoreboardView({
   useLivePoll(refresh, { intervalMs: BOARD_REFRESH_MS });
 
   const games = useMemo(
-    () => filterGames(board, conference, status, query),
-    [board, conference, status, query]
+    () => filterGames(board, localConference, localStatus, localQuery),
+    [board, localConference, localStatus, localQuery]
   );
 
   const hrefFor = (next: {
@@ -119,40 +136,72 @@ export function ScoreboardView({
       division: next.division ?? division,
       date: next.date ?? date,
       subdivision: next.subdivision ?? subdivision,
-      conference: next.conference ?? conference,
-      status: next.status ?? status,
-      q: next.q ?? query,
+      conference: next.conference ?? localConference,
+      status: next.status ?? localStatus,
+      q: next.q ?? localQuery,
     });
+
+  const applyClientFilter = (next: {
+    conference?: string;
+    status?: StatusFilter;
+    q?: string;
+  }) => {
+    if (next.conference !== undefined) setLocalConference(next.conference);
+    if (next.status !== undefined) setLocalStatus(next.status);
+    if (next.q !== undefined) setLocalQuery(next.q);
+    window.history.replaceState(
+      null,
+      "",
+      hrefFor({
+        conference: next.conference ?? localConference,
+        status: next.status ?? localStatus,
+        q: next.q ?? localQuery,
+      })
+    );
+  };
+
+  const onQueryChange = (value: string) => {
+    setLocalQuery(value);
+    if (queryTimer.current) window.clearTimeout(queryTimer.current);
+    queryTimer.current = window.setTimeout(() => {
+      window.history.replaceState(
+        null,
+        "",
+        hrefFor({
+          conference: localConference,
+          status: localStatus,
+          q: value,
+        })
+      );
+    }, 180);
+  };
 
   const live = board?.liveCount ?? 0;
   const lastStamp = updatedAt ? formatPollClock(updatedAt) : null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col pb-14">
-      <div className="sticky top-0 z-30 border-b border-white/10 bg-[#0e0e0e]/95 backdrop-blur">
+      <div className="sticky top-0 z-30 border-b border-white/10 bg-[#0e0e0e]/82 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-3 py-3 sm:px-5">
           <div className="flex flex-wrap items-center gap-2">
             {DIVISIONS.map((item) => {
               const active = division === item.id;
               return (
-                <Link
+                <FilterChip
                   key={item.id}
                   href={hrefFor({
                     division: item.id,
                     subdivision: "all",
                     conference: "all",
                   })}
-                  className={`rounded-sm border px-3 py-1.5 font-display text-sm tracking-[0.16em] no-underline ${
-                    active
-                      ? "border-[#cc0000] bg-[#cc0000] text-white"
-                      : "border-white/15 bg-black text-white/70 hover:border-white/40 hover:text-white"
-                  }`}
+                  active={active}
+                  tone="red"
                 >
                   {item.label}
                   <span className="ml-2 hidden font-mono text-[10px] tracking-normal text-white/60 sm:inline">
                     {item.hint}
                   </span>
-                </Link>
+                </FilterChip>
               );
             })}
 
@@ -165,17 +214,15 @@ export function ScoreboardView({
                     ["fcs", "FCS"],
                   ] as const
                 ).map(([id, label]) => (
-                  <Link
+                  <FilterChip
                     key={id}
                     href={hrefFor({ subdivision: id })}
-                    className={`rounded-sm px-2 py-1 font-mono text-[10px] tracking-[0.14em] no-underline ${
-                      subdivision === id
-                        ? "bg-white text-black"
-                        : "text-white/55 hover:text-white"
-                    }`}
+                    active={subdivision === id}
+                    tone="inverse"
+                    className="font-mono text-[10px] tracking-[0.14em]"
                   >
                     {label}
-                  </Link>
+                  </FilterChip>
                 ))}
               </div>
             )}
@@ -186,15 +233,15 @@ export function ScoreboardView({
               <Link
                 href={hrefFor({ date: shiftEspnDate(date, -1) })}
                 aria-label="Previous day"
-                className="inline-flex size-7 items-center justify-center rounded-sm border border-white/15 bg-black text-white hover:border-white/40"
+                className="pressable inline-flex size-8 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white"
               >
                 <ChevronLeft className="size-4" />
               </Link>
-              <p className="px-1 font-mono text-[11px] text-white/70">{formatBoardDate(date)}</p>
+              <p className="px-1.5 font-mono text-[11px] text-white/70">{formatBoardDate(date)}</p>
               <Link
                 href={hrefFor({ date: shiftEspnDate(date, 1) })}
                 aria-label="Next day"
-                className="inline-flex size-7 items-center justify-center rounded-sm border border-white/15 bg-black text-white hover:border-white/40"
+                className="pressable inline-flex size-8 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white"
               >
                 <ChevronRight className="size-4" />
               </Link>
@@ -203,21 +250,22 @@ export function ScoreboardView({
             <div className="flex items-center gap-1">
               {(
                 [
-                  ["all", "ALL"],
-                  ["live", "LIVE"],
-                  ["upcoming", "UPCOMING"],
-                  ["final", "FINAL"],
+                  ["all", "ALL", "inverse"],
+                  ["live", "LIVE", "live"],
+                  ["upcoming", "UPCOMING", "inverse"],
+                  ["final", "FINAL", "inverse"],
                 ] as const
-              ).map(([id, label]) => (
-                <Link
+              ).map(([id, label, tone]) => (
+                <FilterChip
                   key={id}
                   href={hrefFor({ status: id })}
-                  className={`rounded-sm px-2 py-1 font-mono text-[10px] tracking-[0.14em] no-underline ${
-                    status === id ? "bg-white text-black" : "text-white/55 hover:text-white"
-                  }`}
+                  active={localStatus === id}
+                  tone={tone}
+                  className="font-mono text-[10px] tracking-[0.14em]"
+                  onSelect={() => applyClientFilter({ status: id })}
                 >
                   {label}
-                </Link>
+                </FilterChip>
               ))}
             </div>
 
@@ -225,16 +273,22 @@ export function ScoreboardView({
               action="/"
               method="get"
               className="flex min-w-0 flex-1 items-center gap-1"
+              onSubmit={(event) => {
+                event.preventDefault();
+                applyClientFilter({ q: localQuery });
+              }}
             >
               <input type="hidden" name="division" value={division} />
               <input type="hidden" name="date" value={date} />
               {subdivision !== "all" ? (
                 <input type="hidden" name="subdivision" value={subdivision} />
               ) : null}
-              {conference !== "all" ? (
-                <input type="hidden" name="conference" value={conference} />
+              {localConference !== "all" ? (
+                <input type="hidden" name="conference" value={localConference} />
               ) : null}
-              {status !== "all" ? <input type="hidden" name="status" value={status} /> : null}
+              {localStatus !== "all" ? (
+                <input type="hidden" name="status" value={localStatus} />
+              ) : null}
               <label className="sr-only" htmlFor="team-search">
                 Find a team
               </label>
@@ -243,12 +297,13 @@ export function ScoreboardView({
                 type="search"
                 name="q"
                 placeholder="Find a team…"
-                defaultValue={query}
-                className="h-8 min-w-0 flex-1 rounded-sm border border-white/15 bg-black px-2 font-mono text-xs text-white placeholder:text-white/35"
+                value={localQuery}
+                onChange={(event) => onQueryChange(event.target.value)}
+                className="board-search min-w-0 flex-1 rounded-sm px-2.5 font-mono text-xs placeholder:text-white/35"
               />
               <button
                 type="submit"
-                className="h-8 rounded-sm bg-[#cc0000] px-3 font-display text-xs tracking-[0.14em] text-white"
+                className="pressable h-9 rounded-sm bg-[#cc0000] px-3 font-display text-xs tracking-[0.14em] text-white shadow-[0_0_14px_rgb(204_0_0_/_28%)]"
               >
                 FIND
               </button>
@@ -257,38 +312,40 @@ export function ScoreboardView({
 
           {(board?.conferences.length ?? 0) > 0 ? (
             <div className="flex gap-1 overflow-x-auto pb-0.5">
-              <Link
+              <FilterChip
                 href={hrefFor({ conference: "all" })}
-                className={`shrink-0 rounded-sm px-2 py-1 font-mono text-[10px] tracking-[0.12em] no-underline ${
-                  conference === "all" ? "bg-white text-black" : "text-white/50 hover:text-white"
-                }`}
+                active={localConference === "all"}
+                tone="inverse"
+                className="shrink-0 font-mono text-[10px] tracking-[0.12em]"
+                onSelect={() => applyClientFilter({ conference: "all" })}
               >
                 ALL CONF
-              </Link>
+              </FilterChip>
               {board?.conferences.map((item) => (
-                <Link
+                <FilterChip
                   key={item.id}
                   href={hrefFor({ conference: item.id })}
-                  className={`shrink-0 rounded-sm px-2 py-1 font-mono text-[10px] tracking-[0.12em] no-underline ${
-                    conference === item.id
-                      ? "bg-[#cc0000] text-white"
-                      : "text-white/50 hover:text-white"
-                  }`}
+                  active={localConference === item.id}
+                  tone="red"
+                  className="shrink-0 font-mono text-[10px] tracking-[0.12em]"
+                  onSelect={() => applyClientFilter({ conference: item.id })}
                 >
                   {(item.abbreviation ?? item.name).toUpperCase()}
-                </Link>
+                </FilterChip>
               ))}
             </div>
           ) : null}
 
           <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] tracking-wide text-white/50">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="flex items-center gap-2">
-                <Radio className="size-3 text-[#ff3b3b]" />
-                {live} LIVE ON FEED
+              <p className="flex flex-wrap items-center gap-2">
+                <span className="live-pill font-display text-[10px] tracking-[0.16em]">
+                  <span className={live > 0 ? "live-dot" : "live-dot live-dot-idle"} />
+                  {live} LIVE
+                </span>
                 <span className="text-white/25">|</span>
                 {board ? `${games.length} shown / ${board.games.length} on board` : "Loading"}
-                {conference !== "all" || status !== "all" || query.trim() ? (
+                {localConference !== "all" || localStatus !== "all" || localQuery.trim() ? (
                   <>
                     <span className="text-white/25">|</span>
                     FILTERED
@@ -304,7 +361,7 @@ export function ScoreboardView({
               <button
                 type="button"
                 onClick={() => void refresh()}
-                className="inline-flex items-center gap-1 rounded-sm border border-white/15 px-2 py-0.5 font-display text-[10px] tracking-[0.14em] text-white/70 hover:border-white/40 hover:text-white"
+                className="pressable inline-flex items-center gap-1 rounded-sm border border-white/15 px-2 py-1 font-display text-[10px] tracking-[0.14em] text-white/70"
               >
                 <RefreshCw className="size-3" />
                 REFRESH
@@ -315,20 +372,20 @@ export function ScoreboardView({
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-3 py-4 sm:px-5">
+      <main className="page-enter mx-auto w-full max-w-6xl flex-1 px-3 py-4 sm:px-5">
         {board ? (
-          <div className="mb-4 border-l-4 border-[#cc0000] bg-[#161616] px-3 py-2">
+          <div className="board-glass mb-4 border-l-4 border-[#cc0000] px-3 py-2.5">
             <p className="font-display text-xs tracking-[0.16em] text-[#f3c14b]">
               {board.coverage.headline}
             </p>
-            <p className="mt-1 font-mono text-[11px] leading-relaxed text-white/60">
+            <p className="mt-1 font-sans text-[13px] leading-relaxed text-white/62">
               {board.coverage.detail}
             </p>
           </div>
         ) : null}
 
         {error ? (
-          <div className="mb-4 border border-[#cc0000] bg-[#2a0000] px-3 py-3">
+          <div className="mb-4 border border-[#cc0000] bg-[#2a0000]/90 px-3 py-3 shadow-[0_0_24px_rgb(80_0_0_/_35%)]">
             <p className="font-display text-sm tracking-[0.12em] text-[#ffb3b3]">
               SCOREBOARD FEED ERROR
             </p>
@@ -348,24 +405,26 @@ export function ScoreboardView({
         ) : null}
 
         {board && games.length === 0 ? (
-          <div className="border border-white/10 bg-[#111] px-4 py-10 text-center">
-            <p className="font-display text-xl tracking-[0.14em] text-white">
-              NO GAMES MATCH THIS BOARD
-            </p>
-            <p className="mx-auto mt-2 max-w-lg font-mono text-xs leading-relaxed text-white/55">
-              {board.games.length === 0
+          <EmptyState
+            kicker={board.games.length === 0 ? "ESPN FEED" : "FILTERED BOARD"}
+            headline="NO GAMES MATCH THIS BOARD"
+            detail={
+              board.games.length === 0
                 ? division === "naia"
                   ? "ESPN’s NAIA group is quiet for this date. Many NAIA-only games never appear here. Try another Saturday or check D1/D2."
                   : "ESPN has no college football games on this date for the selected division."
-                : "Clear the conference, status, or search filter to see the rest of the slate."}
-            </p>
-            <Link
-              href={hrefFor({ conference: "all", status: "all", q: "" })}
-              className="mt-4 inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
-            >
-              CLEAR FILTERS
-            </Link>
-          </div>
+                : "Clear the conference, status, or search filter to see the rest of the slate."
+            }
+            action={
+              <button
+                type="button"
+                onClick={() => applyClientFilter({ conference: "all", status: "all", q: "" })}
+                className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
+              >
+                CLEAR FILTERS
+              </button>
+            }
+          />
         ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2">

@@ -7,8 +7,10 @@ import { hasPeriodScores, periodLabel } from "@/lib/espn-parse";
 import { teamHref } from "@/lib/espn-team";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import type { GameDetailResponse, TeamSide } from "@/lib/types";
+import { EmptyState } from "@/components/empty-state";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { ViewTransition } from "react";
 import { useCallback, useState } from "react";
 
 function ScoreColumn({
@@ -22,19 +24,28 @@ function ScoreColumn({
 }) {
   return (
     <div className={`flex min-w-0 items-center gap-3 ${winner ? "" : "opacity-80"}`}>
-      <Link href={teamHref(team.id)} className="shrink-0 no-underline">
-        <TeamLogo
-          src={team.logo}
-          alt=""
-          abbreviation={team.abbreviation}
-          color={team.color}
-          size={48}
-        />
+      <Link
+        href={teamHref(team.id)}
+        transitionTypes={["nav-forward"]}
+        className="pressable shrink-0 no-underline"
+      >
+        <ViewTransition name={`team-logo-${team.id}`} share="morph" default="none">
+          <span className="inline-flex">
+            <TeamLogo
+              src={team.logo}
+              alt=""
+              abbreviation={team.abbreviation}
+              color={team.color}
+              size={48}
+            />
+          </span>
+        </ViewTransition>
       </Link>
       <div className="min-w-0">
         <Link
           href={teamHref(team.id)}
-          className="inline-block min-h-11 font-display text-xl leading-none tracking-wide text-white no-underline sm:text-3xl"
+          transitionTypes={["nav-forward"]}
+          className="pressable tap-row inline-flex items-center min-h-12 font-display text-xl leading-none tracking-wide text-white no-underline sm:text-3xl"
         >
           {team.rank ? <span className="mr-1 text-[#f3c14b]">{team.rank}</span> : null}
           {team.shortName.toUpperCase()}
@@ -46,7 +57,7 @@ function ScoreColumn({
           {team.conferenceName ? ` · ${team.conferenceName}` : ""}
         </p>
       </div>
-      <p className="ml-auto font-display text-5xl leading-none text-white sm:text-6xl">
+      <p className="ml-auto font-display text-5xl leading-none tracking-tight text-white sm:text-6xl">
         {team.score ?? "–"}
       </p>
     </div>
@@ -100,16 +111,20 @@ export function GameDetailView({
 
   if (!detail) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-10">
-        <Link href="/" className="font-display text-xs tracking-[0.16em] text-white/60">
+      <div className="page-enter mx-auto max-w-5xl px-4 py-10">
+        <Link
+          href="/"
+          transitionTypes={["nav-back"]}
+          className="pressable font-display text-xs tracking-[0.16em] text-white/60"
+        >
           ← BACK TO THE BOARD
         </Link>
-        <p className="mt-6 font-display text-2xl tracking-[0.12em] text-white">
-          {error ?? "Loading game…"}
-        </p>
-        <p className="mt-2 font-mono text-xs text-white/50">
-          Live scores are never invented. If ESPN dropped this event, the board will stay empty.
-        </p>
+        <EmptyState
+          className="mt-6"
+          kicker="ESPN GAME FEED"
+          headline={error ?? "LOADING GAME…"}
+          detail="Live scores are never invented. If ESPN dropped this event, the board will stay empty."
+        />
       </div>
     );
   }
@@ -125,11 +140,12 @@ export function GameDetailView({
   const stamp = formatPollClock(detail.generatedAt);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-3 py-4 pb-16 sm:px-5">
+    <div className="page-enter mx-auto w-full max-w-5xl px-3 py-4 pb-16 sm:px-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 font-display text-xs tracking-[0.16em] text-white/70 hover:text-white"
+          transitionTypes={["nav-back"]}
+          className="pressable inline-flex min-h-10 items-center gap-1.5 font-display text-xs tracking-[0.16em] text-white/70"
         >
           <ArrowLeft className="size-3.5" />
           BOARD
@@ -141,7 +157,7 @@ export function GameDetailView({
           <button
             type="button"
             onClick={() => void refresh()}
-            className="inline-flex items-center gap-1 rounded-sm border border-white/15 px-2 py-0.5 font-display text-[10px] tracking-[0.14em] text-white/70 hover:border-white/40 hover:text-white"
+            className="pressable inline-flex items-center gap-1 rounded-sm border border-white/15 px-2 py-1 font-display text-[10px] tracking-[0.14em] text-white/70"
           >
             <RefreshCw className="size-3" />
             REFRESH
@@ -149,14 +165,19 @@ export function GameDetailView({
         </div>
       </div>
 
-      <section className="score-cell overflow-hidden">
+      <section className={`score-cell overflow-hidden ${live ? "is-live" : ""}`}>
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
           <p className="font-display text-xs tracking-[0.2em] text-[#ff3b3b]">
-            {game.status.state === "in"
-              ? "LIVE"
-              : game.status.state === "post"
-                ? "FINAL"
-                : formatKickoff(game.date)}
+            {game.status.state === "in" ? (
+              <span className="live-pill">
+                <span className="live-dot" />
+                LIVE
+              </span>
+            ) : game.status.state === "post" ? (
+              "FINAL"
+            ) : (
+              formatKickoff(game.date)
+            )}
           </p>
           <p className="font-mono text-xs text-white/70">{game.status.detail}</p>
         </div>
@@ -226,7 +247,7 @@ export function GameDetailView({
         />
 
         <aside className="space-y-4">
-          <section className="border border-white/10 bg-[#111]">
+          <section className="board-glass">
             <h2 className="border-b border-white/10 px-3 py-2 font-display text-xs tracking-[0.18em] text-[#f3c14b]">
               SCORING
             </h2>
@@ -253,7 +274,7 @@ export function GameDetailView({
             )}
           </section>
 
-          <section className="border border-white/10 bg-[#111]">
+          <section className="board-glass">
             <h2 className="border-b border-white/10 px-3 py-2 font-display text-xs tracking-[0.18em] text-[#f3c14b]">
               LEADERS
             </h2>

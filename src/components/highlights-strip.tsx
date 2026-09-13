@@ -79,24 +79,24 @@ export function HighlightsStrip({
   return (
     <section
       aria-label="College football highlights and reactions"
-      className="border-b border-white/10 bg-[#0c0c0c]"
+      className="border-b border-white/10 bg-[#0c0c0c]/90 backdrop-blur-md"
     >
       <div className="mx-auto max-w-6xl">
         <div className="mb-2 flex flex-wrap items-end justify-between gap-2 px-3 pt-2.5 sm:px-5">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="inline-block h-4 w-1 shrink-0 bg-[#cc0000]" />
+              <span className="inline-block h-4 w-1 shrink-0 bg-[#cc0000] shadow-[0_0_10px_rgb(204_0_0_/_55%)]" />
               <h2 className="font-display text-[13px] tracking-[0.18em] text-white sm:text-base sm:tracking-[0.22em]">
                 HIGHLIGHTS / REACTIONS
               </h2>
               {seasonYear ? (
-                <span className="shrink-0 rounded-sm bg-[#cc0000] px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-white">
+                <span className="shrink-0 rounded-sm bg-[#cc0000] px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-white shadow-[0_0_12px_rgb(204_0_0_/_30%)]">
                   CFB {seasonYear}
                 </span>
               ) : null}
             </div>
             <p className="mt-1 font-mono text-[10px] tracking-[0.12em] text-white/45">
-              <span className="sm:hidden">SWIPE FOR CLIPS</span>
+              <span className="sm:hidden">SWIPE — NEXT CLIP PEEKS</span>
               <span className="hidden sm:inline">
                 {highlightsSourceNote(board)}
                 {error ? `  ·  ${error}` : ""}
@@ -108,7 +108,7 @@ export function HighlightsStrip({
               type="button"
               aria-label="Scroll highlights left"
               onClick={() => scrollByCard(-1)}
-              className="inline-flex size-7 items-center justify-center rounded-sm border border-white/15 bg-black text-white hover:border-white/40"
+              className="pressable inline-flex size-8 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white"
             >
               <ChevronLeft className="size-4" />
             </button>
@@ -116,7 +116,7 @@ export function HighlightsStrip({
               type="button"
               aria-label="Scroll highlights right"
               onClick={() => scrollByCard(1)}
-              className="inline-flex size-7 items-center justify-center rounded-sm border border-white/15 bg-black text-white hover:border-white/40"
+              className="pressable inline-flex size-8 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white"
             >
               <ChevronRight className="size-4" />
             </button>
@@ -129,13 +129,13 @@ export function HighlightsStrip({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className="highlights-scroller flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-3 pb-2.5 scroll-pl-3 scroll-pr-3 sm:px-5 sm:scroll-pl-5 sm:scroll-pr-5"
+          className="highlights-scroller flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-3 pb-3 scroll-pl-3 scroll-pr-8 sm:px-5 sm:scroll-pl-5 sm:scroll-pr-5"
         >
           {videos.length === 0
             ? Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-[210px] w-[min(82vw,268px)] shrink-0 animate-pulse snap-start border border-white/10 bg-[#161616]"
+                  className="highlight-card h-[210px] shrink-0 animate-pulse snap-start border border-white/10 bg-[#161616]"
                 />
               ))
             : videos.map((video) => (
@@ -148,7 +148,7 @@ export function HighlightsStrip({
                   onClick={(event) => {
                     if (drag.current.moved) event.preventDefault();
                   }}
-                  className="score-cell w-[min(82vw,268px)] shrink-0 snap-start snap-always select-none no-underline outline-none focus-visible:ring-2 focus-visible:ring-[#cc0000]"
+                  className="score-cell highlight-card pressable shrink-0 snap-start snap-always select-none no-underline outline-none"
                 >
                   <div className="relative aspect-video overflow-hidden bg-[#111]">
                     {video.thumbnailUrl ? (
@@ -162,7 +162,7 @@ export function HighlightsStrip({
                         width={480}
                         height={360}
                         draggable={false}
-                        className="size-full object-cover"
+                        className="size-full object-cover transition-transform duration-300 ease-out"
                       />
                     ) : (
                       <div className="flex size-full items-center justify-center bg-[#1a1a1a] font-display text-xs tracking-[0.18em] text-white/35">
@@ -178,7 +178,7 @@ export function HighlightsStrip({
                       </span>
                     ) : null}
                     <span className="absolute inset-0 flex items-center justify-center">
-                      <span className="inline-flex size-11 items-center justify-center rounded-full bg-[#cc0000] text-white shadow-md">
+                      <span className="inline-flex size-11 items-center justify-center rounded-full bg-[#cc0000] text-white shadow-[0_0_18px_rgb(204_0_0_/_45%)]">
                         <Play className="size-4 fill-white" />
                       </span>
                     </span>
