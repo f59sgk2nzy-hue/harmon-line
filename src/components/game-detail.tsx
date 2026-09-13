@@ -1,6 +1,7 @@
 "use client";
 
 import { PlayByPlay } from "@/components/play-by-play";
+import { TeamLink } from "@/components/team-link";
 import { TeamLogo } from "@/components/team-logo";
 import { formatKickoff, formatPollClock } from "@/lib/dates";
 import { hasPeriodScores, periodLabel } from "@/lib/espn-parse";
@@ -21,19 +22,23 @@ function ScoreColumn({
 }) {
   return (
     <div className={`flex min-w-0 items-center gap-3 ${winner ? "" : "opacity-80"}`}>
-      <TeamLogo
-        src={team.logo}
-        alt=""
-        abbreviation={team.abbreviation}
-        color={team.color}
-        size={48}
-      />
+      <TeamLink teamId={team.id} className="shrink-0" title={team.name}>
+        <TeamLogo
+          src={team.logo}
+          alt=""
+          abbreviation={team.abbreviation}
+          color={team.color}
+          size={48}
+        />
+      </TeamLink>
       <div className="min-w-0">
-        <p className="font-display text-xl leading-none tracking-wide text-white sm:text-3xl">
-          {team.rank ? <span className="mr-1 text-[#f3c14b]">{team.rank}</span> : null}
-          {team.shortName.toUpperCase()}
-          {possess ? <span className="ml-2 text-sm text-[#f3c14b]">●</span> : null}
-        </p>
+        <TeamLink teamId={team.id} className="min-h-11" title={`${team.name} team page`}>
+          <p className="font-display text-xl leading-none tracking-wide text-white sm:text-3xl">
+            {team.rank ? <span className="mr-1 text-[#f3c14b]">{team.rank}</span> : null}
+            {team.shortName.toUpperCase()}
+            {possess ? <span className="ml-2 text-sm text-[#f3c14b]">●</span> : null}
+          </p>
+        </TeamLink>
         <p className="mt-1 font-mono text-[11px] text-white/50">
           {team.abbreviation}
           {team.record ? ` · ${team.record}` : ""}

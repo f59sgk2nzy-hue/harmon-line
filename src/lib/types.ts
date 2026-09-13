@@ -135,3 +135,76 @@ export type GameDetailResponse = {
   playByPlayAvailable: boolean;
   coverage: CoverageNote;
 };
+
+export type TeamProfile = {
+  id: string;
+  name: string;
+  shortName: string;
+  abbreviation: string;
+  nickname: string | null;
+  location: string | null;
+  color: string | null;
+  altColor: string | null;
+  logo: string;
+  record: string | null;
+  standingSummary: string | null;
+  conferenceId: string | null;
+  conferenceName: string | null;
+  subdivision: Classification | null;
+};
+
+export type TeamScheduleGame = {
+  id: string;
+  date: string;
+  week: number | null;
+  name: string;
+  shortName: string;
+  status: GameSummary["status"];
+  venue: string | null;
+  broadcast: string | null;
+  homeAway: "home" | "away" | "neutral";
+  opponent: {
+    id: string;
+    name: string;
+    shortName: string;
+    abbreviation: string;
+    logo: string;
+  };
+  teamScore: number | null;
+  opponentScore: number | null;
+  winner: boolean | null;
+};
+
+export type RosterPlayer = {
+  id: string;
+  name: string;
+  jersey: string | null;
+  position: string | null;
+  group: string;
+  year: string | null;
+  hometown: string | null;
+  height: string | null;
+  weight: string | null;
+};
+
+export type TeamCoach = {
+  id: string;
+  name: string;
+};
+
+export type TeamFeedStatus = "ok" | "error";
+
+export type TeamDetailResponse = {
+  source: "espn";
+  demo: false;
+  generatedAt: string;
+  team: TeamProfile;
+  recent: TeamScheduleGame[];
+  upcoming: TeamScheduleGame[];
+  roster: RosterPlayer[];
+  coach: TeamCoach | null;
+  coverage: {
+    schedule: CoverageNote;
+    roster: CoverageNote;
+  };
+};

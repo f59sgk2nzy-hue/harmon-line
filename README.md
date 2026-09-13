@@ -15,7 +15,7 @@ Unit checks for period scores, subdivision labels, poll-clock timezone, and redi
 npm test
 ```
 
-Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s games in US/Eastern**. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it.
+Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s games in US/Eastern**. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it. Tap a school name on the board or a game card to open `/team/[id]` for recent results, the upcoming schedule, and roster.
 
 Production-style start:
 
@@ -47,7 +47,17 @@ None required. Copy `.env.example` only if you want to point at a different ESPN
 
 **NAIA gap:** ESPN’s NAIA group is real, but it mostly carries crossover games (NAIA vs NCAA) and a thin Saturday slate. Many NAIA-vs-NAIA contests never appear. [NAIA Stats / PrestoSports](https://naiastats.prestosports.com/sports/fball/scoreboard) has a fuller board but sits behind Cloudflare; this app does not scrape it.
 
-**Honesty rule:** The app never invents live scores. If ESPN is unreachable you get an error state, not a silent demo. There is no sample-score mode.
+**Honesty rule:** The app never invents live scores, results, or roster players. If ESPN is unreachable you get an error state, not a silent demo. There is no sample-score mode.
+
+**Team pages** (`/team/[id]`, proxied by `/api/team/[id]`) use the same public hosts:
+
+| Endpoint | Path | Used for |
+| --- | --- | --- |
+| Team profile | `/teams/{id}` | Name, record, conference, subdivision |
+| Schedule | `/teams/{id}/schedule` | Recent final scores + upcoming games |
+| Roster | `/teams/{id}/roster` | Published athletes (and coach when present) |
+
+FBS/FCS pages are usually complete. D2 and NAIA often have a thin schedule, an empty roster, or both — the page labels that gap instead of filling it in. If a final has no score object, the result shows **Score not published**, never `0–0`.
 
 ## Highlights / Reactions strip
 
@@ -88,6 +98,7 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 
 - Filter D1 / D2 / NAIA, plus FBS vs FCS on Division I
 - Filter by conference, live/upcoming/final, team search, and date
+- Tap a school name on the scoreboard or game page to open that team’s results, schedule, and roster
 - Open a game for the scorebug, quarter lines, scoring plays, and a drive-by-drive feed (or a clear “no PBP” state)
 - Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips
 - Watch the bottom-line ticker for the full slate

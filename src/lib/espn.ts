@@ -10,6 +10,15 @@ import {
   divisionFromClassification,
   parseLinescores,
 } from "@/lib/espn-parse";
+import {
+  parseRoster,
+  parseScheduleGames,
+  parseTeamId,
+  parseTeamProfile,
+  splitTeamSchedule,
+  teamRosterCoverage,
+  teamScheduleCoverage,
+} from "@/lib/espn-team-parse";
 import type {
   ConferenceOption,
   CoverageNote,
@@ -24,6 +33,8 @@ import type {
   ScoreboardResponse,
   ScoringPlay,
   SubdivisionId,
+  TeamDetailResponse,
+  TeamFeedStatus,
   TeamSide,
 } from "@/lib/types";
 
@@ -521,6 +532,68 @@ export async function getGameDetail(eventId: string): Promise<GameDetailResponse
     leaders: parseLeaders(data.leaders),
     playByPlayAvailable,
     coverage: pbpCoverage(game, playByPlayAvailable),
+  };
+}
+
+export async function getTeamDetail(teamId: string): Promise<TeamDetailResponse> {
+  const id = parseTeamId(teamId);
+  if (!id) {
+    throw new Error("Invalid team id");
+  }
+
+  let teamPayload: Json;
+  try {
+    teamPayload = await espnGet(`/teams/${id}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("400") || message.includes("404")) {
+      throw new Error("Team not found on ESPN");
+    }
+    throw error;
+  }
+
+  const team = parseTeamProfile(teamPayload);
+  if (!team) {
+    throw new Error("Team not found on ESPN");
+  }
+
+  let scheduleFeed: TeamFeedStatus = "ok";
+  let rosterFeed: TeamFeedStatus = "ok";
+
+  const [scheduleResult, rosterResult] = await Promise.allSettled([
+    espnGet(`/teams/${id}/schedule`),
+    espnGet(`/teams/${id}/roster`),
+  ]);
+
+  let scheduleGames: ReturnType<typeof parseScheduleGames> = [];
+  if (scheduleResult.status === "fulfilled") {
+    scheduleGames = parseScheduleGames(scheduleResult.value, id);
+  } else {
+    scheduleFeed = "error";
+  }
+
+  let rosterParsed: ReturnType<typeof parseRoster> = { players: [], coach: null };
+  if (rosterResult.status === "fulfilled") {
+    rosterParsed = parseRoster(rosterResult.value);
+  } else {
+    rosterFeed = "error";
+  }
+
+  const { recent, upcoming } = splitTeamSchedule(scheduleGames);
+
+  return {
+    source: "espn",
+    demo: false,
+    generatedAt: new Date().toISOString(),
+    team,
+    recent,
+    upcoming,
+    roster: rosterParsed.players,
+    coach: rosterParsed.coach,
+    coverage: {
+      schedule: teamScheduleCoverage(scheduleGames, team.subdivision, scheduleFeed),
+      roster: teamRosterCoverage(rosterParsed.players.length, team.subdivision, rosterFeed),
+    },
   };
 }
 
