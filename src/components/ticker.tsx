@@ -18,7 +18,7 @@ export function BottomLine({ games }: { games: GameSummary[] }) {
   const loop = items.length > 0 ? [...items, ...items] : [];
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 flex h-10 border-t border-black bg-black text-white">
+    <div className="fixed inset-x-0 bottom-0 z-40 flex h-10 border-t border-black bg-black pb-[env(safe-area-inset-bottom)] text-white">
       <div className="espn-red-bar flex shrink-0 items-center px-3 font-display text-[11px] tracking-[0.2em] sm:text-xs">
         BOTTOM LINE
       </div>

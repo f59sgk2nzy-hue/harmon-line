@@ -124,6 +124,68 @@ export type LeaderLine = {
   teamId: string | null;
 };
 
+export type TeamProfile = {
+  id: string;
+  name: string;
+  shortName: string;
+  abbreviation: string;
+  color: string | null;
+  altColor: string | null;
+  logo: string;
+  record: string | null;
+  standing: string | null;
+  conferenceId: string | null;
+  conferenceName: string | null;
+  rank: number | null;
+  subdivision: Classification | null;
+};
+
+export type TeamScheduleGame = {
+  id: string;
+  date: string;
+  week: number | null;
+  state: GameState;
+  shortDetail: string;
+  venue: string | null;
+  broadcast: string | null;
+  homeAway: "home" | "away";
+  opponent: {
+    id: string;
+    name: string;
+    abbreviation: string;
+    logo: string;
+  };
+  teamScore: number | null;
+  opponentScore: number | null;
+  result: "W" | "L" | "T" | null;
+};
+
+export type TeamRosterPlayer = {
+  id: string;
+  name: string;
+  jersey: string | null;
+  position: string;
+  positionGroup: string;
+  classYear: string | null;
+  height: string | null;
+  weight: string | null;
+};
+
+export type TeamPageResponse = {
+  source: "espn";
+  demo: false;
+  generatedAt: string;
+  team: TeamProfile;
+  recent: TeamScheduleGame[];
+  upcoming: TeamScheduleGame[];
+  roster: TeamRosterPlayer[];
+  coach: string | null;
+  coverage: {
+    schedule: CoverageNote;
+    roster: CoverageNote;
+  };
+};
+
 export type GameDetailResponse = {
   source: "espn";
   demo: false;
