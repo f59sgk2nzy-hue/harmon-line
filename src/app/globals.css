@@ -121,6 +121,7 @@
   cursor: grab;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-color: #cc0000 #1a1a1a;
   scrollbar-width: thin;
 }

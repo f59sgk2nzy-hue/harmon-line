@@ -61,14 +61,17 @@ export function HighlightsStrip() {
     const el = scrollerRef.current;
     if (!el || event.pointerType === "touch") return;
     drag.current = { active: true, moved: false, x: event.clientX, scroll: el.scrollLeft };
-    el.setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const el = scrollerRef.current;
     if (!el || !drag.current.active) return;
     const delta = event.clientX - drag.current.x;
-    if (Math.abs(delta) > 6) drag.current.moved = true;
+    if (Math.abs(delta) <= 16) return;
+    if (!drag.current.moved) {
+      drag.current.moved = true;
+      el.setPointerCapture(event.pointerId);
+    }
     el.scrollLeft = drag.current.scroll - delta;
   };
 
@@ -103,6 +106,7 @@ export function HighlightsStrip() {
               ) : null}
             </div>
             <p className="mt-1 font-mono text-[10px] tracking-[0.12em] text-white/45">
+              <span className="sm:hidden">SWIPE  ·  </span>
               {board ? sourceNote(board) : "LOADING YOUTUBE FEED"}
               {error ? `  ·  ${error}` : ""}
             </p>
@@ -151,7 +155,7 @@ export function HighlightsStrip() {
                   onClick={(event) => {
                     if (drag.current.moved) event.preventDefault();
                   }}
-                  className="score-cell group w-[240px] shrink-0 snap-start no-underline outline-none focus-visible:ring-2 focus-visible:ring-[#cc0000]"
+                  className="score-cell group w-[min(78vw,240px)] shrink-0 snap-start no-underline outline-none focus-visible:ring-2 focus-visible:ring-[#cc0000]"
                 >
                   <div className="relative aspect-video overflow-hidden bg-[#111]">
                     {video.thumbnailUrl ? (
@@ -164,6 +168,7 @@ export function HighlightsStrip() {
                         decoding="async"
                         width={480}
                         height={360}
+                        draggable={false}
                         className="size-full object-cover"
                       />
                     ) : (
@@ -186,10 +191,10 @@ export function HighlightsStrip() {
                     </span>
                   </div>
                   <div className="space-y-1 px-2.5 py-2">
-                    <p className="line-clamp-2 font-display text-[13px] leading-snug tracking-wide text-white">
+                    <p className="line-clamp-2 font-display text-sm leading-snug tracking-wide text-white">
                       {video.title}
                     </p>
-                    <p className="truncate font-mono text-[10px] text-white/50">{video.channel}</p>
+                    <p className="truncate font-mono text-[11px] text-white/50">{video.channel}</p>
                   </div>
                 </a>
               ))}
