@@ -4,6 +4,7 @@ import { PlayByPlay } from "@/components/play-by-play";
 import { TeamLogo } from "@/components/team-logo";
 import { formatKickoff, formatPollClock } from "@/lib/dates";
 import { hasPeriodScores, periodLabel } from "@/lib/espn-parse";
+import { deepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import type { GameDetailResponse, TeamSide } from "@/lib/types";
@@ -210,6 +211,18 @@ export function GameDetailView({
           ) : null}
         </div>
       </section>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link
+          href={deepDiveHref(game.id)}
+          className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[11px] tracking-[0.18em] text-white no-underline"
+        >
+          DEEP DIVE / SIM
+        </Link>
+        <p className="self-center font-mono text-[10px] text-white/40">
+          Matchup stats, simulation range, prop feedback
+        </p>
+      </div>
 
       {error ? (
         <p className="mt-3 border border-[#cc0000] bg-[#2a0000] px-3 py-2 font-mono text-xs text-[#ffb3b3]">

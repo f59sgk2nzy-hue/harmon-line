@@ -1,6 +1,7 @@
 "use client";
 
 import { formatKickoff } from "@/lib/dates";
+import { deepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
 import type { GameSummary, TeamSide } from "@/lib/types";
 import { TeamLogo } from "@/components/team-logo";
@@ -114,11 +115,11 @@ export function GameCard({ game }: { game: GameSummary }) {
         />
       </div>
 
-      <Link
-        href={gameHref}
-        className="flex items-start justify-between gap-2 border-t border-white/8 px-3 py-2 no-underline"
-      >
-        <p className="min-w-0 flex-1 truncate font-mono text-[10px] leading-relaxed text-white/55">
+      <div className="flex items-start justify-between gap-2 border-t border-white/8 px-3 py-2">
+        <Link
+          href={gameHref}
+          className="min-w-0 flex-1 truncate font-mono text-[10px] leading-relaxed text-white/55 no-underline"
+        >
           {live && game.situation?.downDistanceText
             ? `${game.situation.downDistanceText}${
                 game.situation.isRedZone ? "  ·  RED ZONE" : ""
@@ -126,11 +127,22 @@ export function GameCard({ game }: { game: GameSummary }) {
             : live && game.situation?.lastPlay
               ? game.situation.lastPlay
               : [game.venue, game.broadcast].filter(Boolean).join("  · ") || "Tap for game detail"}
-        </p>
-        <span className="shrink-0 font-display text-[10px] tracking-[0.16em] text-white/35">
-          {game.playByPlayAvailable ? "PBP" : "SCORES"}
-        </span>
-      </Link>
+        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href={deepDiveHref(game.id)}
+            className="inline-flex min-h-11 items-center font-display text-[10px] tracking-[0.16em] text-[#f3c14b] no-underline"
+          >
+            SIM
+          </Link>
+          <Link
+            href={gameHref}
+            className="inline-flex min-h-8 items-center font-display text-[10px] tracking-[0.16em] text-white/35 no-underline"
+          >
+            {game.playByPlayAvailable ? "PBP" : "SCORES"}
+          </Link>
+        </div>
+      </div>
     </article>
   );
 }

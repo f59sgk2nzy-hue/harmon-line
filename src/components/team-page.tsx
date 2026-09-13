@@ -1,5 +1,6 @@
 import { TeamLogo } from "@/components/team-logo";
 import { formatBoardDate, isoToEspnDate } from "@/lib/dates";
+import { deepDiveHref, teamDeepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
 import type { TeamPageResponse, TeamScheduleGame } from "@/lib/types";
 import { ArrowLeft } from "lucide-react";
@@ -45,14 +46,22 @@ function ScheduleRow({ game }: { game: TeamScheduleGame }) {
           {game.venue ? `  ·  ${game.venue}` : ""}
         </p>
       </div>
-      <Link
-        href={`/game/${game.id}`}
-        className="shrink-0 text-right font-display text-lg leading-none text-white no-underline"
-      >
-        {game.teamScore != null && game.opponentScore != null
-          ? `${game.teamScore}–${game.opponentScore}`
-          : "—"}
-      </Link>
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <Link
+          href={`/game/${game.id}`}
+          className="text-right font-display text-lg leading-none text-white no-underline"
+        >
+          {game.teamScore != null && game.opponentScore != null
+            ? `${game.teamScore}–${game.opponentScore}`
+            : "—"}
+        </Link>
+        <Link
+          href={deepDiveHref(game.id)}
+          className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-2 font-display text-[10px] tracking-[0.16em] text-white no-underline"
+        >
+          SIM
+        </Link>
+      </div>
     </div>
   );
 }
@@ -111,7 +120,7 @@ export function TeamPageView({
         </p>
       </div>
 
-      <section className="score-cell overflow-hidden">
+      <section className="score-cell">
         <div className="flex items-center gap-3 px-3 py-3 sm:px-4 sm:py-4">
           <TeamLogo
             src={team.logo}
@@ -120,7 +129,7 @@ export function TeamPageView({
             color={team.color}
             size={56}
           />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-display text-xl leading-none tracking-wide text-white sm:text-3xl">
               {team.rank ? <span className="mr-1 text-[#f3c14b]">{team.rank}</span> : null}
               {team.name.toUpperCase()}
@@ -132,6 +141,14 @@ export function TeamPageView({
               {team.standing ? `  ·  ${team.standing}` : ""}
             </p>
           </div>
+        </div>
+        <div className="border-t border-white/10 px-3 py-2 sm:px-4">
+          <Link
+            href={teamDeepDiveHref(team.id)}
+            className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[10px] tracking-[0.16em] text-white no-underline"
+          >
+            DEEP DIVE / SIM
+          </Link>
         </div>
       </section>
 
@@ -145,6 +162,12 @@ export function TeamPageView({
         <a href="#roster" className="shrink-0 rounded-sm border border-white/15 px-2 py-1 font-display text-[10px] tracking-[0.16em] text-white/80 no-underline">
           ROSTER
         </a>
+        <Link
+          href={teamDeepDiveHref(team.id)}
+          className="shrink-0 rounded-sm border border-[#f3c14b]/40 px-2 py-1 font-display text-[10px] tracking-[0.16em] text-[#f3c14b] no-underline"
+        >
+          DEEP DIVE
+        </Link>
       </nav>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
