@@ -1,5 +1,6 @@
 export type DivisionId = "d1" | "d2" | "naia";
 export type SubdivisionId = "all" | "fbs" | "fcs";
+export type Classification = "FBS" | "FCS" | "D2" | "D3" | "NAIA";
 export type GameState = "pre" | "in" | "post";
 export type StatusFilter = "all" | "live" | "final" | "upcoming";
 
@@ -17,7 +18,7 @@ export type TeamSide = {
   conferenceId: string | null;
   conferenceName: string | null;
   winner: boolean;
-  linescores: number[];
+  linescores: Array<number | null>;
   homeAway: "home" | "away";
 };
 
@@ -54,7 +55,7 @@ export type GameSummary = {
   broadcast: string | null;
   situation: GameSituation | null;
   playByPlayAvailable: boolean;
-  subdivision: "FBS" | "FCS" | "D2" | "NAIA";
+  subdivision: Classification;
   conferenceIds: string[];
 };
 

@@ -1,4 +1,4 @@
-import type { ConferenceOption, DivisionId } from "@/lib/types";
+import type { Classification, ConferenceOption, DivisionId } from "./types";
 
 /** ESPN college-football group IDs for the 2026 season. */
 export const DIVISION_GROUPS: Record<
@@ -59,6 +59,53 @@ export const CONFERENCE_NAMES: Record<string, ConferenceOption> = {
   "165": { id: "165", name: "G-MAC", abbreviation: "G-MAC" },
   "187": { id: "187", name: "Conference Carolinas", abbreviation: "CC" },
   "186": { id: "186", name: "NAIA", abbreviation: "NAIA" },
+};
+
+/** Conference / independent group ids → board classification. */
+export const CONFERENCE_SUBDIVISION: Record<string, Classification> = {
+  "1": "FBS",
+  "4": "FBS",
+  "5": "FBS",
+  "8": "FBS",
+  "9": "FBS",
+  "12": "FBS",
+  "15": "FBS",
+  "17": "FBS",
+  "18": "FBS",
+  "37": "FBS",
+  "151": "FBS",
+  "20": "FCS",
+  "21": "FCS",
+  "22": "FCS",
+  "24": "FCS",
+  "25": "FCS",
+  "27": "FCS",
+  "28": "FCS",
+  "29": "FCS",
+  "30": "FCS",
+  "31": "FCS",
+  "32": "FCS",
+  "48": "FCS",
+  "177": "FCS",
+  "179": "FCS",
+  "104": "D2",
+  "107": "D2",
+  "108": "D2",
+  "110": "D2",
+  "112": "D2",
+  "116": "D2",
+  "118": "D2",
+  "127": "D2",
+  "129": "D2",
+  "133": "D2",
+  "135": "D2",
+  "136": "D2",
+  "139": "D2",
+  "144": "D2",
+  "146": "D2",
+  "165": "D2",
+  "187": "D2",
+  "186": "NAIA",
 };
 
 export function conferenceLabel(id: string | null | undefined): string | null {

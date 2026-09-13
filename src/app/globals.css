@@ -151,7 +151,7 @@
 
 .ticker-track {
   width: max-content;
-  animation: ticker 80s linear infinite;
+  animation: ticker 160s linear infinite;
 }
 
 @keyframes ticker {

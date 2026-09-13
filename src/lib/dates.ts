@@ -45,6 +45,18 @@ export function formatBoardDate(yyyymmdd: string): string {
   }).format(date);
 }
 
+export function formatPollClock(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: EASTERN,
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZoneName: "short",
+  }).format(date);
+}
+
 export function formatKickoff(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";

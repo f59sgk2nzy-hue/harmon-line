@@ -4,6 +4,12 @@ import {
   DIVISION_GROUPS,
   conferenceLabel,
 } from "@/lib/conferences";
+import {
+  classifySubdivision,
+  collectClassificationIds,
+  divisionFromClassification,
+  parseLinescores,
+} from "@/lib/espn-parse";
 import type {
   ConferenceOption,
   CoverageNote,
@@ -109,12 +115,6 @@ function parseState(value: unknown): GameState {
   return "pre";
 }
 
-function parseLinescores(value: unknown): number[] {
-  return asArray(value)
-    .map((row) => num(asRecord(row)?.value) ?? 0)
-    .filter((_, index, all) => index < 8 && all.length > 0);
-}
-
 function parseTeam(raw: unknown, fallbackHomeAway: "home" | "away"): TeamSide | null {
   const competitor = asRecord(raw);
   if (!competitor) return null;
@@ -171,17 +171,10 @@ function parseSituation(raw: unknown): GameSituation | null {
   };
 }
 
-function subdivisionFor(groupId: string, division: DivisionId): GameSummary["subdivision"] {
-  if (division === "d2") return "D2";
-  if (division === "naia") return "NAIA";
-  if (groupId === "81") return "FCS";
-  return "FBS";
-}
-
 function parseEvent(
   raw: unknown,
   division: DivisionId,
-  groupId: string
+  groupIds: string | string[] = []
 ): GameSummary | null {
   const event = asRecord(raw);
   if (!event) return null;
@@ -229,9 +222,31 @@ function parseEvent(
     broadcast: names[0] ?? (str(competition.broadcast) || null),
     situation: parseSituation(competition.situation),
     playByPlayAvailable: Boolean(competition.playByPlayAvailable),
-    subdivision: subdivisionFor(groupId, division),
+    subdivision: resolveSubdivision(
+      [event, competition, homeRaw, awayRaw],
+      groupIds,
+      [home.conferenceId, away.conferenceId],
+      division
+    ),
     conferenceIds,
   };
+}
+
+function resolveSubdivision(
+  nodes: unknown[],
+  groupIds: string | string[],
+  conferenceIds: Array<string | null>,
+  division: DivisionId
+): GameSummary["subdivision"] {
+  const extra = Array.isArray(groupIds) ? groupIds : [groupIds];
+  return (
+    classifySubdivision(
+      [...collectClassificationIds(...nodes), ...extra, ...conferenceIds],
+      division
+    ) ??
+    (division === "naia" ? "NAIA" : division === "d2" ? "D2" : null) ??
+    "FBS"
+  );
 }
 
 function sortGames(games: GameSummary[]): GameSummary[] {
@@ -397,17 +412,23 @@ function parseLeaders(raw: unknown): LeaderLine[] {
   return lines;
 }
 
-function gameFromHeader(header: Json, fallbackId: string): GameSummary | null {
+function gameFromHeader(
+  header: Json,
+  fallbackId: string,
+  extra?: Json | null
+): GameSummary | null {
   const competitions = asArray(header.competitions);
   const wrapped = {
     ...header,
     id: str(header.id, fallbackId),
     competitions,
   };
-  const groupId = str(asRecord(header.league)?.id);
-  const division: DivisionId =
-    groupId === "186" ? "naia" : groupId === "57" ? "d2" : "d1";
-  return parseEvent(wrapped, division, groupId || "80");
+  const ids = collectClassificationIds(wrapped, extra, header);
+  const classified = classifySubdivision(ids);
+  const division: DivisionId = classified
+    ? divisionFromClassification(classified)
+    : "d1";
+  return parseEvent(wrapped, division, ids);
 }
 
 function pbpCoverage(game: GameSummary, hasDrives: boolean): CoverageNote {
@@ -424,11 +445,13 @@ function pbpCoverage(game: GameSummary, hasDrives: boolean): CoverageNote {
         "ESPN almost never publishes NAIA play-by-play. Scores and kickoff times are shown when the public scoreboard includes the game.",
     };
   }
-  if (game.subdivision === "D2") {
+  if (game.subdivision === "D2" || game.subdivision === "D3") {
     return {
       headline: "Play-by-play not published",
       detail:
-        "ESPN flagged this Division II game as scores-only. The scoreboard still updates; there is no drive feed to invent.",
+        game.subdivision === "D3"
+          ? "ESPN flagged this Division III game as scores-only. The scoreboard still updates; there is no drive feed to invent."
+          : "ESPN flagged this Division II game as scores-only. The scoreboard still updates; there is no drive feed to invent.",
     };
   }
   return {
@@ -445,12 +468,12 @@ export async function getGameDetail(eventId: string): Promise<GameDetailResponse
 
   const data = await espnGet(`/summary?event=${eventId}`);
   const header = asRecord(data.header) ?? {};
-  let game = gameFromHeader(header, eventId);
+  let game = gameFromHeader(header, eventId, asRecord(data.meta));
 
   if (!game) {
     const scoreboard = await espnGet(`/scoreboard?limit=300`);
     const match = asArray(scoreboard.events)
-      .map((event) => parseEvent(event, "d1", "80"))
+      .map((event) => parseEvent(event, "d1", collectClassificationIds(asRecord(event) ?? {})))
       .find((row) => row?.id === eventId);
     if (!match) {
       throw new Error("Game not found on ESPN");

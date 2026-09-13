@@ -9,6 +9,12 @@ npm install
 npm run dev
 ```
 
+Unit checks for period scores, subdivision labels, poll-clock timezone, and redirect hosts:
+
+```bash
+npm test
+```
+
 Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s games in US/Eastern**. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it.
 
 Production-style start:
@@ -42,7 +48,26 @@ None required. Copy `.env.example` only if you want to point at a different ESPN
 
 **Honesty rule:** The app never invents live scores. If ESPN is unreachable you get an error state, not a silent demo. There is no sample-score mode.
 
-Polling: the board refreshes about every 12s while any game is live (40s otherwise). Game pages poll every 8s when in progress.
+**Refresh:** the board and game pages refresh every **10 minutes** (600 seconds) from the public ESPN feed. Use the **REFRESH** control to pull immediately. The “last polled” clock is always **US/Eastern**.
+
+## Add to Home Screen / pin to desktop
+
+The Harmon Line is a small PWA (dark ESPN theme, standalone display). After it is running in a browser:
+
+**iPhone / iPad (Safari)**
+1. Open the board URL.
+2. Tap the Share button.
+3. Tap **Add to Home Screen**, then Add.
+
+**Android (Chrome)**
+1. Open the board URL.
+2. Tap the menu (⋮) → **Add to Home screen** / **Install app**.
+
+**Windows**
+- **Chrome / Edge:** menu → **Cast, save, and share** / **Apps** → **Install The Harmon Line** (or **Install this site as an app**). It then appears in the Start menu.
+- **Pin:** right-click the installed app or a shortcut → **Pin to Start** or **Pin to taskbar**.
+
+The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 
 ## What you can do
 
@@ -50,6 +75,7 @@ Polling: the board refreshes about every 12s while any game is live (40s otherwi
 - Filter by conference, live/upcoming/final, team search, and date
 - Open a game for the scorebug, quarter lines, scoring plays, and a drive-by-drive feed (or a clear “no PBP” state)
 - Watch the bottom-line ticker for the full slate
+- Install the board on a phone home screen or pin it as a Windows app
 
 ## Stack
 

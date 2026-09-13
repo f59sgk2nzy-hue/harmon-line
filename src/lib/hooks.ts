@@ -2,13 +2,16 @@
 
 import { useEffect, useRef } from "react";
 
+/** Default board / game refresh: 10 minutes. */
+export const BOARD_REFRESH_MS = 10 * 60 * 1000;
+
 export function useLivePoll(
   callback: () => void,
-  options: { live: boolean; liveMs?: number; idleMs?: number }
+  options: { intervalMs?: number; runOnMount?: boolean } = {}
 ) {
   const saved = useRef(callback);
-  const liveMs = options.liveMs ?? 12_000;
-  const idleMs = options.idleMs ?? 45_000;
+  const intervalMs = options.intervalMs ?? BOARD_REFRESH_MS;
+  const runOnMount = options.runOnMount ?? false;
 
   useEffect(() => {
     saved.current = callback;
@@ -16,28 +19,19 @@ export function useLivePoll(
 
   useEffect(() => {
     const run = () => saved.current();
-    run();
+    if (runOnMount) run();
 
-    let timer: number;
-    const arm = () => {
-      window.clearInterval(timer);
-      const delay = options.live ? liveMs : idleMs;
-      timer = window.setInterval(() => {
-        if (document.visibilityState === "visible") run();
-      }, delay);
-    };
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") run();
+    }, intervalMs);
 
-    arm();
     const onVis = () => {
-      if (document.visibilityState === "visible") {
-        run();
-        arm();
-      }
+      if (document.visibilityState === "visible") run();
     };
     document.addEventListener("visibilitychange", onVis);
     return () => {
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [options.live, liveMs, idleMs]);
+  }, [intervalMs, runOnMount]);
 }
