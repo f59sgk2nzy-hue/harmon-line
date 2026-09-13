@@ -9,7 +9,7 @@ export function BoardHeader({
 }) {
   return (
     <header className="border-b border-white/10">
-      <div className="espn-red-bar flex items-center justify-between gap-3 px-3 py-1.5 sm:px-5">
+      <div className="espn-red-bar flex items-center justify-between gap-3 px-3 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-5">
         <Link href="/" className="flex items-center gap-2.5 no-underline">
           <span className="font-display text-lg leading-none tracking-[0.14em] text-white sm:text-2xl">
             THE HARMON LINE

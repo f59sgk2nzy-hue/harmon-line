@@ -54,7 +54,9 @@ export function HighlightsStrip() {
   const scrollByCard = (direction: -1 | 1) => {
     const el = scrollerRef.current;
     if (!el) return;
-    el.scrollBy({ left: direction * 280, behavior: "smooth" });
+    const card = el.querySelector<HTMLElement>("[data-highlight-card]");
+    const step = card ? card.offsetWidth + 12 : 280;
+    el.scrollBy({ left: direction * step, behavior: "smooth" });
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -91,24 +93,26 @@ export function HighlightsStrip() {
       aria-label="College football highlights and reactions"
       className="border-b border-white/10 bg-[#0c0c0c]"
     >
-      <div className="mx-auto max-w-6xl px-3 py-3 sm:px-5">
-        <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
-          <div>
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-2 flex flex-wrap items-end justify-between gap-2 px-3 pt-2.5 sm:px-5">
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="inline-block h-4 w-1 bg-[#cc0000]" />
-              <h2 className="font-display text-sm tracking-[0.22em] text-white sm:text-base">
+              <span className="inline-block h-4 w-1 shrink-0 bg-[#cc0000]" />
+              <h2 className="font-display text-[13px] tracking-[0.18em] text-white sm:text-base sm:tracking-[0.22em]">
                 HIGHLIGHTS / REACTIONS
               </h2>
               {seasonYear ? (
-                <span className="rounded-sm bg-[#cc0000] px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-white">
+                <span className="shrink-0 rounded-sm bg-[#cc0000] px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-white">
                   CFB {seasonYear}
                 </span>
               ) : null}
             </div>
             <p className="mt-1 font-mono text-[10px] tracking-[0.12em] text-white/45">
-              <span className="sm:hidden">SWIPE  ·  </span>
-              {board ? sourceNote(board) : "LOADING YOUTUBE FEED"}
-              {error ? `  ·  ${error}` : ""}
+              <span className="sm:hidden">SWIPE FOR CLIPS</span>
+              <span className="hidden sm:inline">
+                {board ? sourceNote(board) : "LOADING YOUTUBE FEED"}
+                {error ? `  ·  ${error}` : ""}
+              </span>
             </p>
           </div>
           <div className="hidden items-center gap-1 sm:flex">
@@ -137,25 +141,26 @@ export function HighlightsStrip() {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className="highlights-scroller flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1"
+          className="highlights-scroller flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-3 pb-2.5 scroll-pl-3 scroll-pr-3 sm:px-5 sm:scroll-pl-5 sm:scroll-pr-5"
         >
           {videos.length === 0
             ? Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-[196px] w-[240px] shrink-0 animate-pulse border border-white/10 bg-[#161616]"
+                  className="h-[210px] w-[min(82vw,268px)] shrink-0 animate-pulse snap-start border border-white/10 bg-[#161616]"
                 />
               ))
             : videos.map((video) => (
                 <a
                   key={video.id}
+                  data-highlight-card
                   href={video.watchUrl}
                   target="_blank"
                   rel="noreferrer noopener"
                   onClick={(event) => {
                     if (drag.current.moved) event.preventDefault();
                   }}
-                  className="score-cell group w-[min(78vw,240px)] shrink-0 snap-start no-underline outline-none focus-visible:ring-2 focus-visible:ring-[#cc0000]"
+                  className="score-cell w-[min(82vw,268px)] shrink-0 snap-start snap-always select-none no-underline outline-none focus-visible:ring-2 focus-visible:ring-[#cc0000]"
                 >
                   <div className="relative aspect-video overflow-hidden bg-[#111]">
                     {video.thumbnailUrl ? (
@@ -176,7 +181,7 @@ export function HighlightsStrip() {
                         SAMPLE
                       </div>
                     )}
-                    <span className="absolute left-1.5 top-1.5 rounded-sm bg-black/75 px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-white">
+                    <span className="absolute left-1.5 top-1.5 rounded-sm bg-black/80 px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-white">
                       {video.kind === "reaction" ? "REACTION" : "HIGHLIGHT"}
                     </span>
                     {video.sample ? (
@@ -185,16 +190,16 @@ export function HighlightsStrip() {
                       </span>
                     ) : null}
                     <span className="absolute inset-0 flex items-center justify-center">
-                      <span className="inline-flex size-9 items-center justify-center rounded-full bg-[#cc0000]/90 text-white shadow-md group-hover:bg-[#e01111]">
+                      <span className="inline-flex size-11 items-center justify-center rounded-full bg-[#cc0000] text-white shadow-md">
                         <Play className="size-4 fill-white" />
                       </span>
                     </span>
                   </div>
                   <div className="space-y-1 px-2.5 py-2">
-                    <p className="line-clamp-2 font-display text-sm leading-snug tracking-wide text-white">
+                    <p className="line-clamp-2 font-display text-[15px] leading-tight tracking-normal text-white sm:text-sm sm:tracking-wide">
                       {video.title}
                     </p>
-                    <p className="truncate font-mono text-[11px] text-white/50">{video.channel}</p>
+                    <p className="truncate font-mono text-xs text-white/60">{video.channel}</p>
                   </div>
                 </a>
               ))}
