@@ -49,6 +49,19 @@ describe("rateTeam", () => {
     assert.equal(rated.usedPrior, false);
   });
 
+  it("attributes CFBD-filled scoring as cfbd-season-stats, not ESPN", () => {
+    const rated = rateTeam({
+      stats: stats({ pointsPerGame: 33, pointsAllowedPerGame: 18 }),
+      scheduleScoring: { games: 0, pointsPerGame: null, pointsAllowedPerGame: null },
+      rank: null,
+      record: "2-0",
+      cfbdFilled: ["pointsPerGame", "pointsAllowedPerGame"],
+    });
+    assert.ok(rated.sources.includes("cfbd-season-stats"));
+    assert.ok(!rated.sources.includes("espn-team-statistics"));
+    assert.equal(rated.pointsFor, 33);
+  });
+
   it("labels the college prior when no scoring rates exist — does not invent a live score", () => {
     const rated = rateTeam({
       stats: emptyTeamSeasonStats(),
@@ -263,7 +276,7 @@ describe("buildMatchupAnalysis", () => {
       awayName: "Mystery Town",
     });
     assert.equal(analysis.markedAs, "ANALYSIS");
-    assert.match(analysis.headline, /ANALYSIS/);
+    assert.match(analysis.headline, /INFERENCE · ANALYSIS/);
     assert.ok(analysis.paragraphs.join(" ").includes("38.2"));
     assert.match(analysis.paragraphs.join(" "), /prior|not published|no published/i);
   });

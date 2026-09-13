@@ -35,7 +35,7 @@ None required. Copy `.env.example` only if you want to point at a different ESPN
 | `ESPN_WEB_BASE` | no | Primary public host (defaults to `site.web.api.espn.com` … `/college-football`) |
 | `ESPN_SITE_BASE` | no | Fallback host (`site.api.espn.com` — some networks block it) |
 | `YOUTUBE_API_KEY` | no | Optional YouTube Data API v3 key. Highlights work without it via public channel RSS. |
-| `ODDS_API_KEY` | no | **Reserved / unused in v0.** Deep Dive already shows prop cards without live odds. `edge_vs_market` stays `null` until a dedicated odds key is present. |
+| `ODDS_API_KEY` | no | **Reserved / unused in v0.** Even if this key is set, v0 does not call a paid odds API. Prop cards render without live market edge; `edge_vs_market` stays `null`. |
 | `CFBD_API_KEY` | no | Optional free [CollegeFootballData](https://collegefootballdata.com) Bearer token. When unset, CFBD cells stay honestly empty and ESPN is the only source. |
 
 ## Data sources and coverage
@@ -72,7 +72,7 @@ From a **game page** (`DEEP DIVE / SIM`) or a **team page** (header chip / `SIM`
 That page is server-rendered so it paints without client hydration:
 
 1. **Matchup stats** from ESPN’s public `/teams/{id}/statistics` JSON (PPG, yards, third down, turnovers, sacks). Blank cells when ESPN omitted them — never filled with invented zeros presented as live numbers.
-2. **ANALYSIS** narrative, marked as analysis, citing only those published rates (or an honest “not published” line).
+2. **INFERENCE · ANALYSIS** narrative, marked as analysis, citing only those published rates (or an honest “not published” line). The hero projected score is labeled **INFERENCE · EXPECTED SCORE** so it is never read as a live score.
 3. **SIMULATION** — composite-efficiency Monte Carlo, not a single lock:
    - Offense = `0.55·PPG + 0.30·(Y/G÷15) + 0.15·(3rd-down%÷2)` (missing yard/3rd-down terms fall back to points)
    - Defense = `0.70·PAPG + 0.30·(yards allowed÷15)`
@@ -99,7 +99,7 @@ That page is server-rendered so it paints without client hydration:
 | College prior 26.5 | Model default, labeled | Used only when both ESPN sheets are empty |
 | CFBD season stats | `api.collegefootballdata.com/stats/season` | Requires free `CFBD_API_KEY`. Honest empty / ESPN-only when unset. Never overwrites ESPN |
 | Player props | Game summary `leaders` | No season player-stat sheet in v0; no fabricated names |
-| Live odds / edge | ESPN `pickcenter` as evidence only | `edge_vs_market` is null. `ODDS_API_KEY` reserved for later paid/live odds |
+| Live odds / edge | ESPN `pickcenter` as evidence only | `edge_vs_market` is null even if `ODDS_API_KEY` is set — v0 has no paid adapter |
 | YouTube | Existing highlights strip | Deep Dive does not load clips; `YOUTUBE_API_KEY` stays optional for the board |
 
 The sim is **not** calibrated to closing lines and is **not** betting advice. A 70% home win number is a share of model trials, not a ticket.

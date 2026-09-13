@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   nextDeepDiveGameId,
+  oddsCoverage,
+  oddsKeyConfigured,
   parsePublishedMarket,
   parseTeamSeasonStats,
   scoringFromSchedule,
@@ -188,5 +190,20 @@ describe("nextDeepDiveGameId", () => {
     assert.equal(nextDeepDiveGameId([{ id: "upcoming-1" }], [{ id: "recent-1" }]), "upcoming-1");
     assert.equal(nextDeepDiveGameId([], [{ id: "recent-1" }]), "recent-1");
     assert.equal(nextDeepDiveGameId([], []), null);
+  });
+});
+
+describe("oddsKeyConfigured", () => {
+  it("is false when ODDS_API_KEY is missing so props stay without live edge", () => {
+    assert.equal(oddsKeyConfigured({}), false);
+    assert.equal(oddsKeyConfigured({ ODDS_API_KEY: "   " }), false);
+    assert.equal(oddsKeyConfigured({ ODDS_API_KEY: "secret" }), true);
+  });
+
+  it("never treats a present key as a live market edge in v0", () => {
+    const present = oddsCoverage(true);
+    const absent = oddsCoverage(false);
+    assert.match(present.detail, /edge_vs_market stays null/);
+    assert.match(absent.detail, /edge_vs_market is null/);
   });
 });

@@ -328,6 +328,7 @@ export type DeepDiveResponse = {
     market: CoverageNote;
     players: CoverageNote;
     cfbd: CoverageNote;
+    odds: CoverageNote;
   };
   disclaimer: string;
   disclaimerLong: string;

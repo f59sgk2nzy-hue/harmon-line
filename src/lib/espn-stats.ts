@@ -202,6 +202,26 @@ export function statsCoverage(
   };
 }
 
+export function oddsKeyConfigured(env?: Record<string, string | undefined>): boolean {
+  const key = env ? env.ODDS_API_KEY : process.env.ODDS_API_KEY;
+  return Boolean(key?.trim());
+}
+
+export function oddsCoverage(configured: boolean): CoverageNote {
+  if (configured) {
+    return {
+      headline: "ODDS KEY PRESENT · EDGE STILL NULL",
+      detail:
+        "ODDS_API_KEY is set, but v0 has no paid-odds adapter. edge_vs_market stays null. ESPN pickcenter is Evidence only, not a Harmon Line price.",
+    };
+  }
+  return {
+    headline: "NO PAID ODDS ADAPTER",
+    detail:
+      "ODDS_API_KEY is unset. Prop cards render without live market edge. edge_vs_market is null until a dedicated adapter ships.",
+  };
+}
+
 export function marketCoverage(market: PublishedMarket | null): CoverageNote {
   if (market) {
     return {

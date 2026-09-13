@@ -78,11 +78,15 @@ export function rateTeam(input: {
   scheduleScoring: ScheduleScoring;
   rank: number | null;
   record: string | null;
+  cfbdFilled?: string[];
 }): TeamRating {
+  const cfbd = new Set(input.cfbdFilled ?? []);
   const sources: string[] = [];
   let pointsFor = input.stats.pointsPerGame;
   let pointsAgainst = input.stats.pointsAllowedPerGame;
-  if (pointsFor != null) sources.push("espn-team-statistics");
+  if (pointsFor != null) {
+    sources.push(cfbd.has("pointsPerGame") ? "cfbd-season-stats" : "espn-team-statistics");
+  }
   if (pointsFor == null && input.scheduleScoring.pointsPerGame != null) {
     pointsFor = input.scheduleScoring.pointsPerGame;
     sources.push("espn-schedule-scores");
@@ -93,8 +97,12 @@ export function rateTeam(input: {
       sources.push("espn-schedule-scores");
     }
   }
-  if (pointsAgainst != null && input.stats.pointsAllowedPerGame != null && !sources.includes("espn-team-statistics")) {
-    sources.push("espn-team-statistics");
+  if (pointsAgainst != null && input.stats.pointsAllowedPerGame != null) {
+    const tag = cfbd.has("pointsAllowedPerGame") ? "cfbd-season-stats" : "espn-team-statistics";
+    if (!sources.includes(tag)) sources.push(tag);
+  }
+  if (cfbd.size > 0 && !sources.includes("cfbd-season-stats")) {
+    sources.push("cfbd-season-stats");
   }
   const usedPrior = pointsFor == null || pointsAgainst == null;
   if (usedPrior) sources.push("college-prior");
@@ -483,7 +491,7 @@ export function buildMatchupAnalysis(input: {
 
   return {
     markedAs: "ANALYSIS",
-    headline: `ANALYSIS · ${input.awayName} at ${input.homeName}`,
+    headline: `INFERENCE · ANALYSIS · ${input.awayName} at ${input.homeName}`,
     paragraphs,
   };
 }

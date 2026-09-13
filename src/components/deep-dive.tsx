@@ -171,7 +171,7 @@ export function DeepDiveView({
           <TeamMini team={game.away} />
           <div className="text-center">
             <p className="font-display text-[10px] tracking-[0.18em] text-[#f3c14b]">
-              EXPECTED SCORE
+              INFERENCE  ·  EXPECTED SCORE
             </p>
             <p className="mt-1 font-display text-3xl leading-none text-white sm:text-4xl">
               {Math.round(simulation.expectedAwayScore)}
@@ -225,7 +225,9 @@ export function DeepDiveView({
         </div>
         <div className="grid grid-cols-[1fr_auto_1fr] gap-2 border-b border-white/8 px-3 py-2 font-display text-[10px] tracking-[0.14em] text-white/40">
           <span>{game.away.abbreviation}</span>
-          <span className="text-center">ESPN</span>
+          <span className="text-center">
+            {coverage.cfbd.headline.includes("merged") ? "ESPN / CFBD" : "ESPN"}
+          </span>
           <span className="text-right">{game.home.abbreviation}</span>
         </div>
         {STAT_ROWS.map((row) => (
@@ -360,17 +362,18 @@ export function DeepDiveView({
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-xs tracking-[0.18em] text-[#f3c14b]">PROP FEEDBACK</h2>
           <p className="font-mono text-[10px] text-white/40">
-            {coverage.market.headline}  ·  {coverage.cfbd.headline}
+            {coverage.market.headline}  ·  {coverage.odds.headline}  ·  {coverage.cfbd.headline}
           </p>
         </div>
         {market ? (
           <p className="mb-3 font-mono text-[11px] text-white/55">
-            ESPN pickcenter: {market.details ?? "—"}
+            ESPN pickcenter (evidence): {market.details ?? "—"}
             {market.overUnder != null ? `  ·  O/U ${market.overUnder}` : ""}  ·  {market.provider}
           </p>
         ) : (
           <p className="mb-3 font-mono text-[11px] text-white/45">{coverage.market.detail}</p>
         )}
+        <p className="mb-3 font-mono text-[11px] text-white/40">{coverage.odds.detail}</p>
         <div className="grid gap-3 md:grid-cols-2">
           {props.map((card) => (
             <PropCard key={card.id} card={card} />

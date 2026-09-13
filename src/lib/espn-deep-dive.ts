@@ -8,6 +8,8 @@ import {
 import { getGameDetail } from "@/lib/espn";
 import {
   marketCoverage,
+  oddsCoverage,
+  oddsKeyConfigured,
   parsePublishedMarket,
   parseTeamSeasonStats,
   playerCoverage,
@@ -94,6 +96,7 @@ export function assembleDeepDive(input: {
   homeCfbd?: Partial<TeamSeasonStats>;
   awayCfbd?: Partial<TeamSeasonStats>;
   cfbdConfigured?: boolean;
+  oddsConfigured?: boolean;
   now?: Date;
 }): DeepDiveResponse {
   const homeEspn = parseTeamSeasonStats(input.homeStatsRaw);
@@ -108,12 +111,14 @@ export function assembleDeepDive(input: {
     scheduleScoring: scoringFromSchedule(input.homeSchedule),
     rank: input.game.home.rank,
     record: input.game.home.record,
+    cfbdFilled: homeMerged.filled,
   });
   const away = rateTeam({
     stats: awayStats,
     scheduleScoring: scoringFromSchedule(input.awaySchedule),
     rank: input.game.away.rank,
     record: input.game.away.record,
+    cfbdFilled: awayMerged.filled,
   });
   const seed = Number.parseInt(input.game.id.replace(/\D/g, "").slice(-8) || "2026", 10);
   const simulation = runGameSimulation({
@@ -141,6 +146,8 @@ export function assembleDeepDive(input: {
     gameName: input.game.shortName,
     dataAsOf: generatedAt,
   });
+  const espnPublished = homeEspn.available || awayEspn.available;
+  const filledCount = homeMerged.filled.length + awayMerged.filled.length;
   const eitherStats = homeStats.available || awayStats.available;
   const subdivision = input.game.subdivision;
   const evidence = [
@@ -154,7 +161,10 @@ export function assembleDeepDive(input: {
       ? `ESPN pickcenter: ${market.details ?? "line"} · O/U ${market.overUnder ?? "—"}`
       : "No ESPN pickcenter line on this summary",
     homeMerged.filled.length || awayMerged.filled.length
-      ? `CFBD filled ${homeMerged.filled.length + awayMerged.filled.length} blank cells`
+      ? `CFBD filled ${homeMerged.filled.length + awayMerged.filled.length} blank ESPN cells (${[
+          ...homeMerged.filled.map((field) => `${input.game.home.shortName} ${field}`),
+          ...awayMerged.filled.map((field) => `${input.game.away.shortName} ${field}`),
+        ].join(", ")})`
       : "CFBD did not replace any ESPN cell",
   ];
   const inference = [
@@ -181,9 +191,14 @@ export function assembleDeepDive(input: {
     coverage: {
       stats: eitherStats
         ? {
-            headline: "Season stats from ESPN public team statistics",
-            detail:
-              "Each side is filled only when ESPN published /teams/{id}/statistics. Blank cells are omissions, not zeros we invented.",
+            headline: filledCount
+              ? espnPublished
+                ? "Season stats from ESPN; CFBD filled blank cells"
+                : "Season stats from CFBD (ESPN sheet empty)"
+              : "Season stats from ESPN public team statistics",
+            detail: filledCount
+              ? "ESPN published cells are never overwritten. CFBD only fills blanks when CFBD_API_KEY is set."
+              : "Each side is filled only when ESPN published /teams/{id}/statistics. Blank cells are omissions, not zeros we invented.",
           }
         : statsCoverage(homeStats.available ? homeStats : awayStats, subdivision),
       market: marketCoverage(market),
@@ -192,6 +207,7 @@ export function assembleDeepDive(input: {
         Boolean(input.cfbdConfigured),
         homeMerged.filled.length + awayMerged.filled.length
       ),
+      odds: oddsCoverage(Boolean(input.oddsConfigured)),
     },
     disclaimer: BETTING_DISCLAIMER,
     disclaimerLong: BETTING_DISCLAIMER_LONG,
@@ -250,5 +266,6 @@ export async function getDeepDive(eventId: string): Promise<DeepDiveResponse> {
     homeCfbd,
     awayCfbd,
     cfbdConfigured: configured,
+    oddsConfigured: oddsKeyConfigured(),
   });
 }
