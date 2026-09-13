@@ -25,8 +25,9 @@ function num(value: unknown): number | null {
   return null;
 }
 
-export function cfbdKeyConfigured(env: NodeJS.ProcessEnv = process.env): boolean {
-  return Boolean(env.CFBD_API_KEY?.trim());
+export function cfbdKeyConfigured(env?: Record<string, string | undefined>): boolean {
+  const key = env ? env.CFBD_API_KEY : process.env.CFBD_API_KEY;
+  return Boolean(key?.trim());
 }
 
 const STAT_MAP: Record<string, keyof TeamSeasonStats> = {
