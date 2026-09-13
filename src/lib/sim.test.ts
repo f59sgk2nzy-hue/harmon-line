@@ -3,8 +3,11 @@ import { describe, it } from "node:test";
 import { emptyTeamSeasonStats } from "./espn-stats";
 import {
   BETTING_DISCLAIMER,
+  BETTING_DISCLAIMER_LONG,
+  TRIALS,
   buildMatchupAnalysis,
   buildPropAngles,
+  compositeOffense,
   rateTeam,
   runGameSimulation,
 } from "./sim";
@@ -78,6 +81,9 @@ describe("runGameSimulation", () => {
       seed: 13,
     });
     assert.equal(sim.label, "SIMULATION");
+    assert.ok(sim.trials >= 5000 && sim.trials <= 10_000);
+    assert.equal(sim.trials, TRIALS);
+    assert.ok(sim.confidence === "HIGH" || sim.confidence === "MEDIUM" || sim.confidence === "LOW");
     assert.ok(sim.homeWinPct > 0.58);
     assert.ok(sim.homeWinPct < 0.995);
     assert.ok(sim.awayWinPct > 0.005);
@@ -146,8 +152,11 @@ describe("buildPropAngles", () => {
     assert.ok(props.every((card) => !/\bis a lock\b/i.test(`${card.lean} ${card.why}`)));
     assert.ok(props.every((card) => !/^lock$/i.test(card.lean)));
     assert.ok(props.every((card) => card.why.length > 20));
-    assert.ok(props.some((card) => card.market === "game-total" || card.market === "side"));
+    assert.ok(props.some((card) => card.market === "total" || card.market === "ML"));
     assert.ok(props.every((card) => card.playerName === null));
+    assert.ok(props.every((card) => card.edge_vs_market === null));
+    assert.ok(props.every((card) => card.evidence.length > 0 && card.inference.length > 0));
+    assert.ok(props.every((card) => card.model_version.startsWith("harmon-line-sim")));
   });
 
   it("only names players who appear on published ESPN leaders — never invents player stats", () => {
@@ -214,7 +223,22 @@ describe("buildPropAngles", () => {
     });
     assert.ok(props.length >= 1);
     assert.ok(props.every((card) => card.oddsAvailable === null));
+    assert.ok(props.every((card) => card.edge_vs_market === null));
     assert.ok(props.every((card) => card.confidence === "LOW" || card.confidence === "MEDIUM"));
+  });
+});
+
+describe("compositeOffense", () => {
+  it("weights published PPG and yards instead of inventing a live score", () => {
+    const high = compositeOffense(
+      stats({ pointsPerGame: 40, rushingYardsPerGame: 220, passingYardsPerGame: 280, thirdDownPct: 50 }),
+      40
+    );
+    const low = compositeOffense(
+      stats({ pointsPerGame: 14, rushingYardsPerGame: 80, passingYardsPerGame: 140, thirdDownPct: 28 }),
+      14
+    );
+    assert.ok(high > low);
   });
 });
 
@@ -251,5 +275,7 @@ describe("disclaimer", () => {
     assert.match(BETTING_DISCLAIMER, /not financial/i);
     assert.match(BETTING_DISCLAIMER, /21\+/);
     assert.match(BETTING_DISCLAIMER, /local laws/i);
+    assert.match(BETTING_DISCLAIMER_LONG, /1-800-GAMBLER/);
+    assert.match(BETTING_DISCLAIMER_LONG, /not guaranteed/i);
   });
 });

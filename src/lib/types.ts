@@ -246,6 +246,8 @@ export type SimHistogramBin = {
   pct: number;
 };
 
+export type PropConfidence = "HIGH" | "MEDIUM" | "LOW";
+
 export type GameSimulation = {
   label: "SIMULATION";
   trials: number;
@@ -262,26 +264,39 @@ export type GameSimulation = {
   sigmaMargin: number;
   expectedHomeScore: number;
   expectedAwayScore: number;
+  confidence: PropConfidence;
   histogram: SimHistogramBin[];
   assumptions: string[];
   inputsUsed: string[];
   inputsMissing: string[];
 };
 
-export type PropConfidence = "HIGH" | "MEDIUM" | "LOW";
-export type PropMarketKind = "game-total" | "side" | "team-rush-td" | "player-published";
+export type HarmonLineMarket = "spread" | "total" | "ML" | "player_prop";
+export type PropMarketKind = HarmonLineMarket;
 
-export type PropAngle = {
+export type HarmonLinePropCard = {
   id: string;
-  market: PropMarketKind;
+  game: { id: string; name: string };
+  market: HarmonLineMarket;
   title: string;
   lean: string;
-  confidence: PropConfidence;
   why: string;
+  fair_line: number | null;
+  fair_prob: number | null;
+  edge_vs_market: number | null;
+  evidence: string[];
+  inference: string[];
+  confidence: PropConfidence;
+  disclaimers: string[];
+  data_as_of: string;
+  model_version: string;
   basis: "team-stats" | "published-leaders" | "simulation" | "published-market";
   playerName: string | null;
   oddsAvailable: { line: string; provider: string } | null;
 };
+
+/** @deprecated use HarmonLinePropCard — kept as an alias for existing imports */
+export type PropAngle = HarmonLinePropCard;
 
 export type MatchupAnalysis = {
   markedAs: "ANALYSIS";
@@ -289,21 +304,31 @@ export type MatchupAnalysis = {
   paragraphs: string[];
 };
 
+export type LayeredNote = {
+  kind: "evidence" | "inference";
+  text: string;
+};
+
 export type DeepDiveResponse = {
   source: "espn";
   demo: false;
   generatedAt: string;
+  modelVersion: string;
   game: GameSummary;
   homeStats: TeamSeasonStats;
   awayStats: TeamSeasonStats;
   market: PublishedMarket | null;
   simulation: GameSimulation;
   analysis: MatchupAnalysis;
-  props: PropAngle[];
+  props: HarmonLinePropCard[];
+  evidence: string[];
+  inference: string[];
   coverage: {
     stats: CoverageNote;
     market: CoverageNote;
     players: CoverageNote;
+    cfbd: CoverageNote;
   };
   disclaimer: string;
+  disclaimerLong: string;
 };

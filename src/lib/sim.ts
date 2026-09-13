@@ -1,8 +1,8 @@
 import type {
   GameSimulation,
+  HarmonLinePropCard,
   LeaderLine,
   MatchupAnalysis,
-  PropAngle,
   PropConfidence,
   PublishedMarket,
   ScheduleScoring,
@@ -10,16 +10,22 @@ import type {
   TeamSeasonStats,
 } from "@/lib/types";
 
+export const MODEL_VERSION = "harmon-line-sim-v0";
+
 export const BETTING_DISCLAIMER =
   "Entertainment and analysis only. Not financial, betting, or investment advice. 21+ only. Follow local laws. The Harmon Line does not take wagers and never treats a simulation as a lock.";
 
+export const BETTING_DISCLAIMER_LONG = `${BETTING_DISCLAIMER} Simulations are model draws, not guaranteed results, live scores, or closing numbers. If you or someone you know has a gambling problem, call 1-800-GAMBLER. Must be 21+ and comply with local laws.`;
+
 export const COLLEGE_PRIOR_PPG = 26.5;
-const TRIALS = 4000;
+export const TRIALS = 8000;
 const HFA = 2.5;
 
 export type TeamRating = {
   pointsFor: number;
   pointsAgainst: number;
+  compositeOff: number;
+  compositeDef: number;
   rank: number | null;
   record: string | null;
   usedPrior: boolean;
@@ -95,10 +101,14 @@ export function rateTeam(input: {
   const gamesPlayed =
     input.stats.gamesPlayed ??
     (input.scheduleScoring.games > 0 ? input.scheduleScoring.games : 0);
+  const pointsForValue = pointsFor ?? COLLEGE_PRIOR_PPG;
+  const pointsAgainstValue = pointsAgainst ?? COLLEGE_PRIOR_PPG;
 
   return {
-    pointsFor: pointsFor ?? COLLEGE_PRIOR_PPG,
-    pointsAgainst: pointsAgainst ?? COLLEGE_PRIOR_PPG,
+    pointsFor: pointsForValue,
+    pointsAgainst: pointsAgainstValue,
+    compositeOff: compositeOffense(input.stats, pointsForValue),
+    compositeDef: compositeDefense(input.stats, pointsAgainstValue),
     rank: input.rank,
     record: input.record,
     usedPrior,
@@ -106,6 +116,37 @@ export function rateTeam(input: {
     gamesPlayed,
     stats: input.stats,
   };
+}
+
+export function compositeOffense(stats: TeamSeasonStats, ppg: number): number {
+  const yards =
+    (stats.rushingYardsPerGame ?? 0) + (stats.passingYardsPerGame ?? 0);
+  const hasYards = stats.rushingYardsPerGame != null || stats.passingYardsPerGame != null;
+  const yardTerm = hasYards ? yards / 15 : ppg;
+  const thirdTerm = stats.thirdDownPct != null ? stats.thirdDownPct / 2 : ppg * 0.7;
+  return 0.55 * ppg + 0.3 * yardTerm + 0.15 * thirdTerm;
+}
+
+export function compositeDefense(stats: TeamSeasonStats, papg: number): number {
+  const yards =
+    (stats.rushingYardsAllowedPerGame ?? 0) + (stats.passingYardsAllowedPerGame ?? 0);
+  const hasYards =
+    stats.rushingYardsAllowedPerGame != null || stats.passingYardsAllowedPerGame != null;
+  const yardTerm = hasYards ? yards / 15 : papg;
+  return 0.7 * papg + 0.3 * yardTerm;
+}
+
+export function simConfidenceFromData(home: TeamRating, away: TeamRating): PropConfidence {
+  const complete = !home.usedPrior && !away.usedPrior;
+  const games = Math.min(home.gamesPlayed, away.gamesPlayed);
+  const rich =
+    home.stats.available &&
+    away.stats.available &&
+    home.stats.rushingYardsPerGame != null &&
+    away.stats.rushingYardsPerGame != null;
+  if (complete && rich && games >= 4) return "HIGH";
+  if (complete && games >= 2) return "MEDIUM";
+  return "LOW";
 }
 
 function histogram(margins: number[], trials: number): SimHistogramBin[] {
@@ -140,12 +181,16 @@ export function runGameSimulation(input: {
   const rng = mulberry32(seed);
   const hfa = input.homeField ? HFA : 0;
   const expectedHomeScore = clamp(
-    (input.home.pointsFor + input.away.pointsAgainst) / 2 + hfa / 2 + rankBoost(input.home.rank),
+    (input.home.compositeOff + input.away.compositeDef) / 2 +
+      hfa / 2 +
+      rankBoost(input.home.rank),
     3,
     72
   );
   const expectedAwayScore = clamp(
-    (input.away.pointsFor + input.home.pointsAgainst) / 2 - hfa / 2 + rankBoost(input.away.rank),
+    (input.away.compositeOff + input.home.compositeDef) / 2 -
+      hfa / 2 +
+      rankBoost(input.away.rank),
     3,
     72
   );
@@ -198,13 +243,15 @@ export function runGameSimulation(input: {
     sigmaMargin,
     expectedHomeScore: round1(expectedHomeScore),
     expectedAwayScore: round1(expectedAwayScore),
+    confidence: simConfidenceFromData(input.home, input.away),
     histogram: histogram(margins, TRIALS),
     assumptions: [
-      "Transparent rating: expected score = (own PPG + opponent points allowed) / 2.",
+      "Composite efficiency: offense = 0.55·PPG + 0.30·(Y/G÷15) + 0.15·(3rd-down%÷2); defense = 0.70·PAPG + 0.30·(yards allowed÷15). Missing yard/3rd-down terms fall back to points.",
+      "Expected score = (own composite offense + opponent composite defense) / 2.",
       `Home-field edge is ${HFA} points when a home side is marked, split across both expected scores.`,
       "AP rank (1–25) adjusts expected points by 0.35 per spot from rank 13. Unranked is 0.",
       `Monte Carlo: ${TRIALS} draws from independent normals for margin (σ=${sigmaMargin}) and total.`,
-      "Output is a distribution (win probability + 10th–90th percentile margin), never a single lock.",
+      "Output is a distribution (win probability + 10th–90th percentile bands), never a single lock.",
     ],
     inputsUsed: [...input.home.sources, ...input.away.sources].filter(
       (value, index, all) => all.indexOf(value) === index
@@ -222,11 +269,29 @@ function confidenceFrom(sample: number, edge: number): PropConfidence {
 function marketOdds(
   market: PublishedMarket | null,
   line?: string | null
-): PropAngle["oddsAvailable"] {
+): HarmonLinePropCard["oddsAvailable"] {
   if (!market) return null;
   const text = line || market.details || (market.overUnder != null ? `O/U ${market.overUnder}` : null);
   if (!text) return null;
   return { line: text, provider: market.provider };
+}
+
+function cardBase(input: {
+  gameId: string;
+  gameName: string;
+  dataAsOf: string;
+}): Pick<HarmonLinePropCard, "game" | "edge_vs_market" | "disclaimers" | "data_as_of" | "model_version"> {
+  return {
+    game: { id: input.gameId, name: input.gameName },
+    edge_vs_market: null,
+    disclaimers: [
+      "Entertainment / analysis only. Not financial advice.",
+      "Simulation shares are not guaranteed results.",
+      "21+ · 1-800-GAMBLER · follow local laws.",
+    ],
+    data_as_of: input.dataAsOf,
+    model_version: MODEL_VERSION,
+  };
 }
 
 export function buildPropAngles(input: {
@@ -237,21 +302,65 @@ export function buildPropAngles(input: {
   sim: GameSimulation;
   market: PublishedMarket | null;
   leaders: LeaderLine[];
-}): PropAngle[] {
+  gameId?: string;
+  gameName?: string;
+  dataAsOf?: string;
+}): HarmonLinePropCard[] {
   const sample = Math.min(input.home.gamesPlayed, input.away.gamesPlayed);
-  const cards: PropAngle[] = [];
+  const cards: HarmonLinePropCard[] = [];
   const favoriteHome = input.sim.homeWinPct >= input.sim.awayWinPct;
   const favoritePct = favoriteHome ? input.sim.homeWinPct : input.sim.awayWinPct;
   const favoriteName = favoriteHome ? input.homeName : input.awayName;
   const sideEdge = Math.abs(input.sim.homeWinPct - 0.5);
+  const shared = cardBase({
+    gameId: input.gameId ?? "game",
+    gameName: input.gameName ?? `${input.awayName} at ${input.homeName}`,
+    dataAsOf: input.dataAsOf ?? new Date().toISOString(),
+  });
 
   cards.push({
-    id: "side",
-    market: "side",
+    ...shared,
+    id: "ml",
+    market: "ML",
     title: "Moneyline lean",
     lean: `${favoriteName} to win (${Math.round(favoritePct * 100)}% of sims)`,
     confidence: input.home.usedPrior || input.away.usedPrior ? "LOW" : confidenceFrom(sample, sideEdge),
-    why: `SIMULATION expected score ${input.sim.expectedAwayScore}–${input.sim.expectedHomeScore} (away–home) from published or prior scoring rates. ${Math.round(input.sim.homeWinPct * 100)}% home / ${Math.round(input.sim.awayWinPct * 100)}% away across ${input.sim.trials} trials. This is a lean, not a lock.`,
+    why: `SIMULATION expected score ${input.sim.expectedAwayScore}–${input.sim.expectedHomeScore} (away–home). ${Math.round(input.sim.homeWinPct * 100)}% home / ${Math.round(input.sim.awayWinPct * 100)}% away across ${input.sim.trials} trials. This is a lean, not a lock.`,
+    fair_line: null,
+    fair_prob: favoritePct,
+    evidence: [
+      `${input.homeName} ${round1(input.home.pointsFor)} PPG / ${round1(input.home.pointsAgainst)} allowed (${input.home.sources.join(", ")})`,
+      `${input.awayName} ${round1(input.away.pointsFor)} PPG / ${round1(input.away.pointsAgainst)} allowed (${input.away.sources.join(", ")})`,
+      input.market?.details ? `ESPN pickcenter published ${input.market.details}` : "No dedicated odds API line in v0",
+    ],
+    inference: [
+      `Model win probability ${Math.round(favoritePct * 100)}% for ${favoriteName}`,
+      `Projected ${input.sim.expectedAwayScore}–${input.sim.expectedHomeScore} (away–home)`,
+    ],
+    basis: "simulation",
+    playerName: null,
+    oddsAvailable: marketOdds(input.market, input.market?.details),
+  });
+
+  const fairSpread = round1(-input.sim.meanMargin);
+  cards.push({
+    ...shared,
+    id: "spread",
+    market: "spread",
+    title: "Spread lean",
+    lean: `${input.homeName} ${fairSpread > 0 ? "+" : ""}${fairSpread} fair (home)`,
+    confidence: input.sim.confidence,
+    why: `Fair home spread is the model mean margin flipped to a line (${fairSpread}). 10th–90th home margin ${input.sim.marginLow} to ${input.sim.marginHigh}. Not a lock.`,
+    fair_line: fairSpread,
+    fair_prob: input.sim.homeWinPct,
+    evidence: [
+      input.market?.details ? `Published ESPN market: ${input.market.details}` : "No published spread on this feed",
+      `Composite off/def used for both sides (see model assumptions)`,
+    ],
+    inference: [
+      `Mean home margin ${input.sim.meanMargin} from ${input.sim.trials} draws`,
+      `Percentile band ${input.sim.marginLow} to ${input.sim.marginHigh}`,
+    ],
     basis: "simulation",
     playerName: null,
     oddsAvailable: marketOdds(input.market, input.market?.details),
@@ -269,8 +378,9 @@ export function buildPropAngles(input: {
     marketTotal == null ? Math.min(0.18, Math.abs(modelTotal - 52) / 40) : Math.abs(modelTotal - marketTotal) / 28;
 
   cards.push({
+    ...shared,
     id: "total",
-    market: "game-total",
+    market: "total",
     title: "Game total",
     lean: totalLean,
     confidence:
@@ -279,8 +389,19 @@ export function buildPropAngles(input: {
         : confidenceFrom(sample, marketTotal == null ? totalEdge : Math.min(1, Math.abs(modelTotal - marketTotal) / 20)),
     why:
       marketTotal == null
-        ? `Combined expected points ${modelTotal} (10th–90th ${input.sim.totalLow}–${input.sim.totalHigh}). ESPN pickcenter did not publish an over/under, so this card is structured for a later odds feed.`
-        : `ESPN published O/U ${marketTotal} (${input.market?.provider}). Model mean total ${modelTotal} sits ${round1(modelTotal - marketTotal)} points ${modelTotal >= marketTotal ? "over" : "under"} that number. Early-season samples stay conservative.`,
+        ? `Combined expected points ${modelTotal} (10th–90th ${input.sim.totalLow}–${input.sim.totalHigh}). No dedicated odds API — edge_vs_market stays null.`
+        : `ESPN published O/U ${marketTotal} (${input.market?.provider}). Model mean total ${modelTotal}. Paid-odds edge is not computed in v0.`,
+    fair_line: modelTotal,
+    fair_prob: null,
+    evidence: [
+      marketTotal != null
+        ? `ESPN pickcenter O/U ${marketTotal} (${input.market?.provider})`
+        : "ESPN pickcenter did not publish an over/under",
+    ],
+    inference: [
+      `Model mean total ${modelTotal}`,
+      `Percentile band ${input.sim.totalLow}–${input.sim.totalHigh}`,
+    ],
     basis: marketTotal == null ? "simulation" : "published-market",
     playerName: null,
     oddsAvailable: marketOdds(
@@ -289,40 +410,23 @@ export function buildPropAngles(input: {
     ),
   });
 
-  const homeRush = rushTdRate(input.home);
-  const awayRush = rushTdRate(input.away);
-  if (homeRush != null || awayRush != null) {
-    const homeRate = homeRush ?? 0;
-    const awayRate = awayRush ?? 0;
-    const rushLeader = homeRate >= awayRate ? input.homeName : input.awayName;
-    const rushLead = Math.abs(homeRate - awayRate);
-    if (rushLead >= 0.4) {
-      cards.push({
-        id: "rush-td",
-        market: "team-rush-td",
-        title: "Team rushing TDs",
-        lean: `${rushLeader} rushing-TD volume`,
-        confidence: confidenceFrom(sample, Math.min(1, rushLead / 3)),
-        why: `${input.homeName} ${homeRush == null ? "has no published rush TDs" : `${round1(homeRate)} rush TD/g`} · ${input.awayName} ${awayRush == null ? "has no published rush TDs" : `${round1(awayRate)} rush TD/g`} on ESPN team statistics. Lean the higher published rate — not an invented player prop.`,
-        basis: "team-stats",
-        playerName: null,
-        oddsAvailable: null,
-      });
-    }
-  }
-
   for (const leader of input.leaders) {
     const name = leader.name.trim();
     if (!name) continue;
     const display = leader.displayValue.trim();
     if (!display) continue;
     cards.push({
+      ...shared,
       id: `player-${leader.category}-${name}`,
-      market: "player-published",
+      market: "player_prop",
       title: `${leader.category} · published`,
       lean: `${name} volume watch`,
       confidence: "LOW",
       why: `ESPN published ${name} at ${display} (${leader.category}). That is the last listed line — not a projected stat line we created. Use it as a research pointer only.`,
+      fair_line: null,
+      fair_prob: null,
+      evidence: [`ESPN leader ${name}: ${display} (${leader.category})`],
+      inference: ["No player-level projection is invented beyond the published line."],
       basis: "published-leaders",
       playerName: name,
       oddsAvailable: null,

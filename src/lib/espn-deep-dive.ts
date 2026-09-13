@@ -1,3 +1,10 @@
+import {
+  cfbdCoverage,
+  cfbdKeyConfigured,
+  cfbdTeamQueryName,
+  fetchCfbdSeasonStats,
+  mergeCfbdStats,
+} from "@/lib/cfbd";
 import { getGameDetail } from "@/lib/espn";
 import {
   marketCoverage,
@@ -8,8 +15,16 @@ import {
   statsCoverage,
 } from "@/lib/espn-stats";
 import { parseScheduleEvents } from "@/lib/espn-team";
-import { BETTING_DISCLAIMER, buildMatchupAnalysis, buildPropAngles, rateTeam, runGameSimulation } from "@/lib/sim";
-import type { DeepDiveResponse, GameSummary, LeaderLine, TeamScheduleGame } from "@/lib/types";
+import {
+  BETTING_DISCLAIMER,
+  BETTING_DISCLAIMER_LONG,
+  MODEL_VERSION,
+  buildMatchupAnalysis,
+  buildPropAngles,
+  rateTeam,
+  runGameSimulation,
+} from "@/lib/sim";
+import type { DeepDiveResponse, GameSummary, LeaderLine, TeamScheduleGame, TeamSeasonStats } from "@/lib/types";
 
 const ESPN_WEB =
   process.env.ESPN_WEB_BASE ??
@@ -76,10 +91,17 @@ export function assembleDeepDive(input: {
   homeSchedule: TeamScheduleGame[];
   awaySchedule: TeamScheduleGame[];
   marketRaw: unknown;
+  homeCfbd?: Partial<TeamSeasonStats>;
+  awayCfbd?: Partial<TeamSeasonStats>;
+  cfbdConfigured?: boolean;
   now?: Date;
 }): DeepDiveResponse {
-  const homeStats = parseTeamSeasonStats(input.homeStatsRaw);
-  const awayStats = parseTeamSeasonStats(input.awayStatsRaw);
+  const homeEspn = parseTeamSeasonStats(input.homeStatsRaw);
+  const awayEspn = parseTeamSeasonStats(input.awayStatsRaw);
+  const homeMerged = mergeCfbdStats(homeEspn, input.homeCfbd ?? {});
+  const awayMerged = mergeCfbdStats(awayEspn, input.awayCfbd ?? {});
+  const homeStats = homeMerged.stats;
+  const awayStats = awayMerged.stats;
   const market = parsePublishedMarket(input.marketRaw);
   const home = rateTeam({
     stats: homeStats,
@@ -106,6 +128,7 @@ export function assembleDeepDive(input: {
     homeName: input.game.home.shortName,
     awayName: input.game.away.shortName,
   });
+  const generatedAt = (input.now ?? new Date()).toISOString();
   const props = buildPropAngles({
     home,
     away,
@@ -114,14 +137,38 @@ export function assembleDeepDive(input: {
     sim: simulation,
     market,
     leaders: input.leaders,
+    gameId: input.game.id,
+    gameName: input.game.shortName,
+    dataAsOf: generatedAt,
   });
   const eitherStats = homeStats.available || awayStats.available;
   const subdivision = input.game.subdivision;
+  const evidence = [
+    homeEspn.pointsPerGame != null
+      ? `${input.game.home.shortName} ESPN PPG ${homeEspn.pointsPerGame}`
+      : `${input.game.home.shortName} ESPN PPG not published`,
+    awayEspn.pointsPerGame != null
+      ? `${input.game.away.shortName} ESPN PPG ${awayEspn.pointsPerGame}`
+      : `${input.game.away.shortName} ESPN PPG not published`,
+    market
+      ? `ESPN pickcenter: ${market.details ?? "line"} · O/U ${market.overUnder ?? "—"}`
+      : "No ESPN pickcenter line on this summary",
+    homeMerged.filled.length || awayMerged.filled.length
+      ? `CFBD filled ${homeMerged.filled.length + awayMerged.filled.length} blank cells`
+      : "CFBD did not replace any ESPN cell",
+  ];
+  const inference = [
+    `Projected ${simulation.expectedAwayScore}–${simulation.expectedHomeScore} (away–home)`,
+    `Win probabilities ${Math.round(simulation.awayWinPct * 100)}% / ${Math.round(simulation.homeWinPct * 100)}% over ${simulation.trials} trials`,
+    `Margin band ${simulation.marginLow} to ${simulation.marginHigh} · total ${simulation.totalLow}–${simulation.totalHigh}`,
+    `Model confidence ${simulation.confidence} from data completeness (${MODEL_VERSION})`,
+  ];
 
   return {
     source: "espn",
     demo: false,
-    generatedAt: (input.now ?? new Date()).toISOString(),
+    generatedAt,
+    modelVersion: MODEL_VERSION,
     game: input.game,
     homeStats,
     awayStats,
@@ -129,6 +176,8 @@ export function assembleDeepDive(input: {
     simulation,
     analysis,
     props,
+    evidence,
+    inference,
     coverage: {
       stats: eitherStats
         ? {
@@ -139,8 +188,13 @@ export function assembleDeepDive(input: {
         : statsCoverage(homeStats.available ? homeStats : awayStats, subdivision),
       market: marketCoverage(market),
       players: playerCoverage(input.leaders.filter((row) => row.name && row.displayValue).length),
+      cfbd: cfbdCoverage(
+        Boolean(input.cfbdConfigured),
+        homeMerged.filled.length + awayMerged.filled.length
+      ),
     },
     disclaimer: BETTING_DISCLAIMER,
+    disclaimerLong: BETTING_DISCLAIMER_LONG,
   };
 }
 
@@ -160,6 +214,28 @@ export async function getDeepDive(eventId: string): Promise<DeepDiveResponse> {
       settledJson(`/summary?event=${eventId}`),
     ]);
 
+  const year = new Date(detail.game.date || Date.now()).getUTCFullYear();
+  const key = process.env.CFBD_API_KEY?.trim() ?? "";
+  const configured = cfbdKeyConfigured();
+  let homeCfbd = {};
+  let awayCfbd = {};
+  if (key) {
+    const [homeCfbdSettled, awayCfbdSettled] = await Promise.allSettled([
+      fetchCfbdSeasonStats(
+        cfbdTeamQueryName(detail.game.home.name, detail.game.home.shortName),
+        year,
+        key
+      ),
+      fetchCfbdSeasonStats(
+        cfbdTeamQueryName(detail.game.away.name, detail.game.away.shortName),
+        year,
+        key
+      ),
+    ]);
+    if (homeCfbdSettled.status === "fulfilled") homeCfbd = homeCfbdSettled.value;
+    if (awayCfbdSettled.status === "fulfilled") awayCfbd = awayCfbdSettled.value;
+  }
+
   const homeEvents = asRecord(homeScheduleRaw)?.events;
   const awayEvents = asRecord(awayScheduleRaw)?.events;
 
@@ -171,5 +247,8 @@ export async function getDeepDive(eventId: string): Promise<DeepDiveResponse> {
     homeSchedule: parseScheduleEvents(homeEvents, homeId),
     awaySchedule: parseScheduleEvents(awayEvents, awayId),
     marketRaw: summaryRaw,
+    homeCfbd,
+    awayCfbd,
+    cfbdConfigured: configured,
   });
 }

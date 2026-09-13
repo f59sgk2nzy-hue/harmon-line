@@ -1,3 +1,4 @@
+import { DisclaimerFooter, DisclaimerModal } from "@/components/disclaimer-modal";
 import { TeamLogo } from "@/components/team-logo";
 import { formatKickoff, formatPollClock } from "@/lib/dates";
 import { deepDiveHref } from "@/lib/espn-stats";
@@ -5,7 +6,7 @@ import { teamHref } from "@/lib/espn-team";
 import { formatWinPct } from "@/lib/sim";
 import type {
   DeepDiveResponse,
-  PropAngle,
+  HarmonLinePropCard,
   PropConfidence,
   TeamSeasonStats,
   TeamSide,
@@ -40,19 +41,6 @@ const STAT_ROWS: Array<{ key: keyof TeamSeasonStats; label: string; suffix?: str
   { key: "gamesPlayed", label: "Games played" },
 ];
 
-function DisclaimerBanner({ text }: { text: string }) {
-  return (
-    <aside
-      data-deep-dive-disclaimer
-      className="border border-[#f3c14b]/50 bg-[#2a1200] px-3 py-3 sm:px-4"
-    >
-      <p className="font-display text-[11px] tracking-[0.2em] text-[#f3c14b]">
-        21+  ·  ENTERTAINMENT / ANALYSIS ONLY  ·  NOT FINANCIAL ADVICE
-      </p>
-      <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-[#f3c14b]/85">{text}</p>
-    </aside>
-  );
-}
 
 function TeamMini({ team }: { team: TeamSide }) {
   return (
@@ -66,12 +54,12 @@ function TeamMini({ team }: { team: TeamSide }) {
   );
 }
 
-function PropCard({ card }: { card: PropAngle }) {
+function PropCard({ card }: { card: HarmonLinePropCard }) {
   return (
     <article data-prop-card className="border border-white/10 bg-[#111] p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-display text-[10px] tracking-[0.18em] text-white/40">
-          {card.title.toUpperCase()}
+          {card.market}  ·  {card.title.toUpperCase()}
         </p>
         <span
           className={`inline-flex min-h-6 items-center px-2 font-display text-[10px] tracking-[0.14em] ${confidenceTone(card.confidence)}`}
@@ -80,11 +68,29 @@ function PropCard({ card }: { card: PropAngle }) {
         </span>
       </div>
       <p className="mt-2 font-display text-lg leading-tight tracking-wide text-white">{card.lean}</p>
-      <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/60">{card.why}</p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div data-evidence>
+          <p className="font-display text-[10px] tracking-[0.16em] text-[#8ee08e]">EVIDENCE</p>
+          <ul className="mt-1 list-disc space-y-1 pl-4 font-mono text-[11px] text-white/60">
+            {card.evidence.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+        <div data-inference>
+          <p className="font-display text-[10px] tracking-[0.16em] text-[#f3c14b]">INFERENCE</p>
+          <ul className="mt-1 list-disc space-y-1 pl-4 font-mono text-[11px] text-white/60">
+            {card.inference.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/45">{card.why}</p>
       <p className="mt-3 font-mono text-[10px] tracking-[0.12em] text-white/35">
         {card.oddsAvailable
-          ? `${card.oddsAvailable.provider.toUpperCase()}  ·  ${card.oddsAvailable.line}  ·  ESPN PICKCENTER`
-          : "NO LIVE ODDS  ·  CARD STRUCTURED FOR A LATER ODDS FEED"}
+          ? `${card.oddsAvailable.provider.toUpperCase()}  ·  ${card.oddsAvailable.line}  ·  ESPN PICKCENTER  ·  EDGE VS MARKET NULL`
+          : "NO LIVE ODDS  ·  EDGE_VS_MARKET NULL  ·  CARD STRUCTURED FOR A LATER ODDS FEED"}
       </p>
     </article>
   );
@@ -113,8 +119,20 @@ export function DeepDiveView({
     );
   }
 
-  const { game, homeStats, awayStats, simulation, analysis, props, coverage, market, disclaimer } =
-    data;
+  const {
+    game,
+    homeStats,
+    awayStats,
+    simulation,
+    analysis,
+    props,
+    coverage,
+    market,
+    disclaimer,
+    disclaimerLong,
+    evidence,
+    inference,
+  } = data;
   const stamp = formatPollClock(data.generatedAt);
   const maxBin = Math.max(...simulation.histogram.map((bin) => bin.count), 1);
   const final = game.status.state === "post";
@@ -135,7 +153,7 @@ export function DeepDiveView({
         </p>
       </div>
 
-      <DisclaimerBanner text={disclaimer} />
+      <DisclaimerModal shortText={disclaimer} longText={disclaimerLong} />
 
       <section className="score-cell mt-4 overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-2 sm:px-4">
@@ -200,7 +218,9 @@ export function DeepDiveView({
 
       <section id="matchup" className="mt-4 border border-white/10 bg-[#111]">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
-          <h2 className="font-display text-xs tracking-[0.18em] text-[#f3c14b]">MATCHUP STATS</h2>
+          <h2 className="font-display text-xs tracking-[0.18em] text-[#f3c14b]">
+            EVIDENCE  ·  MATCHUP STATS
+          </h2>
           <p className="font-mono text-[10px] text-white/40">{coverage.stats.headline}</p>
         </div>
         <div className="grid grid-cols-[1fr_auto_1fr] gap-2 border-b border-white/8 px-3 py-2 font-display text-[10px] tracking-[0.14em] text-white/40">
@@ -227,6 +247,29 @@ export function DeepDiveView({
         ) : null}
       </section>
 
+      <section className="mt-4 grid gap-3 md:grid-cols-2">
+        <div data-evidence-panel className="border border-[#8ee08e]/25 bg-[#0d1a0d]">
+          <h3 className="border-b border-[#8ee08e]/20 px-3 py-2 font-display text-xs tracking-[0.18em] text-[#8ee08e]">
+            EVIDENCE  ·  OBSERVED
+          </h3>
+          <ul className="space-y-2 px-3 py-3 font-mono text-[11px] leading-relaxed text-white/75">
+            {evidence.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+        <div data-inference-panel className="border border-[#f3c14b]/25 bg-[#16120a]">
+          <h3 className="border-b border-[#f3c14b]/20 px-3 py-2 font-display text-xs tracking-[0.18em] text-[#f3c14b]">
+            INFERENCE  ·  MODEL
+          </h3>
+          <ul className="space-y-2 px-3 py-3 font-mono text-[11px] leading-relaxed text-white/75">
+            {inference.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       <section className="mt-4 border border-[#f3c14b]/25 bg-[#16120a]">
         <h2 className="border-b border-[#f3c14b]/20 px-3 py-2 font-display text-xs tracking-[0.18em] text-[#f3c14b]">
           {analysis.headline}
@@ -243,10 +286,10 @@ export function DeepDiveView({
       <section id="simulation" data-sim-chart className="mt-4 border border-white/10 bg-[#111]">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
           <h2 className="font-display text-xs tracking-[0.18em] text-[#f3c14b]">
-            SIMULATION  ·  {simulation.trials.toLocaleString()} TRIALS
+            INFERENCE  ·  SIMULATION  ·  {simulation.trials.toLocaleString()} TRIALS
           </h2>
-          <span className="font-display text-[10px] tracking-[0.16em] text-[#ff3b3b]">
-            NOT A LOCK
+          <span className={`inline-flex items-center px-2 py-0.5 font-display text-[10px] tracking-[0.16em] ${confidenceTone(simulation.confidence)}`}>
+            {simulation.confidence}  ·  NOT A LOCK
           </span>
         </div>
         <div className="px-3 py-4">
@@ -316,7 +359,9 @@ export function DeepDiveView({
       <section id="props" className="mt-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-xs tracking-[0.18em] text-[#f3c14b]">PROP FEEDBACK</h2>
-          <p className="font-mono text-[10px] text-white/40">{coverage.market.headline}</p>
+          <p className="font-mono text-[10px] text-white/40">
+            {coverage.market.headline}  ·  {coverage.cfbd.headline}
+          </p>
         </div>
         {market ? (
           <p className="mb-3 font-mono text-[11px] text-white/55">
@@ -335,8 +380,9 @@ export function DeepDiveView({
       </section>
 
       <div className="mt-6">
-        <DisclaimerBanner text={disclaimer} />
+        <DisclaimerModal shortText={disclaimer} longText={disclaimerLong} />
       </div>
+      <DisclaimerFooter text={disclaimer} />
     </div>
   );
 }
