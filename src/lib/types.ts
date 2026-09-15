@@ -186,6 +186,53 @@ export type TeamPageResponse = {
   };
 };
 
+export type PollId = "ap" | "coaches" | "fcs" | "d2" | "d3";
+
+export type RankTrend = {
+  direction: "up" | "down" | "even" | null;
+  label: string | null;
+};
+
+export type RankedTeam = {
+  id: string;
+  name: string;
+  abbreviation: string;
+  logo: string;
+  color: string | null;
+};
+
+export type RankingRow = {
+  rank: number;
+  previous: number | null;
+  points: number | null;
+  record: string | null;
+  trend: RankTrend;
+  team: RankedTeam;
+};
+
+export type RankingPoll = {
+  id: PollId;
+  espnId: string | null;
+  name: string;
+  shortName: string;
+  headline: string;
+  week: number | null;
+  occurrence: string | null;
+  ranks: RankingRow[];
+};
+
+export type RankingsResponse = {
+  source: "espn";
+  demo: false;
+  generatedAt: string;
+  week: number | null;
+  seasonYear: number | null;
+  poll: PollId;
+  polls: RankingPoll[];
+  selected: RankingPoll | null;
+  coverage: CoverageNote;
+};
+
 export type GameDetailResponse = {
   source: "espn";
   demo: false;

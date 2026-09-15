@@ -15,7 +15,7 @@ Unit checks for period scores, subdivision labels, poll-clock timezone, and redi
 npm test
 ```
 
-Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s games in US/Eastern**. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it.
+Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s games in US/Eastern**. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it. **Rankings** (`/rankings`) lists AP, Coaches, FCS, D2, and D3 polls from the same public ESPN JSON.
 
 **DELL / Home Screen / Tailscale:** prefer production (`npm run build && npm start`). `next dev` gates the HMR websocket (`/_next/hmr`) with an Origin check. Opening the board as `http://127.0.0.1:43173` or a LAN/Tailscale IP can fail that check (`Unauthorized`), so React never hydrates. The highlights strip is server-rendered so cards still paint, but production has no HMR and is the reliable way to pin or share the board. `next.config` sets `allowedDevOrigins` for `localhost`, `127.0.0.1`, Tailscale MagicDNS (`**.ts.net`), and this machine’s LAN/Tailscale IPv4 addresses.
 
@@ -50,6 +50,28 @@ None required. Copy `.env.example` only if you want to point at a different ESPN
 **NAIA gap:** ESPN’s NAIA group is real, but it mostly carries crossover games (NAIA vs NCAA) and a thin Saturday slate. Many NAIA-vs-NAIA contests never appear. [NAIA Stats / PrestoSports](https://naiastats.prestosports.com/sports/fball/scoreboard) has a fuller board but sits behind Cloudflare; this app does not scrape it.
 
 **Honesty rule:** The app never invents live scores. If ESPN is unreachable you get an error state, not a silent demo. There is no sample-score mode.
+
+## Rankings
+
+`/rankings` is a live poll board (AP, AFCA Coaches, FCS Coaches, AFCA D2, AFCA D3). Switch polls with the sticky tabs; each school name opens `/team/{espnId}`.
+
+**Source:** ESPN’s unofficial public rankings JSON — the same hosts as the scoreboard, no API key:
+
+`GET {ESPN_WEB_BASE|ESPN_SITE_BASE}/rankings`
+
+Example: `https://site.web.api.espn.com/apis/site/v2/sports/football/college-football/rankings` (fallback `site.api.espn.com`).
+
+| Tab | ESPN poll | Typical ESPN `id` |
+| --- | --- | --- |
+| AP | AP Top 25 | `1` (`type: ap`) |
+| COACHES | AFCA Coaches Poll | `2` (`type: usa`) |
+| FCS | FCS Coaches Poll | `20` (`type: fcs`) |
+| D2 | AFCA Division II Coaches Poll | `11` |
+| D3 | AFCA Division III Coaches Poll | `12` |
+
+Each row shows ESPN’s current rank, logo, school, record, and a trend arrow **only when ESPN sent `trend`** (`+3`, `-5`, or `-` for unchanged). Points render when ESPN published `points`; missing points stay blank. Unpublished polls get an empty “not published” state. Rankings are never sampled or filled in.
+
+The header **RANKINGS** nav is on every page. On a phone the poll tabs stick under the header (44px targets, horizontal scroll if needed).
 
 ## Team pages
 
@@ -102,8 +124,9 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 
 - Filter D1 / D2 / NAIA, plus FBS vs FCS on Division I
 - Filter by conference, live/upcoming/final, team search, and date
+- Open **Rankings** for AP / Coaches / FCS / D2 / D3 and tap a school into its team page
 - Open a game for the scorebug, quarter lines, scoring plays, and a drive-by-drive feed (or a clear “no PBP” state)
-- Tap a school name on the board or a game to open recent scores, the upcoming slate, and the roster
+- Tap a school name on the board, a game, or a rankings row to open recent scores, the upcoming slate, and the roster
 - Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips
 - Watch the bottom-line ticker for the full slate
 - Install the board on a phone home screen or pin it as a Windows app
