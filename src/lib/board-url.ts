@@ -7,10 +7,18 @@ export function boardHref(options: {
   conference?: string;
   status?: StatusFilter;
   q?: string;
+  week?: number | null;
+  year?: number | null;
 }): string {
   const params = new URLSearchParams();
   params.set("division", options.division);
   params.set("date", options.date);
+  if (options.week && options.week > 0) {
+    params.set("week", String(options.week));
+    if (options.year && options.year > 0) {
+      params.set("year", String(options.year));
+    }
+  }
   if (options.division === "d1" && options.subdivision && options.subdivision !== "all") {
     params.set("subdivision", options.subdivision);
   }

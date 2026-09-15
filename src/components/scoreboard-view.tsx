@@ -5,12 +5,15 @@ import { FilterChip } from "@/components/filter-chip";
 import { GameCard } from "@/components/game-card";
 import { BottomLine } from "@/components/ticker";
 import { Skeleton } from "@/components/ui/skeleton";
+import { WeekStrip } from "@/components/week-strip";
 import { boardHref, parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, formatPollClock, shiftEspnDate } from "@/lib/dates";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import type {
   DivisionId,
   ScoreboardResponse,
+  ScoreboardView,
+  ScoreboardWeek,
   StatusFilter,
   SubdivisionId,
 } from "@/lib/types";
@@ -68,6 +71,9 @@ export function ScoreboardView({
   conference,
   status,
   query,
+  week,
+  year,
+  view,
 }: {
   initial: ScoreboardResponse | null;
   initialError?: string | null;
@@ -77,6 +83,9 @@ export function ScoreboardView({
   conference: string;
   status: StatusFilter;
   query: string;
+  week: number | null;
+  year: number | null;
+  view: ScoreboardView;
 }) {
   const [board, setBoard] = useState<ScoreboardResponse | null>(initial);
   const [error, setError] = useState<string | null>(initialError ?? null);
@@ -104,6 +113,10 @@ export function ScoreboardView({
         date,
         subdivision,
       });
+      if (view === "week" && week) {
+        params.set("week", String(week));
+        if (year) params.set("year", String(year));
+      }
       const response = await fetch(`/api/scoreboard?${params}`, { cache: "no-store" });
       const payload = (await response.json()) as ScoreboardResponse & { error?: string };
       if (!response.ok) {
@@ -115,7 +128,7 @@ export function ScoreboardView({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Scoreboard request failed");
     }
-  }, [date, division, subdivision]);
+  }, [date, division, subdivision, view, week, year]);
 
   useLivePoll(refresh, { intervalMs: BOARD_REFRESH_MS });
 
@@ -131,14 +144,39 @@ export function ScoreboardView({
     conference?: string;
     status?: StatusFilter;
     q?: string;
-  }) =>
-    boardHref({
+    week?: number | null;
+    year?: number | null;
+    view?: ScoreboardView;
+  }) => {
+    const nextDate = next.date ?? date;
+    const nextView = next.view ?? (next.date && next.week === undefined ? "date" : view);
+    const nextWeek = nextView === "week" ? (next.week ?? week) : null;
+    const nextYear =
+      nextWeek != null
+        ? (next.year ?? year ?? Number(nextDate.slice(0, 4)))
+        : null;
+    return boardHref({
       division: next.division ?? division,
-      date: next.date ?? date,
+      date: nextDate,
       subdivision: next.subdivision ?? subdivision,
       conference: next.conference ?? localConference,
       status: next.status ?? localStatus,
       q: next.q ?? localQuery,
+      week: nextWeek,
+      year: nextYear,
+    });
+  };
+
+  const weeks = board?.weeks ?? [];
+  const seasonYear = board?.seasonYear ?? year ?? Number(date.slice(0, 4));
+  const selectedWeek = (view === "week" ? week : null) ?? board?.week ?? week;
+
+  const weekHref = (entry: ScoreboardWeek) =>
+    hrefFor({
+      date: entry.startEspnDate,
+      week: entry.number,
+      year: seasonYear,
+      view: "week",
     });
 
   const applyClientFilter = (next: {
@@ -228,20 +266,27 @@ export function ScoreboardView({
             )}
           </div>
 
+          <WeekStrip weeks={weeks} selectedWeek={selectedWeek} hrefFor={weekHref} />
+
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="flex items-center gap-1">
               <Link
-                href={hrefFor({ date: shiftEspnDate(date, -1) })}
+                href={hrefFor({ date: shiftEspnDate(date, -1), view: "date" })}
                 aria-label="Previous day"
-                className="pressable inline-flex size-8 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white"
+                className="pressable inline-flex size-11 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white sm:size-8"
               >
                 <ChevronLeft className="size-4" />
               </Link>
-              <p className="px-1.5 font-mono text-[11px] text-white/70">{formatBoardDate(date)}</p>
+              <p className="px-1.5 font-mono text-[11px] text-white/70">
+                {formatBoardDate(date)}
+                {view === "week" && selectedWeek ? (
+                  <span className="ml-2 text-[#f3c14b]">WK {selectedWeek} SLATE</span>
+                ) : null}
+              </p>
               <Link
-                href={hrefFor({ date: shiftEspnDate(date, 1) })}
+                href={hrefFor({ date: shiftEspnDate(date, 1), view: "date" })}
                 aria-label="Next day"
-                className="pressable inline-flex size-8 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white"
+                className="pressable inline-flex size-11 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white sm:size-8"
               >
                 <ChevronRight className="size-4" />
               </Link>
@@ -280,6 +325,8 @@ export function ScoreboardView({
             >
               <input type="hidden" name="division" value={division} />
               <input type="hidden" name="date" value={date} />
+              {view === "week" && week ? <input type="hidden" name="week" value={week} /> : null}
+              {view === "week" && year ? <input type="hidden" name="year" value={year} /> : null}
               {subdivision !== "all" ? (
                 <input type="hidden" name="subdivision" value={subdivision} />
               ) : null}
@@ -402,17 +449,50 @@ export function ScoreboardView({
               board.games.length === 0
                 ? division === "naia"
                   ? "ESPN’s NAIA group is quiet for this date. Many NAIA-only games never appear here. Try another Saturday or check D1/D2."
-                  : "ESPN has no college football games on this date for the selected division."
+                  : view === "week"
+                    ? "ESPN has no college football games for this week for the selected division."
+                    : selectedWeek
+                      ? `ESPN has no college football games on this Eastern date. Week ${selectedWeek} still has a published slate — open it from the week strip.`
+                      : "ESPN has no college football games on this date for the selected division."
                 : "Clear the conference, status, or search filter to see the rest of the slate."
             }
             action={
               board.games.length === 0 ? (
-                <Link
-                  href={hrefFor({ date: shiftEspnDate(date, -1) })}
-                  className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
-                >
-                  TRY PREVIOUS DAY
-                </Link>
+                view !== "week" && selectedWeek ? (
+                  <Link
+                    href={hrefFor({
+                      week: selectedWeek,
+                      year: seasonYear,
+                      view: "week",
+                      date:
+                        weeks.find((entry) => entry.number === selectedWeek)?.startEspnDate ?? date,
+                    })}
+                    className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
+                  >
+                    SEE WEEK {selectedWeek} SLATE
+                  </Link>
+                ) : view === "week" && selectedWeek && selectedWeek > 1 ? (
+                  <Link
+                    href={hrefFor({
+                      week: selectedWeek - 1,
+                      year: seasonYear,
+                      view: "week",
+                      date:
+                        weeks.find((entry) => entry.number === selectedWeek - 1)?.startEspnDate ??
+                        shiftEspnDate(date, -7),
+                    })}
+                    className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
+                  >
+                    TRY PREVIOUS WEEK
+                  </Link>
+                ) : (
+                  <Link
+                    href={hrefFor({ date: shiftEspnDate(date, -1), view: "date" })}
+                    className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
+                  >
+                    TRY PREVIOUS DAY
+                  </Link>
+                )
               ) : (
                 <button
                   type="button"

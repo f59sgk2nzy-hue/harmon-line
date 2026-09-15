@@ -1,5 +1,6 @@
 import { isEspnDate, todayEspnDate } from "@/lib/dates";
 import { getScoreboard, parseDivision, parseSubdivision } from "@/lib/espn";
+import { parseSeasonYear, parseWeekParam } from "@/lib/espn-weeks";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -10,9 +11,19 @@ export async function GET(request: Request) {
   const subdivision = parseSubdivision(url.searchParams.get("subdivision"));
   const dateParam = url.searchParams.get("date");
   const date = isEspnDate(dateParam) ? dateParam : todayEspnDate();
+  const week = parseWeekParam(url.searchParams.get("week"));
+  const year = parseSeasonYear(url.searchParams.get("year"), date);
+  const view = week ? "week" : "date";
 
   try {
-    const board = await getScoreboard({ division, date, subdivision });
+    const board = await getScoreboard({
+      division,
+      date,
+      subdivision,
+      week: view === "week" ? week : null,
+      year: view === "week" ? year : null,
+      view,
+    });
     return NextResponse.json(board, {
       headers: {
         "Cache-Control": "public, s-maxage=8, stale-while-revalidate=20",
