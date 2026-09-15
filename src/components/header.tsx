@@ -1,11 +1,19 @@
+import { cn } from "@/lib/utils";
 import Link from "next/link";
+
+const NAV = [
+  { href: "/", id: "board", label: "SCOREBOARD" },
+  { href: "/rankings", id: "rankings", label: "RANKINGS" },
+] as const;
 
 export function BoardHeader({
   dateLabel,
   week,
+  section = "board",
 }: {
   dateLabel: string;
   week?: number | null;
+  section?: "board" | "rankings";
 }) {
   return (
     <header className="border-b border-white/10" style={{ viewTransitionName: "site-header" }}>
@@ -28,10 +36,33 @@ export function BoardHeader({
       </div>
       <div className="espn-gold-rule" />
       <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0b0b0b]/90 px-3 py-2 backdrop-blur-md sm:px-5">
-        <p className="font-display text-[11px] tracking-[0.22em] text-[#f3c14b] sm:text-xs">
-          COLLEGE FOOTBALL SCOREBOARD
-          {week ? `  ·  WEEK ${week}` : ""}
-        </p>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <nav aria-label="Site" className="flex items-center gap-1">
+            {NAV.map((item) => (
+              <Link
+                key={item.id}
+                href={item.href}
+                transitionTypes={item.id === "rankings" ? ["nav-forward"] : ["nav-back"]}
+                aria-current={section === item.id ? "page" : undefined}
+                className={cn(
+                  "pressable chip-hit chip-hit-lg no-underline",
+                  section === item.id ? "chip-inverse" : "chip-idle"
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <p
+            className={cn(
+              "font-display text-[11px] tracking-[0.22em] text-[#f3c14b] sm:text-xs",
+              section === "rankings" && "hidden sm:block"
+            )}
+          >
+            {section === "rankings" ? "COLLEGE FOOTBALL RANKINGS" : "COLLEGE FOOTBALL SCOREBOARD"}
+            {week ? `  ·  WEEK ${week}` : ""}
+          </p>
+        </div>
         <p className="font-mono text-[10px] tracking-[0.12em] text-white/55">
           FOR CHRISTIAN HARMON  ·  REAL ESPN PUBLIC FEED  ·  NO DEMO SCORES
         </p>

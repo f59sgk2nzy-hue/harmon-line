@@ -225,6 +225,16 @@
   }
 }
 
+.chip-hit-lg {
+  min-height: 44px;
+}
+
+@media (min-width: 640px) {
+  .chip-hit-lg {
+    min-height: 32px;
+  }
+}
+
 .chip-idle {
   color: rgb(255 255 255 / 58%);
   border: 1px solid transparent;
