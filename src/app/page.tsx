@@ -5,6 +5,7 @@ import { ScoreboardView } from "@/components/scoreboard-view";
 import { parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, parseDateParam } from "@/lib/dates";
 import { getScoreboard, parseDivision, parseSubdivision } from "@/lib/espn";
+import { parseSeasonYear, parseWeekParam } from "@/lib/espn-weeks";
 import { loadHighlights, sampleHighlightsBoard } from "@/lib/youtube";
 
 export const dynamic = "force-dynamic";
@@ -27,11 +28,21 @@ export default async function Home({
   const conference = firstString(params.conference) ?? "all";
   const status = parseStatusFilter(firstString(params.status));
   const query = firstString(params.q) ?? "";
+  const week = parseWeekParam(firstString(params.week));
+  const year = parseSeasonYear(firstString(params.year), date);
+  const view = week ? "week" : "date";
 
   let initial = null;
   let initialError: string | null = null;
   try {
-    initial = await getScoreboard({ division, date, subdivision });
+    initial = await getScoreboard({
+      division,
+      date,
+      subdivision,
+      week: view === "week" ? week : null,
+      year: view === "week" ? year : null,
+      view,
+    });
   } catch (error) {
     initialError = error instanceof Error ? error.message : "Scoreboard unavailable";
   }
@@ -47,11 +58,11 @@ export default async function Home({
 
   return (
     <>
-      <BoardHeader dateLabel={formatBoardDate(date)} week={initial?.week} />
+      <BoardHeader dateLabel={formatBoardDate(date)} week={initial?.week ?? week} />
       <PageTransition>
         <HighlightsStrip initial={highlights} initialError={highlightsError} />
         <ScoreboardView
-          key={`${division}-${date}-${subdivision}`}
+          key={`${division}-${date}-${subdivision}-${view}-${week ?? ""}`}
           initial={initial}
           initialError={initialError}
           date={date}
@@ -60,6 +71,9 @@ export default async function Home({
           conference={conference}
           status={status}
           query={query}
+          week={week}
+          year={year}
+          view={view}
         />
       </PageTransition>
     </>

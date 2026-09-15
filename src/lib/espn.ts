@@ -10,6 +10,11 @@ import {
   divisionFromClassification,
   parseLinescores,
 } from "@/lib/espn-parse";
+import {
+  espnScoreboardPath,
+  parseRegularSeasonWeeks,
+  weekForEspnDate,
+} from "@/lib/espn-weeks";
 import type {
   ConferenceOption,
   CoverageNote,
@@ -22,6 +27,8 @@ import type {
   LeaderLine,
   PlayByPlayPlay,
   ScoreboardResponse,
+  ScoreboardView,
+  ScoreboardWeek,
   ScoringPlay,
   SubdivisionId,
   TeamSide,
@@ -280,8 +287,12 @@ export async function getScoreboard(options: {
   division: DivisionId;
   date: string;
   subdivision?: SubdivisionId;
+  week?: number | null;
+  year?: number | null;
+  view?: ScoreboardView;
 }): Promise<ScoreboardResponse> {
   const { division, date } = options;
+  const view: ScoreboardView = options.view ?? (options.week ? "week" : "date");
   const groups =
     division === "d1" && options.subdivision && options.subdivision !== "all"
       ? [options.subdivision === "fbs" ? "80" : "81"]
@@ -290,16 +301,31 @@ export async function getScoreboard(options: {
   const payloads = await Promise.all(
     groups.map(async (group) => ({
       group,
-      data: await espnGet(`/scoreboard?groups=${group}&dates=${date}&limit=300`),
+      data: await espnGet(
+        espnScoreboardPath({
+          group,
+          date,
+          week: options.week,
+          year: options.year,
+          view,
+        })
+      ),
     }))
   );
 
   const byId = new Map<string, GameSummary>();
-  let week: number | null = null;
+  let payloadWeek: number | null = null;
+  let seasonYear: number | null = options.year ?? null;
+  let seasonType: number | null = null;
+  let calendarSource: Json | null = null;
 
   for (const { group, data } of payloads) {
-    const payloadWeek = num(asRecord(data.week)?.number);
-    if (payloadWeek) week = payloadWeek;
+    if (!calendarSource) calendarSource = data;
+    const payloadSeason = asRecord(data.season);
+    seasonYear = num(payloadSeason?.year) ?? seasonYear;
+    seasonType = num(payloadSeason?.type) ?? seasonType;
+    const weekNumber = num(asRecord(data.week)?.number);
+    if (weekNumber) payloadWeek = weekNumber;
     for (const event of asArray(data.events)) {
       const game = parseEvent(event, division, group);
       if (!game) continue;
@@ -314,6 +340,19 @@ export async function getScoreboard(options: {
     }
   }
 
+  const parsedWeeks = parseRegularSeasonWeeks(calendarSource);
+  const weeks: ScoreboardWeek[] = parsedWeeks.map((entry) => ({
+    number: entry.number,
+    label: entry.label,
+    detail: entry.detail,
+    startEspnDate: entry.startEspnDate,
+  }));
+  const mapped = weekForEspnDate(date, parsedWeeks);
+  const week =
+    view === "week" && options.week
+      ? options.week
+      : (mapped?.number ?? (seasonType === 2 ? payloadWeek : null));
+
   const games = sortGames([...byId.values()]);
   return {
     source: "espn",
@@ -321,6 +360,10 @@ export async function getScoreboard(options: {
     date,
     division,
     week,
+    seasonYear,
+    seasonType,
+    weeks,
+    view,
     generatedAt: new Date().toISOString(),
     games,
     conferences: collectConferences(games),

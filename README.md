@@ -9,13 +9,13 @@ npm install
 npm run dev
 ```
 
-Unit checks for period scores, subdivision labels, poll-clock timezone, and redirect hosts:
+Unit checks for period scores, subdivision labels, poll-clock timezone, week/date mapping, and redirect hosts:
 
 ```bash
 npm test
 ```
 
-Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s games in US/Eastern**. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it. **Rankings** (`/rankings`) lists AP, Coaches, FCS, D2, and D3 polls from the same public ESPN JSON.
+Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s games in US/Eastern**, with a week strip to jump ESPN regular-season weeks. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it. **Rankings** (`/rankings`) lists AP, Coaches, FCS, D2, and D3 polls from the same public ESPN JSON.
 
 **DELL / Home Screen / Tailscale:** prefer production (`npm run build && npm start`). `next dev` gates the HMR websocket (`/_next/hmr`) with an Origin check. Opening the board as `http://127.0.0.1:43173` or a LAN/Tailscale IP can fail that check (`Unauthorized`), so React never hydrates. The highlights strip is server-rendered so cards still paint, but production has no HMR and is the reliable way to pin or share the board. `next.config` sets `allowedDevOrigins` for `localhost`, `127.0.0.1`, Tailscale MagicDNS (`**.ts.net`), and this machine’s LAN/Tailscale IPv4 addresses.
 
@@ -73,6 +73,19 @@ Each row shows ESPN’s current rank, logo, school, record, and a trend arrow **
 
 The header **RANKINGS** nav is on every page. On a phone the poll tabs stick under the header (44px targets, horizontal scroll if needed).
 
+## Week / schedule nav
+
+The home board is still Eastern-date based by default (`?date=YYYYMMDD`), but a swipeable **WEEK** chip strip lets you jump the way ESPN’s scoreboard URL does: `/_/week/N/year/YYYY/seasontype/2`.
+
+| Harmon query | ESPN public JSON (same hosts as the scoreboard) |
+| --- | --- |
+| `/?date=20260915` | `/scoreboard?groups=80&dates=20260915&limit=300` (that Eastern day; D1 FBS example) |
+| `/?week=3&year=2026&date=20260914` | `/scoreboard?groups=80&week=3&seasontype=2&dates=2026&limit=300` (that week’s published slate) |
+
+Week chips come from ESPN’s scoreboard `leagues[0].calendar` **Regular Season** entries (`value: "2"`). Picking **WK 3** loads ESPN’s week-3 events (Thu–Sun, etc.) and sets the Eastern date to that week’s start so date arrows stay coherent. Shifting the date drops week mode and shows that day’s games; the selected chip follows ESPN’s window for the new date. Empty weeks are labeled empty — games and scores are never invented.
+
+**v0 is regular season only** (`seasontype=2`). ESPN also publishes preseason (`1`), postseason/bowls (`3`), and off-season (`4`) calendar buckets; those need a follow-up (bowl week picker) and are ignored by the strip.
+
 ## Team pages
 
 Tap a school name on a scoreboard card or game page to open `/team/{espnId}`. That page loads ESPN’s public team endpoints (same hosts as the scoreboard, no API key):
@@ -123,6 +136,7 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 ## What you can do
 
 - Filter D1 / D2 / NAIA, plus FBS vs FCS on Division I
+- Jump ESPN regular-season weeks from the home-board week strip, or shift the Eastern date
 - Filter by conference, live/upcoming/final, team search, and date
 - Open **Rankings** for AP / Coaches / FCS / D2 / D3 and tap a school into its team page
 - Open a game for the scorebug, quarter lines, scoring plays, and a drive-by-drive feed (or a clear “no PBP” state)

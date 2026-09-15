@@ -70,12 +70,25 @@ export type CoverageNote = {
   detail: string;
 };
 
+export type ScoreboardView = "date" | "week";
+
+export type ScoreboardWeek = {
+  number: number;
+  label: string;
+  detail: string;
+  startEspnDate: string;
+};
+
 export type ScoreboardResponse = {
   source: "espn";
   demo: false;
   date: string;
   division: DivisionId;
   week: number | null;
+  seasonYear: number | null;
+  seasonType: number | null;
+  weeks: ScoreboardWeek[];
+  view: ScoreboardView;
   generatedAt: string;
   games: GameSummary[];
   conferences: ConferenceOption[];
