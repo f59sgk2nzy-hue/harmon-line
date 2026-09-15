@@ -53,7 +53,12 @@ export function BoardHeader({
               </Link>
             ))}
           </nav>
-          <p className="font-display text-[11px] tracking-[0.22em] text-[#f3c14b] sm:text-xs">
+          <p
+            className={cn(
+              "font-display text-[11px] tracking-[0.22em] text-[#f3c14b] sm:text-xs",
+              section === "rankings" && "hidden sm:block"
+            )}
+          >
             {section === "rankings" ? "COLLEGE FOOTBALL RANKINGS" : "COLLEGE FOOTBALL SCOREBOARD"}
             {week ? `  ·  WEEK ${week}` : ""}
           </p>

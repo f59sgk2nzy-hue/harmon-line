@@ -154,13 +154,13 @@ export function RankingsView({
 
       <main className="page-enter mx-auto w-full max-w-5xl flex-1 px-3 py-3 pb-8 sm:px-5 sm:py-4">
         {board ? (
-          <div className="board-glass mb-3 border-l-4 border-[#cc0000] px-3 py-2.5">
-            <p className="font-display text-xs tracking-[0.16em] text-[#f3c14b]">
+          <div className="board-glass mb-3 border-l-4 border-[#cc0000] px-3 py-2 sm:py-2.5">
+            <p className="font-display text-[11px] tracking-[0.16em] text-[#f3c14b] sm:text-xs">
               {board.coverage.headline}
             </p>
-            <p className="mt-1 font-sans text-sm text-white/60">{board.coverage.detail}</p>
+            <p className="mt-1 hidden font-sans text-sm text-white/60 sm:block">{board.coverage.detail}</p>
             {selected?.headline ? (
-              <p className="mt-1 font-mono text-[10px] tracking-wide text-white/40">
+              <p className="mt-1 hidden font-mono text-[10px] tracking-wide text-white/40 sm:block">
                 {selected.headline}
               </p>
             ) : null}
