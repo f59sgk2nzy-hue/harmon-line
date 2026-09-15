@@ -13,6 +13,7 @@ import {
 import {
   espnScoreboardPath,
   parseRegularSeasonWeeks,
+  parseSeasonYear,
   weekForEspnDate,
 } from "@/lib/espn-weeks";
 import type {
@@ -352,6 +353,7 @@ export async function getScoreboard(options: {
     view === "week" && options.week
       ? options.week
       : (mapped?.number ?? (seasonType === 2 ? payloadWeek : null));
+  seasonYear = seasonYear ?? parseSeasonYear(null, date);
 
   const games = sortGames([...byId.values()]);
   return {

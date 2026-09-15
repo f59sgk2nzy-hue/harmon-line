@@ -451,12 +451,27 @@ export function ScoreboardView({
                   ? "ESPN’s NAIA group is quiet for this date. Many NAIA-only games never appear here. Try another Saturday or check D1/D2."
                   : view === "week"
                     ? "ESPN has no college football games for this week for the selected division."
-                    : "ESPN has no college football games on this date for the selected division."
+                    : selectedWeek
+                      ? `ESPN has no college football games on this Eastern date. Week ${selectedWeek} still has a published slate — open it from the week strip.`
+                      : "ESPN has no college football games on this date for the selected division."
                 : "Clear the conference, status, or search filter to see the rest of the slate."
             }
             action={
               board.games.length === 0 ? (
-                view === "week" && selectedWeek && selectedWeek > 1 ? (
+                view !== "week" && selectedWeek ? (
+                  <Link
+                    href={hrefFor({
+                      week: selectedWeek,
+                      year: seasonYear,
+                      view: "week",
+                      date:
+                        weeks.find((entry) => entry.number === selectedWeek)?.startEspnDate ?? date,
+                    })}
+                    className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
+                  >
+                    SEE WEEK {selectedWeek} SLATE
+                  </Link>
+                ) : view === "week" && selectedWeek && selectedWeek > 1 ? (
                   <Link
                     href={hrefFor({
                       week: selectedWeek - 1,
