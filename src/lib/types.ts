@@ -244,3 +244,139 @@ export type GameDetailResponse = {
   playByPlayAvailable: boolean;
   coverage: CoverageNote;
 };
+
+export type TeamSeasonStats = {
+  available: boolean;
+  gamesPlayed: number | null;
+  pointsPerGame: number | null;
+  pointsTotal: number | null;
+  pointsAllowedPerGame: number | null;
+  passingYardsPerGame: number | null;
+  rushingYardsPerGame: number | null;
+  yardsPerRush: number | null;
+  yardsPerPass: number | null;
+  completionPct: number | null;
+  thirdDownPct: number | null;
+  turnoverDifferential: number | null;
+  giveaways: number | null;
+  takeaways: number | null;
+  rushingTouchdowns: number | null;
+  passingTouchdowns: number | null;
+  totalTouchdowns: number | null;
+  interceptionsThrown: number | null;
+  sacks: number | null;
+  fieldGoalsMade: number | null;
+  fieldGoalAttempts: number | null;
+  rushingYardsAllowedPerGame: number | null;
+  passingYardsAllowedPerGame: number | null;
+};
+
+export type ScheduleScoring = {
+  games: number;
+  pointsPerGame: number | null;
+  pointsAllowedPerGame: number | null;
+};
+
+export type PublishedMarket = {
+  provider: string;
+  details: string | null;
+  overUnder: number | null;
+  spread: number | null;
+  homeMoneyLine: number | null;
+  awayMoneyLine: number | null;
+};
+
+export type SimHistogramBin = {
+  start: number;
+  end: number;
+  count: number;
+  pct: number;
+};
+
+export type PropConfidence = "HIGH" | "MEDIUM" | "LOW";
+
+export type GameSimulation = {
+  label: "SIMULATION";
+  trials: number;
+  seed: number;
+  homeWinPct: number;
+  awayWinPct: number;
+  tiePct: number;
+  meanMargin: number;
+  marginLow: number;
+  marginHigh: number;
+  meanTotal: number;
+  totalLow: number;
+  totalHigh: number;
+  sigmaMargin: number;
+  expectedHomeScore: number;
+  expectedAwayScore: number;
+  confidence: PropConfidence;
+  histogram: SimHistogramBin[];
+  assumptions: string[];
+  inputsUsed: string[];
+  inputsMissing: string[];
+};
+
+export type HarmonLineMarket = "spread" | "total" | "ML" | "player_prop";
+export type PropMarketKind = HarmonLineMarket;
+
+export type HarmonLinePropCard = {
+  id: string;
+  game: { id: string; name: string };
+  market: HarmonLineMarket;
+  title: string;
+  lean: string;
+  why: string;
+  fair_line: number | null;
+  fair_prob: number | null;
+  edge_vs_market: number | null;
+  evidence: string[];
+  inference: string[];
+  confidence: PropConfidence;
+  disclaimers: string[];
+  data_as_of: string;
+  model_version: string;
+  basis: "team-stats" | "published-leaders" | "simulation" | "published-market";
+  playerName: string | null;
+  oddsAvailable: { line: string; provider: string } | null;
+};
+
+/** @deprecated use HarmonLinePropCard — kept as an alias for existing imports */
+export type PropAngle = HarmonLinePropCard;
+
+export type MatchupAnalysis = {
+  markedAs: "ANALYSIS";
+  headline: string;
+  paragraphs: string[];
+};
+
+export type LayeredNote = {
+  kind: "evidence" | "inference";
+  text: string;
+};
+
+export type DeepDiveResponse = {
+  source: "espn";
+  demo: false;
+  generatedAt: string;
+  modelVersion: string;
+  game: GameSummary;
+  homeStats: TeamSeasonStats;
+  awayStats: TeamSeasonStats;
+  market: PublishedMarket | null;
+  simulation: GameSimulation;
+  analysis: MatchupAnalysis;
+  props: HarmonLinePropCard[];
+  evidence: string[];
+  inference: string[];
+  coverage: {
+    stats: CoverageNote;
+    market: CoverageNote;
+    players: CoverageNote;
+    cfbd: CoverageNote;
+    odds: CoverageNote;
+  };
+  disclaimer: string;
+  disclaimerLong: string;
+};
