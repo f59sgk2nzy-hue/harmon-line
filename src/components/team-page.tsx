@@ -60,8 +60,8 @@ function ScheduleRow({ game }: { game: TeamScheduleGame }) {
           className="pressable tap-row inline-flex min-h-12 min-w-16 items-center justify-end px-2 text-right font-display text-lg leading-none text-white no-underline sm:text-xl"
         >
           {game.teamScore != null && game.opponentScore != null
-            ? `${game.teamScore}–${game.opponentScore}`
-            : "—"}
+            ? `${game.teamScore}â€“${game.opponentScore}`
+            : "â€”"}
         </Link>
         <Link
           href={deepDiveHref(game.id)}

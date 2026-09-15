@@ -132,11 +132,11 @@ export function GameCard({ game }: { game: GameSummary }) {
         >
           {live && game.situation?.downDistanceText
             ? `${game.situation.downDistanceText}${
-                game.situation.isRedZone ? "  ·  RED ZONE" : ""
+                game.situation.isRedZone ? "  Â·  RED ZONE" : ""
               }`
             : live && game.situation?.lastPlay
               ? game.situation.lastPlay
-              : [game.venue, game.broadcast].filter(Boolean).join("  · ") || "Tap for game detail"}
+              : [game.venue, game.broadcast].filter(Boolean).join("  Â· ") || "Tap for game detail"}
         </Link>
         <div className="flex shrink-0 items-center gap-2">
           <Link
