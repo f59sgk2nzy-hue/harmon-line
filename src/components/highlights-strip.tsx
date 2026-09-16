@@ -1,22 +1,28 @@
 "use client";
 
+import { EmptyState } from "@/components/empty-state";
 import { useLivePoll } from "@/lib/hooks";
+import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
+import type { LeagueId } from "@/lib/types";
 import {
   HIGHLIGHTS_REFRESH_MS,
+  emptyHighlightsBoard,
   highlightsSourceNote,
-  sampleHighlightsBoard,
   type HighlightsResponse,
 } from "@/lib/youtube";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 
 export function HighlightsStrip({
+  league = DEFAULT_LEAGUE,
   initial,
   initialError,
 }: {
+  league?: LeagueId;
   initial?: HighlightsResponse | null;
   initialError?: string | null;
 }) {
+  const spec = getLeague(league);
   const [board, setBoard] = useState<HighlightsResponse | null>(initial ?? null);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -24,7 +30,9 @@ export function HighlightsStrip({
 
   const load = useCallback(async () => {
     try {
-      const response = await fetch("/api/highlights", { cache: "no-store" });
+      const response = await fetch(`/api/highlights?league=${encodeURIComponent(league)}`, {
+        cache: "no-store",
+      });
       const payload = (await response.json()) as HighlightsResponse & { error?: string };
       if (!response.ok) {
         throw new Error(payload.error || "Highlights request failed");
@@ -33,9 +41,9 @@ export function HighlightsStrip({
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Highlights request failed");
-      setBoard((prev) => prev ?? sampleHighlightsBoard());
+      setBoard((prev) => prev ?? emptyHighlightsBoard(league));
     }
-  }, []);
+  }, [league]);
 
   useLivePoll(load, { intervalMs: HIGHLIGHTS_REFRESH_MS, runOnMount: !initial });
 
@@ -75,10 +83,11 @@ export function HighlightsStrip({
 
   const videos = board?.videos ?? [];
   const seasonYear = board?.seasonYear;
+  const loadedEmpty = board !== null && videos.length === 0;
 
   return (
     <section
-      aria-label="College football highlights and reactions"
+      aria-label={`${spec.label} highlights and reactions`}
       className="border-b border-white/10 bg-[#0c0c0c]/90 backdrop-blur-md"
     >
       <div className="mx-auto max-w-6xl">
@@ -91,7 +100,7 @@ export function HighlightsStrip({
               </h2>
               {seasonYear ? (
                 <span className="shrink-0 rounded-sm bg-[#cc0000] px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-white shadow-[0_0_12px_rgb(204_0_0_/_30%)]">
-                  CFB {seasonYear}
+                  {spec.shortLabel} {seasonYear}
                 </span>
               ) : null}
             </div>
@@ -103,95 +112,108 @@ export function HighlightsStrip({
               </span>
             </p>
           </div>
-          <div className="hidden items-center gap-1 sm:flex">
-            <button
-              type="button"
-              aria-label="Scroll highlights left"
-              onClick={() => scrollByCard(-1)}
-              className="pressable inline-flex size-8 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <button
-              type="button"
-              aria-label="Scroll highlights right"
-              onClick={() => scrollByCard(1)}
-              className="pressable inline-flex size-8 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </div>
+          {videos.length > 0 ? (
+            <div className="hidden items-center gap-1 sm:flex">
+              <button
+                type="button"
+                aria-label="Scroll highlights left"
+                onClick={() => scrollByCard(-1)}
+                className="pressable inline-flex size-8 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Scroll highlights right"
+                onClick={() => scrollByCard(1)}
+                className="pressable inline-flex size-8 items-center justify-center rounded-sm border border-white/15 bg-black/70 text-white"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+          ) : null}
         </div>
 
-        <div
-          ref={scrollerRef}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          className="highlights-scroller flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-3 pb-2 scroll-pl-3 scroll-pr-8 sm:px-5 sm:pb-3 sm:scroll-pl-5 sm:scroll-pr-5"
-        >
-          {videos.length === 0
-            ? Array.from({ length: 4 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="highlight-card h-[210px] shrink-0 animate-pulse snap-start border border-white/10 bg-[#161616]"
-                />
-              ))
-            : videos.map((video) => (
-                <a
-                  key={video.id}
-                  data-highlight-card
-                  href={video.watchUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  onClick={(event) => {
-                    if (drag.current.moved) event.preventDefault();
-                  }}
-                  className="score-cell highlight-card pressable shrink-0 snap-start snap-always select-none no-underline outline-none"
-                >
-                  <div className="relative aspect-video overflow-hidden bg-[#111]">
-                    {video.thumbnailUrl ? (
-                      // YouTube thumbs; unoptimized so score polling stays off the image optimizer.
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={video.thumbnailUrl}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        width={480}
-                        height={360}
-                        draggable={false}
-                        className="size-full object-cover transition-transform duration-300 ease-out"
-                      />
-                    ) : (
-                      <div className="flex size-full items-center justify-center bg-[#1a1a1a] font-display text-xs tracking-[0.18em] text-white/35">
-                        SAMPLE
-                      </div>
-                    )}
-                    <span className="absolute left-1.5 top-1.5 rounded-sm bg-black/80 px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-white">
-                      {video.kind === "reaction" ? "REACTION" : "HIGHLIGHT"}
-                    </span>
-                    {video.sample ? (
-                      <span className="absolute right-1.5 top-1.5 rounded-sm bg-[#f3c14b] px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-black">
-                        SAMPLE
+        {loadedEmpty ? (
+          <div className="px-3 pb-3 sm:px-5 sm:pb-4">
+            <EmptyState
+              kicker="YOUTUBE RSS"
+              headline={`${spec.shortLabel} HIGHLIGHTS NOT ON THIS FEED`}
+              detail={`No current-season ${spec.label} clips arrived from YouTube. Empty stays empty — videos are never invented or copied from another sport.`}
+              className="py-5 sm:py-8"
+            />
+          </div>
+        ) : (
+          <div
+            ref={scrollerRef}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            className="highlights-scroller flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-3 pb-2 scroll-pl-3 scroll-pr-8 sm:px-5 sm:pb-3 sm:scroll-pl-5 sm:scroll-pr-5"
+          >
+            {videos.length === 0
+              ? Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="highlight-card h-[210px] shrink-0 animate-pulse snap-start border border-white/10 bg-[#161616]"
+                  />
+                ))
+              : videos.map((video) => (
+                  <a
+                    key={video.id}
+                    data-highlight-card
+                    href={video.watchUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    onClick={(event) => {
+                      if (drag.current.moved) event.preventDefault();
+                    }}
+                    className="score-cell highlight-card pressable shrink-0 snap-start snap-always select-none no-underline outline-none"
+                  >
+                    <div className="relative aspect-video overflow-hidden bg-[#111]">
+                      {video.thumbnailUrl ? (
+                        // YouTube thumbs; unoptimized so score polling stays off the image optimizer.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={video.thumbnailUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          width={480}
+                          height={360}
+                          draggable={false}
+                          className="size-full object-cover transition-transform duration-300 ease-out"
+                        />
+                      ) : (
+                        <div className="flex size-full items-center justify-center bg-[#1a1a1a] font-display text-xs tracking-[0.18em] text-white/35">
+                          SAMPLE
+                        </div>
+                      )}
+                      <span className="absolute left-1.5 top-1.5 rounded-sm bg-black/80 px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-white">
+                        {video.kind === "reaction" ? "REACTION" : "HIGHLIGHT"}
                       </span>
-                    ) : null}
-                    <span className="absolute inset-0 flex items-center justify-center">
-                      <span className="inline-flex size-11 items-center justify-center rounded-full bg-[#cc0000] text-white shadow-[0_0_18px_rgb(204_0_0_/_45%)]">
-                        <Play className="size-4 fill-white" />
+                      {video.sample ? (
+                        <span className="absolute right-1.5 top-1.5 rounded-sm bg-[#f3c14b] px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-black">
+                          SAMPLE
+                        </span>
+                      ) : null}
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="inline-flex size-11 items-center justify-center rounded-full bg-[#cc0000] text-white shadow-[0_0_18px_rgb(204_0_0_/_45%)]">
+                          <Play className="size-4 fill-white" />
+                        </span>
                       </span>
-                    </span>
-                  </div>
-                  <div className="space-y-1 px-2.5 py-2">
-                    <p className="line-clamp-2 font-display text-[15px] leading-tight tracking-normal text-white sm:text-sm sm:tracking-wide">
-                      {video.title}
-                    </p>
-                    <p className="truncate font-mono text-xs text-white/60">{video.channel}</p>
-                  </div>
-                </a>
-              ))}
-        </div>
+                    </div>
+                    <div className="space-y-1 px-2.5 py-2">
+                      <p className="line-clamp-2 font-display text-[15px] leading-tight tracking-normal text-white sm:text-sm sm:tracking-wide">
+                        {video.title}
+                      </p>
+                      <p className="truncate font-mono text-xs text-white/60">{video.channel}</p>
+                    </div>
+                  </a>
+                ))}
+          </div>
+        )}
       </div>
     </section>
   );

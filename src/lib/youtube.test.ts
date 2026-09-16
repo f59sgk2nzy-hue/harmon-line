@@ -187,6 +187,8 @@ describe("assembleHighlights", () => {
       now: new Date("2026-09-13T18:00:00.000Z"),
     });
     assert.equal(board.sample, false);
+    assert.equal(board.demo, false);
+    assert.equal(board.league, "cfb");
     assert.equal(board.source, "youtube-rss");
     assert.equal(board.seasonYear, 2026);
     assert.ok(board.videos.length >= 2);
@@ -195,17 +197,18 @@ describe("assembleHighlights", () => {
     assert.ok(board.videos.some((v) => v.kind === "reaction"));
   });
 
-  it("uses SAMPLE-labeled cards only when no live videos arrive", () => {
+  it("returns an honest empty CFB feed instead of inventing SAMPLE video ids", () => {
     const board = assembleHighlights({
       rssVideos: [],
       apiVideos: [],
       apiKeyConfigured: false,
       now: new Date("2026-09-13T18:00:00.000Z"),
     });
-    assert.equal(board.sample, true);
-    assert.equal(board.source, "sample");
-    assert.ok(board.videos.length > 0);
-    assert.ok(board.videos.every((v) => v.sample && v.title.startsWith("SAMPLE")));
+    assert.equal(board.sample, false);
+    assert.equal(board.demo, false);
+    assert.equal(board.league, "cfb");
+    assert.equal(board.source, "empty");
+    assert.deepEqual(board.videos, []);
   });
 
   it("prefers Data API videos when a key is configured and results exist", () => {
@@ -267,6 +270,17 @@ describe("highlightsSourceNote", () => {
       now: new Date("2026-09-13T18:00:00.000Z"),
     });
     assert.equal(highlightsSourceNote(live), "YOUTUBE RSS  ·  NO API KEY  ·  NO DEMO SCORES");
+    assert.match(
+      highlightsSourceNote(
+        assembleHighlights({
+          rssVideos: [],
+          apiVideos: [],
+          apiKeyConfigured: false,
+          now: new Date("2026-09-13T18:00:00.000Z"),
+        })
+      ),
+      /NO CLIPS|NOT ON THIS FEED|EMPTY/i
+    );
     assert.equal(
       highlightsSourceNote(sampleHighlightsBoard(new Date("2026-09-13T18:00:00.000Z"))),
       "SAMPLE CARDS  ·  LIVE YOUTUBE FEED UNAVAILABLE  ·  NOT LIVE SCORES"

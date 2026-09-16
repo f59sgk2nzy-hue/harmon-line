@@ -7,7 +7,7 @@ import { formatBoardDate, parseDateParam } from "@/lib/dates";
 import { getScoreboard, parseDivision, parseSubdivision } from "@/lib/espn";
 import { parseSeasonType, parseSeasonYear, parseWeekParam } from "@/lib/espn-weeks";
 import { getLeague, parseLeagueParam } from "@/lib/leagues";
-import { loadHighlights, sampleHighlightsBoard } from "@/lib/youtube";
+import { emptyHighlightsBoard, loadHighlights } from "@/lib/youtube";
 
 export const dynamic = "force-dynamic";
 
@@ -57,13 +57,14 @@ export default async function Home({
 
   let highlights = null;
   let highlightsError: string | null = null;
-  if (league === "cfb") {
-    try {
-      highlights = await loadHighlights({ apiKey: process.env.YOUTUBE_API_KEY });
-    } catch (error) {
-      highlightsError = error instanceof Error ? error.message : "Highlights unavailable";
-      highlights = sampleHighlightsBoard();
-    }
+  try {
+    highlights = await loadHighlights({
+      league,
+      apiKey: process.env.YOUTUBE_API_KEY,
+    });
+  } catch (error) {
+    highlightsError = error instanceof Error ? error.message : "Highlights unavailable";
+    highlights = emptyHighlightsBoard(league);
   }
 
   return (
@@ -74,9 +75,12 @@ export default async function Home({
         league={league}
       />
       <PageTransition>
-        {league === "cfb" ? (
-          <HighlightsStrip initial={highlights} initialError={highlightsError} />
-        ) : null}
+        <HighlightsStrip
+          key={league}
+          league={league}
+          initial={highlights}
+          initialError={highlightsError}
+        />
         <ScoreboardView
           key={`${league}-${division}-${date}-${subdivision}-${view}-${week ?? ""}-${seasonType}`}
           initial={initial}
