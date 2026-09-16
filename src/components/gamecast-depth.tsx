@@ -4,8 +4,10 @@ import { TeamLogo } from "@/components/team-logo";
 import { pairTeamStatRows } from "@/lib/espn-gamecast";
 import { teamLogoUrl } from "@/lib/espn-path";
 import { teamHref } from "@/lib/espn-team";
+import { DEFAULT_LEAGUE } from "@/lib/leagues";
 import type {
   GamecastNews,
+  LeagueId,
   PlayerBoxCategory,
   PlayerBoxTeam,
   PlayerBoxscore,
@@ -138,15 +140,20 @@ function CategoryTable({ category }: { category: PlayerBoxCategory }) {
   );
 }
 
-function PlayerBoxTeamBlock({ team }: { team: PlayerBoxTeam }) {
+function PlayerBoxTeamBlock({ team, league }: { team: PlayerBoxTeam; league: LeagueId }) {
   return (
     <div className="border-t border-white/10 first:border-t-0">
       <div className="flex min-h-11 items-center gap-2 px-3 py-2">
         <Link
-          href={teamHref(team.teamId)}
+          href={teamHref(team.teamId, league)}
           className="pressable tap-row inline-flex min-h-11 min-w-0 items-center gap-2 no-underline"
         >
-          <TeamLogo src={teamLogoUrl(team.teamId)} alt="" abbreviation={team.abbreviation} size={28} />
+          <TeamLogo
+            src={teamLogoUrl(team.teamId, league)}
+            alt=""
+            abbreviation={team.abbreviation}
+            size={28}
+          />
           <span className="font-display text-sm tracking-[0.14em] text-white">
             {team.abbreviation}
           </span>
@@ -164,19 +171,27 @@ function PlayerBoxTeamBlock({ team }: { team: PlayerBoxTeam }) {
   );
 }
 
-function PlayerBoxModule({ box }: { box: PlayerBoxscore }) {
+function PlayerBoxModule({ box, league }: { box: PlayerBoxscore; league: LeagueId }) {
   return (
     <ModuleFrame kicker="BOX SCORE">
       {!box.available ? (
         <EmptyCopy>BOX SCORE NOT ON THIS FEED YET</EmptyCopy>
       ) : (
-        box.teams.map((team) => <PlayerBoxTeamBlock key={team.teamId} team={team} />)
+        box.teams.map((team) => (
+          <PlayerBoxTeamBlock key={team.teamId} team={team} league={league} />
+        ))
       )}
     </ModuleFrame>
   );
 }
 
-function StandingsModule({ snippet }: { snippet: StandingsSnippet }) {
+function StandingsModule({
+  snippet,
+  league,
+}: {
+  snippet: StandingsSnippet;
+  league: LeagueId;
+}) {
   return (
     <ModuleFrame kicker="STANDINGS">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
@@ -212,7 +227,7 @@ function StandingsModule({ snippet }: { snippet: StandingsSnippet }) {
               {group.entries.map((entry) => (
                 <li key={entry.id}>
                   <Link
-                    href={teamHref(entry.id)}
+                    href={teamHref(entry.id, league)}
                     className="pressable tap-row grid min-h-11 grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 px-3 no-underline"
                   >
                     <span className="truncate font-display text-[13px] tracking-wide text-white">
@@ -300,20 +315,22 @@ export function GamecastDepth({
   standings,
   news,
   pregame = false,
+  league = DEFAULT_LEAGUE,
 }: {
   teamStats: TeamBoxStats[];
   playerBox: PlayerBoxscore;
   standings: StandingsSnippet | null;
   news: GamecastNews;
   pregame?: boolean;
+  league?: LeagueId;
 }) {
   const showNews = Boolean(news.article) || news.articles.length > 0;
 
   return (
     <div className="mt-4 space-y-4">
       {teamStats.length > 0 ? <TeamStatsModule teams={teamStats} pregame={pregame} /> : null}
-      <PlayerBoxModule box={playerBox} />
-      {standings ? <StandingsModule snippet={standings} /> : null}
+      <PlayerBoxModule box={playerBox} league={league} />
+      {standings ? <StandingsModule snippet={standings} league={league} /> : null}
       {showNews ? <NewsModule news={news} /> : null}
     </div>
   );

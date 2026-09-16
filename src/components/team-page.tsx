@@ -1,9 +1,11 @@
 import { EmptyState } from "@/components/empty-state";
 import { TeamLogo } from "@/components/team-logo";
+import { gameHref, sportBoardHref } from "@/lib/board-url";
 import { formatBoardDate, isoToEspnDate } from "@/lib/dates";
 import { deepDiveHref, teamDeepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
-import type { TeamPageResponse, TeamScheduleGame } from "@/lib/types";
+import { DEFAULT_LEAGUE } from "@/lib/leagues";
+import type { LeagueId, TeamPageResponse, TeamScheduleGame } from "@/lib/types";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { ViewTransition } from "react";
@@ -15,7 +17,13 @@ function resultTone(result: TeamScheduleGame["result"]): string {
   return "bg-white/10 text-white/55";
 }
 
-function ScheduleRow({ game }: { game: TeamScheduleGame }) {
+function ScheduleRow({
+  game,
+  league,
+}: {
+  game: TeamScheduleGame;
+  league: LeagueId;
+}) {
   const dateLabel = game.date
     ? formatBoardDate(isoToEspnDate(game.date.slice(0, 10)))
     : "";
@@ -29,7 +37,7 @@ function ScheduleRow({ game }: { game: TeamScheduleGame }) {
       </span>
       <div className="min-w-0">
         <Link
-          href={teamHref(game.opponent.id)}
+          href={teamHref(game.opponent.id, league)}
           transitionTypes={["nav-forward"]}
           className="pressable tap-row flex items-center gap-2 px-1 no-underline"
         >
@@ -55,7 +63,7 @@ function ScheduleRow({ game }: { game: TeamScheduleGame }) {
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
         <Link
-          href={`/game/${game.id}`}
+          href={gameHref(game.id, league)}
           transitionTypes={["nav-forward"]}
           className="pressable tap-row inline-flex min-h-12 min-w-16 items-center justify-end px-2 text-right font-display text-lg leading-none text-white no-underline sm:text-xl"
         >
@@ -63,12 +71,14 @@ function ScheduleRow({ game }: { game: TeamScheduleGame }) {
             ? `${game.teamScore}–${game.opponentScore}`
             : "—"}
         </Link>
-        <Link
-          href={deepDiveHref(game.id)}
-          className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-2 font-display text-[10px] tracking-[0.16em] text-white no-underline"
-        >
-          SIM
-        </Link>
+        {league === "cfb" ? (
+          <Link
+            href={deepDiveHref(game.id)}
+            className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-2 font-display text-[10px] tracking-[0.16em] text-white no-underline"
+          >
+            SIM
+          </Link>
+        ) : null}
       </div>
     </div>
   );
@@ -77,15 +87,17 @@ function ScheduleRow({ game }: { game: TeamScheduleGame }) {
 export function TeamPageView({
   data,
   error,
+  league = DEFAULT_LEAGUE,
 }: {
   data: TeamPageResponse | null;
   error?: string | null;
+  league?: LeagueId;
 }) {
   if (!data) {
     return (
       <div className="page-enter mx-auto max-w-5xl px-4 py-10 pb-16">
         <Link
-          href="/"
+          href={sportBoardHref(league)}
           transitionTypes={["nav-back"]}
           className="pressable font-display text-xs tracking-[0.16em] text-white/60"
         >
@@ -113,7 +125,7 @@ export function TeamPageView({
     <div className="page-enter mx-auto w-full max-w-5xl px-3 py-4 pb-16 sm:px-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <Link
-          href="/"
+          href={sportBoardHref(league)}
           transitionTypes={["nav-back"]}
           className="pressable inline-flex min-h-10 items-center gap-1.5 font-display text-xs tracking-[0.16em] text-white/70"
         >
@@ -121,7 +133,7 @@ export function TeamPageView({
           BOARD
         </Link>
         <p className="font-mono text-[10px] tracking-[0.14em] text-white/40">
-          {team.subdivision ?? "CFB"}  ·  ESPN TEAM FEED
+          {team.subdivision ?? (league === "mbb" ? "MBB" : "CFB")}  ·  ESPN TEAM FEED
         </p>
       </div>
 
@@ -160,14 +172,16 @@ export function TeamPageView({
             </p>
           </div>
         </div>
-        <div className="border-t border-white/10 px-3 py-2 sm:px-4">
-          <Link
-            href={teamDeepDiveHref(team.id)}
-            className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[10px] tracking-[0.16em] text-white no-underline"
-          >
-            DEEP DIVE / SIM
-          </Link>
-        </div>
+        {league === "cfb" ? (
+          <div className="border-t border-white/10 px-3 py-2 sm:px-4">
+            <Link
+              href={teamDeepDiveHref(team.id)}
+              className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[10px] tracking-[0.16em] text-white no-underline"
+            >
+              DEEP DIVE / SIM
+            </Link>
+          </div>
+        ) : null}
       </section>
 
       <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 sm:hidden">
@@ -189,12 +203,14 @@ export function TeamPageView({
         >
           ROSTER
         </a>
-        <Link
-          href={teamDeepDiveHref(team.id)}
-          className="shrink-0 rounded-sm border border-[#f3c14b]/40 px-2 py-1 font-display text-[10px] tracking-[0.16em] text-[#f3c14b] no-underline"
-        >
-          DEEP DIVE
-        </Link>
+        {league === "cfb" ? (
+          <Link
+            href={teamDeepDiveHref(team.id)}
+            className="shrink-0 rounded-sm border border-[#f3c14b]/40 px-2 py-1 font-display text-[10px] tracking-[0.16em] text-[#f3c14b] no-underline"
+          >
+            DEEP DIVE
+          </Link>
+        ) : null}
       </nav>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
@@ -212,7 +228,7 @@ export function TeamPageView({
           ) : (
             <div className="divide-y divide-white/5">
               {recent.map((game) => (
-                <ScheduleRow key={game.id} game={game} />
+                <ScheduleRow key={game.id} game={game} league={league} />
               ))}
             </div>
           )}
@@ -236,7 +252,7 @@ export function TeamPageView({
           ) : (
             <div className="divide-y divide-white/5">
               {upcoming.map((game) => (
-                <ScheduleRow key={game.id} game={game} />
+                <ScheduleRow key={game.id} game={game} league={league} />
               ))}
             </div>
           )}

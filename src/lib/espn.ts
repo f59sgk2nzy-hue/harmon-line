@@ -1,8 +1,10 @@
 import {
   CONFERENCE_NAMES,
+  MBB_CONFERENCE_NAMES,
+  MBB_SCOREBOARD_LIMIT,
   coverageFor,
-  DIVISION_GROUPS,
   conferenceLabel,
+  scoreboardGroups,
 } from "@/lib/conferences";
 import { espnGet } from "@/lib/espn-http";
 import { teamLogoUrl } from "@/lib/espn-path";
@@ -13,6 +15,7 @@ import {
   divisionFromClassification,
   parseLinescores,
 } from "@/lib/espn-parse";
+import { parseLeaders, parsePlay, parsePlays, parseScoringPlays } from "@/lib/espn-plays";
 import {
   espnScoreboardPath,
   parseRegularSeasonWeeks,
@@ -29,13 +32,11 @@ import type {
   GameState,
   GameSummary,
   GameSituation,
-  LeaderLine,
   LeagueId,
   PlayByPlayPlay,
   ScoreboardResponse,
   ScoreboardView,
   ScoreboardWeek,
-  ScoringPlay,
   SubdivisionId,
   TeamSide,
 } from "@/lib/types";
@@ -112,7 +113,7 @@ function parseTeam(
     altColor: hexColor(team.alternateColor),
     logo: teamLogoUrl(id, league),
     conferenceId,
-    conferenceName: conferenceLabel(conferenceId),
+    conferenceName: conferenceLabel(conferenceId, league),
     winner: Boolean(competitor.winner),
     linescores: parseLinescores(competitor.linescores),
     homeAway,
@@ -194,7 +195,8 @@ function parseEvent(
       [event, competition, homeRaw, awayRaw],
       groupIds,
       [home.conferenceId, away.conferenceId],
-      division
+      division,
+      league
     ),
     conferenceIds,
   };
@@ -204,8 +206,10 @@ function resolveSubdivision(
   nodes: unknown[],
   groupIds: string | string[],
   conferenceIds: Array<string | null>,
-  division: DivisionId
+  division: DivisionId,
+  league: LeagueId = DEFAULT_LEAGUE
 ): GameSummary["subdivision"] {
+  if (league === "mbb") return "D1";
   const extra = Array.isArray(groupIds) ? groupIds : [groupIds];
   return (
     classifySubdivision(
@@ -226,12 +230,13 @@ function sortGames(games: GameSummary[]): GameSummary[] {
   });
 }
 
-function collectConferences(games: GameSummary[]): ConferenceOption[] {
+function collectConferences(games: GameSummary[], league: LeagueId = DEFAULT_LEAGUE): ConferenceOption[] {
+  const table = league === "mbb" ? MBB_CONFERENCE_NAMES : CONFERENCE_NAMES;
   const map = new Map<string, ConferenceOption>();
   for (const game of games) {
     for (const team of [game.away, game.home]) {
       if (!team.conferenceId) continue;
-      const known = CONFERENCE_NAMES[team.conferenceId];
+      const known = table[team.conferenceId];
       map.set(
         team.conferenceId,
         known ?? {
@@ -254,12 +259,13 @@ export async function getScoreboard(options: {
   league?: LeagueId | string | null;
 }): Promise<ScoreboardResponse> {
   const league = assertLeagueShipped(options.league);
-  const { division, date } = options;
-  const view: ScoreboardView = options.view ?? (options.week ? "week" : "date");
-  const groups =
-    division === "d1" && options.subdivision && options.subdivision !== "all"
-      ? [options.subdivision === "fbs" ? "80" : "81"]
-      : DIVISION_GROUPS[division].groups;
+  const division: DivisionId = league.id === "mbb" ? "d1" : options.division;
+  const { date } = options;
+  const view: ScoreboardView =
+    league.navMode === "date" ? "date" : options.view ?? (options.week ? "week" : "date");
+  const weekParam = view === "week" ? options.week : null;
+  const groups = scoreboardGroups(league.id, division, options.subdivision);
+  const limit = league.id === "mbb" ? MBB_SCOREBOARD_LIMIT : 300;
 
   const payloads = await Promise.all(
     groups.map(async (group) => ({
@@ -268,9 +274,10 @@ export async function getScoreboard(options: {
         espnScoreboardPath({
           group,
           date,
-          week: options.week,
+          week: weekParam,
           year: options.year,
           view,
+          limit,
         }),
         league.id
       ),
@@ -304,7 +311,7 @@ export async function getScoreboard(options: {
     }
   }
 
-  const parsedWeeks = parseRegularSeasonWeeks(calendarSource);
+  const parsedWeeks = league.navMode === "week" ? parseRegularSeasonWeeks(calendarSource) : [];
   const weeks: ScoreboardWeek[] = parsedWeeks.map((entry) => ({
     number: entry.number,
     label: entry.label,
@@ -313,9 +320,11 @@ export async function getScoreboard(options: {
   }));
   const mapped = weekForEspnDate(date, parsedWeeks);
   const week =
-    view === "week" && options.week
-      ? options.week
-      : (mapped?.number ?? (seasonType === 2 ? payloadWeek : null));
+    league.navMode === "date"
+      ? null
+      : view === "week" && weekParam
+        ? weekParam
+        : (mapped?.number ?? (seasonType === 2 ? payloadWeek : null));
   seasonYear = seasonYear ?? parseSeasonYear(null, date);
 
   const games = sortGames([...byId.values()]);
@@ -332,31 +341,9 @@ export async function getScoreboard(options: {
     view,
     generatedAt: new Date().toISOString(),
     games,
-    conferences: collectConferences(games),
+    conferences: collectConferences(games, league.id),
     liveCount: games.filter((game) => game.status.state === "in").length,
-    coverage: coverageFor(division),
-  };
-}
-
-function parsePlay(raw: unknown): PlayByPlayPlay | null {
-  const play = asRecord(raw);
-  if (!play) return null;
-  const period = asRecord(play.period);
-  const clock = asRecord(play.clock);
-  const type = asRecord(play.type);
-  const participants = asArray(play.teamParticipants).map(asRecord);
-  const offense = participants.find((row) => row?.type === "offense");
-  const team = asRecord(play.team) ?? asRecord(offense?.team);
-  return {
-    id: str(play.id || play.sequenceNumber, crypto.randomUUID()),
-    text: str(play.text),
-    period: num(period?.number),
-    clock: str(clock?.displayValue) || null,
-    homeScore: num(play.homeScore),
-    awayScore: num(play.awayScore),
-    scoringPlay: Boolean(play.scoringPlay),
-    type: str(type?.text) || null,
-    teamId: str(team?.id) || str(offense?.id) || null,
+    coverage: coverageFor(division, league.id, { gameCount: games.length, limit }),
   };
 }
 
@@ -376,49 +363,6 @@ function parseDrive(raw: unknown): Drive | null {
     yards: num(drive.yards),
     plays,
   };
-}
-
-function parseScoringPlay(raw: unknown): ScoringPlay | null {
-  const play = asRecord(raw);
-  if (!play) return null;
-  const period = asRecord(play.period);
-  const clock = asRecord(play.clock);
-  const type = asRecord(play.type);
-  const team = asRecord(play.team);
-  return {
-    id: str(play.id, crypto.randomUUID()),
-    text: str(play.text),
-    period: num(period?.number),
-    clock: str(clock?.displayValue) || null,
-    homeScore: num(play.homeScore) ?? 0,
-    awayScore: num(play.awayScore) ?? 0,
-    teamId: str(team?.id) || null,
-    teamName: str(team?.displayName) || null,
-    type: str(type?.text) || null,
-  };
-}
-
-function parseLeaders(raw: unknown): LeaderLine[] {
-  const lines: LeaderLine[] = [];
-  for (const category of asArray(raw)) {
-    const cat = asRecord(category);
-    if (!cat) continue;
-    const label = str(cat.displayName || cat.name, "Leader");
-    const leaders = asArray(cat.leaders);
-    const first = asRecord(leaders[0]);
-    if (!first) continue;
-    const athlete = asRecord(first.athlete) ?? asRecord(asArray(first.athletes)[0]);
-    const team = asRecord(first.team);
-    const name = str(athlete?.displayName || athlete?.fullName || first.displayValue);
-    if (!name) continue;
-    lines.push({
-      category: label,
-      name,
-      displayValue: str(first.displayValue),
-      teamId: str(team?.id) || null,
-    });
-  }
-  return lines;
 }
 
 function gameFromHeader(
@@ -441,11 +385,25 @@ function gameFromHeader(
   return parseEvent(wrapped, division, ids, league);
 }
 
-function pbpCoverage(game: GameSummary, hasDrives: boolean): CoverageNote {
-  if (hasDrives || game.playByPlayAvailable) {
+function pbpCoverage(
+  game: GameSummary,
+  hasFeed: boolean,
+  league: LeagueId
+): CoverageNote {
+  if (hasFeed || game.playByPlayAvailable) {
     return {
       headline: "Play-by-play from ESPN summary",
-      detail: "Live drive chart and plays are polling the public ESPN summary endpoint.",
+      detail:
+        league === "mbb"
+          ? "Live plays are polling the public ESPN summary endpoint."
+          : "Live drive chart and plays are polling the public ESPN summary endpoint.",
+    };
+  }
+  if (league === "mbb") {
+    return {
+      headline: "Play-by-play not published",
+      detail:
+        "ESPN has not released a play-by-play feed for this men’s basketball game. Scoring updates still come from the live scoreboard. No sample plays are shown.",
     };
   }
   if (game.subdivision === "NAIA") {
@@ -506,11 +464,14 @@ export async function getGameDetail(
           return [...previous, current].filter((row): row is Drive => Boolean(row));
         })()
       : [];
-  const scoringPlays = asArray(data.scoringPlays)
-    .map(parseScoringPlay)
-    .filter((row): row is ScoringPlay => Boolean(row));
+  const plays =
+    league.detailModules.primary === "plays" ? parsePlays(data.plays) : [];
+  const scoringPlays = parseScoringPlays(data);
 
-  const playByPlayAvailable = drives.some((drive) => drive.plays.length > 0);
+  const playByPlayAvailable =
+    league.detailModules.primary === "plays"
+      ? plays.length > 0
+      : drives.some((drive) => drive.plays.length > 0);
   const gameInfo = asRecord(data.gameInfo);
   const infoVenue = asRecord(gameInfo?.venue);
   const infoAddress = asRecord(infoVenue?.address);
@@ -542,9 +503,10 @@ export async function getGameDetail(
     game: hydrated,
     scoringPlays,
     drives,
+    plays,
     leaders: parseLeaders(data.leaders),
     playByPlayAvailable,
-    coverage: pbpCoverage(game, playByPlayAvailable),
+    coverage: pbpCoverage(game, playByPlayAvailable, league.id),
     teamStats: depth.teamStats,
     playerBox: depth.playerBox,
     standings: depth.standings,

@@ -3,12 +3,14 @@
 import { GamecastDepth } from "@/components/gamecast-depth";
 import { PlayByPlay } from "@/components/play-by-play";
 import { TeamLogo } from "@/components/team-logo";
+import { sportBoardHref } from "@/lib/board-url";
 import { formatKickoff, formatPollClock } from "@/lib/dates";
-import { hasPeriodScores, periodLabel } from "@/lib/espn-parse";
+import { hasPeriodScores, periodLabel, playPeriodLabel } from "@/lib/espn-parse";
 import { deepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
-import type { GameDetailResponse, TeamSide } from "@/lib/types";
+import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
+import type { GameDetailResponse, LeagueId, TeamSide } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
@@ -19,15 +21,17 @@ function ScoreColumn({
   team,
   possess,
   winner,
+  league,
 }: {
   team: TeamSide;
   possess: boolean;
   winner: boolean;
+  league: LeagueId;
 }) {
   return (
     <div className={`flex min-w-0 items-center gap-3 ${winner ? "" : "opacity-80"}`}>
       <Link
-        href={teamHref(team.id)}
+        href={teamHref(team.id, league)}
         transitionTypes={["nav-forward"]}
         className="pressable shrink-0 no-underline"
       >
@@ -45,7 +49,7 @@ function ScoreColumn({
       </Link>
       <div className="min-w-0">
         <Link
-          href={teamHref(team.id)}
+          href={teamHref(team.id, league)}
           transitionTypes={["nav-forward"]}
           className="pressable tap-row inline-flex items-center min-h-12 font-display text-xl leading-none tracking-wide text-white no-underline sm:text-3xl"
         >
@@ -88,17 +92,24 @@ export function GameDetailView({
   gameId,
   initial,
   initialError,
+  league = DEFAULT_LEAGUE,
 }: {
   gameId: string;
   initial: GameDetailResponse | null;
   initialError?: string | null;
+  league?: LeagueId;
 }) {
   const [detail, setDetail] = useState(initial);
   const [error, setError] = useState(initialError ?? null);
 
+  const spec = getLeague(league);
+  const football = spec.detailModules.footballSituation;
+  const periodSport = spec.sport === "basketball" ? "basketball" : "football";
+
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch(`/api/game/${gameId}`, { cache: "no-store" });
+      const qs = league === DEFAULT_LEAGUE ? "" : `?league=${league}`;
+      const response = await fetch(`/api/game/${gameId}${qs}`, { cache: "no-store" });
       const payload = (await response.json()) as GameDetailResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error || "Game request failed");
       setDetail(payload);
@@ -106,7 +117,7 @@ export function GameDetailView({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Game request failed");
     }
-  }, [gameId]);
+  }, [gameId, league]);
 
   const live = detail?.game.status.state === "in";
   useLivePoll(refresh, { intervalMs: BOARD_REFRESH_MS });
@@ -115,7 +126,7 @@ export function GameDetailView({
     return (
       <div className="page-enter mx-auto max-w-5xl px-4 py-10">
         <Link
-          href="/"
+          href={sportBoardHref(league)}
           transitionTypes={["nav-back"]}
           className="pressable font-display text-xs tracking-[0.16em] text-white/60"
         >
@@ -135,6 +146,7 @@ export function GameDetailView({
     game,
     scoringPlays,
     drives,
+    plays,
     leaders,
     playByPlayAvailable,
     coverage,
@@ -143,20 +155,22 @@ export function GameDetailView({
     standings,
     news,
   } = detail;
-  const awayHasBall = game.situation?.possessionTeamId === game.away.id;
-  const homeHasBall = game.situation?.possessionTeamId === game.home.id;
+  const awayHasBall = football && game.situation?.possessionTeamId === game.away.id;
+  const homeHasBall = football && game.situation?.possessionTeamId === game.home.id;
   const showQuarters =
     hasPeriodScores(game.away.linescores) || hasPeriodScores(game.home.linescores);
+  const minPeriods = periodSport === "basketball" ? 2 : 4;
   const maxQ = showQuarters
-    ? Math.max(4, game.away.linescores.length, game.home.linescores.length)
+    ? Math.max(minPeriods, game.away.linescores.length, game.home.linescores.length)
     : 0;
   const stamp = formatPollClock(detail.generatedAt);
+  const pbpMode = spec.detailModules.primary === "plays" ? "plays" : "drives";
 
   return (
     <div className="page-enter mx-auto w-full max-w-5xl px-3 py-4 pb-16 sm:px-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <Link
-          href="/"
+          href={sportBoardHref(league)}
           transitionTypes={["nav-back"]}
           className="pressable inline-flex min-h-10 items-center gap-1.5 font-display text-xs tracking-[0.16em] text-white/70"
         >
@@ -199,11 +213,13 @@ export function GameDetailView({
             team={game.away}
             possess={Boolean(live && awayHasBall)}
             winner={game.status.state !== "post" || game.away.winner}
+            league={league}
           />
           <ScoreColumn
             team={game.home}
             possess={Boolean(live && homeHasBall)}
             winner={game.status.state !== "post" || game.home.winner}
+            league={league}
           />
         </div>
         <div
@@ -213,29 +229,29 @@ export function GameDetailView({
         >
           <div>
             <p className="font-display text-[11px] tracking-[0.16em] text-[#f3c14b]">
-              {live && game.situation?.downDistanceText
+              {football && live && game.situation?.downDistanceText
                 ? `${game.situation.downDistanceText}${
                     game.situation.isRedZone ? "  ·  RED ZONE" : ""
                   }`
                 : game.venue || game.venueCity || game.broadcast || game.status.shortDetail}
             </p>
             <p className="mt-1 font-mono text-[11px] leading-relaxed text-white/60">
-              {game.situation?.lastPlay ||
+              {(football ? game.situation?.lastPlay : null) ||
                 [game.venueCity, game.broadcast].filter(Boolean).join(" · ") ||
-                "Waiting on the next published snap."}
+                "Waiting on the next published update."}
             </p>
           </div>
           {showQuarters ? (
             <div className="border border-white/10 bg-black/40">
               <div className="grid grid-cols-3 gap-2 px-2 py-1 font-display text-[10px] tracking-[0.12em] text-white/40">
-                <span>QTR</span>
+                <span>{periodSport === "basketball" ? "PER" : "QTR"}</span>
                 <span className="text-center">{game.away.abbreviation}</span>
                 <span className="text-center">{game.home.abbreviation}</span>
               </div>
               {Array.from({ length: maxQ }).map((_, index) => (
                 <QuarterRow
                   key={index}
-                  label={periodLabel(index)}
+                  label={periodLabel(index, periodSport)}
                   away={game.away.linescores[index] ?? "—"}
                   home={game.home.linescores[index] ?? "—"}
                 />
@@ -245,17 +261,19 @@ export function GameDetailView({
         </div>
       </section>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Link
-          href={deepDiveHref(game.id)}
-          className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[11px] tracking-[0.18em] text-white no-underline"
-        >
-          DEEP DIVE / SIM
-        </Link>
-        <p className="self-center font-mono text-[10px] text-white/40">
-          Matchup stats, simulation range, prop feedback
-        </p>
-      </div>
+      {football ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href={deepDiveHref(game.id)}
+            className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[11px] tracking-[0.18em] text-white no-underline"
+          >
+            DEEP DIVE / SIM
+          </Link>
+          <p className="self-center font-mono text-[10px] text-white/40">
+            Matchup stats, simulation range, prop feedback
+          </p>
+        </div>
+      ) : null}
 
       {error ? (
         <p className="mt-3 border border-[#cc0000] bg-[#2a0000] px-3 py-2 font-mono text-xs text-[#ffb3b3]">
@@ -266,9 +284,11 @@ export function GameDetailView({
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
         <PlayByPlay
           drives={drives}
+          plays={plays ?? []}
           game={game}
           available={playByPlayAvailable}
           note={coverage.detail}
+          mode={pbpMode}
         />
 
         <aside className="space-y-4">
@@ -285,7 +305,7 @@ export function GameDetailView({
                 {scoringPlays.map((play) => (
                   <li key={play.id} className="px-3 py-2">
                     <p className="font-mono text-[10px] text-white/40">
-                      {play.period ? `Q${play.period}` : ""} {play.clock ?? ""} ·{" "}
+                      {play.period ? playPeriodLabel(play.period, periodSport) : ""} {play.clock ?? ""} ·{" "}
                       {play.teamName ?? play.type}
                     </p>
                     <p className="mt-0.5 font-mono text-[12px] text-white/85">{play.text}</p>
@@ -330,6 +350,7 @@ export function GameDetailView({
         standings={standings ?? null}
         news={news ?? { article: null, articles: [] }}
         pregame={game.status.state === "pre"}
+        league={league}
       />
     </div>
   );

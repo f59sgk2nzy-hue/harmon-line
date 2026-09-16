@@ -3,11 +3,13 @@
 import { EmptyState } from "@/components/empty-state";
 import { FilterChip } from "@/components/filter-chip";
 import { TeamLogo } from "@/components/team-logo";
+import { sportBoardHref } from "@/lib/board-url";
 import { formatPollClock } from "@/lib/dates";
-import { POLL_TABS, rankingsHref } from "@/lib/espn-rankings";
+import { pollTabsFor, rankingsHref } from "@/lib/espn-rankings";
 import { teamHref } from "@/lib/espn-team";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
-import type { PollId, RankingRow, RankingsResponse } from "@/lib/types";
+import { DEFAULT_LEAGUE } from "@/lib/leagues";
+import type { LeagueId, PollId, RankingRow, RankingsResponse } from "@/lib/types";
 import { ArrowLeft, ChevronDown, ChevronUp, Minus, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -32,10 +34,10 @@ function TrendMark({ row }: { row: RankingRow }) {
   );
 }
 
-function RankingRowLink({ row }: { row: RankingRow }) {
+function RankingRowLink({ row, league }: { row: RankingRow; league: LeagueId }) {
   return (
     <Link
-      href={teamHref(row.team.id)}
+      href={teamHref(row.team.id, league)}
       transitionTypes={["nav-forward"]}
       className="pressable tap-row grid grid-cols-[2.25rem_28px_minmax(0,1fr)_3.25rem] items-center gap-2 px-2 no-underline sm:grid-cols-[2.75rem_32px_minmax(0,1fr)_4.5rem_3.5rem] sm:px-3"
     >
@@ -74,18 +76,24 @@ export function RankingsView({
   initial,
   initialError,
   poll,
+  league = DEFAULT_LEAGUE,
 }: {
   initial: RankingsResponse | null;
   initialError?: string | null;
   poll: PollId;
+  league?: LeagueId;
 }) {
   const [board, setBoard] = useState<RankingsResponse | null>(initial);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [localPoll, setLocalPoll] = useState<PollId>(poll);
+  const tabs = pollTabsFor(league);
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch("/api/rankings", { cache: "no-store" });
+      const params = new URLSearchParams();
+      if (league !== DEFAULT_LEAGUE) params.set("league", league);
+      const qs = params.toString();
+      const response = await fetch(`/api/rankings${qs ? `?${qs}` : ""}`, { cache: "no-store" });
       const payload = (await response.json()) as RankingsResponse & { error?: string };
       if (!response.ok) {
         throw new Error(payload.error || "Rankings request failed");
@@ -95,13 +103,13 @@ export function RankingsView({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Rankings request failed");
     }
-  }, []);
+  }, [league]);
 
   useLivePoll(refresh, { intervalMs: BOARD_REFRESH_MS });
 
   const selectPoll = (next: PollId) => {
     setLocalPoll(next);
-    window.history.replaceState(null, "", rankingsHref(next));
+    window.history.replaceState(null, "", rankingsHref(next, league));
   };
 
   const selected = board?.polls.find((item) => item.id === localPoll) ?? board?.selected ?? null;
@@ -113,7 +121,7 @@ export function RankingsView({
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-3 py-2 sm:px-5 sm:py-3">
           <div className="flex items-center justify-between gap-2">
             <Link
-              href="/"
+              href={sportBoardHref(league)}
               transitionTypes={["nav-back"]}
               className="pressable inline-flex min-h-10 items-center gap-1.5 font-display text-xs tracking-[0.16em] text-white/70"
             >
@@ -130,10 +138,10 @@ export function RankingsView({
             </button>
           </div>
           <div className="-mx-3 flex gap-1 overflow-x-auto px-3 pb-0.5 sm:mx-0 sm:px-0">
-            {POLL_TABS.map((tab) => (
+            {tabs.map((tab) => (
               <FilterChip
                 key={tab.id}
-                href={rankingsHref(tab.id)}
+                href={rankingsHref(tab.id, league)}
                 active={localPoll === tab.id}
                 tone="red"
                 className="chip-hit-lg shrink-0"
@@ -204,7 +212,7 @@ export function RankingsView({
             <ol className="divide-y divide-white/5">
               {selected.ranks.map((row) => (
                 <li key={`${selected.id}-${row.team.id}-${row.rank}`}>
-                  <RankingRowLink row={row} />
+                  <RankingRowLink row={row} league={league} />
                 </li>
               ))}
             </ol>

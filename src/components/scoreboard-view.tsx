@@ -9,8 +9,10 @@ import { WeekStrip } from "@/components/week-strip";
 import { boardHref, parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, formatPollClock, shiftEspnDate } from "@/lib/dates";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
+import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type {
   DivisionId,
+  LeagueId,
   ScoreboardResponse,
   ScoreboardView,
   ScoreboardWeek,
@@ -74,6 +76,7 @@ export function ScoreboardView({
   week,
   year,
   view,
+  league = DEFAULT_LEAGUE,
 }: {
   initial: ScoreboardResponse | null;
   initialError?: string | null;
@@ -86,7 +89,10 @@ export function ScoreboardView({
   week: number | null;
   year: number | null;
   view: ScoreboardView;
+  league?: LeagueId;
 }) {
+  const spec = getLeague(league);
+  const dateOnly = spec.navMode === "date";
   const [board, setBoard] = useState<ScoreboardResponse | null>(initial);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [updatedAt, setUpdatedAt] = useState(initial?.generatedAt ?? null);
@@ -117,6 +123,7 @@ export function ScoreboardView({
         params.set("week", String(week));
         if (year) params.set("year", String(year));
       }
+      if (league !== DEFAULT_LEAGUE) params.set("league", league);
       const response = await fetch(`/api/scoreboard?${params}`, { cache: "no-store" });
       const payload = (await response.json()) as ScoreboardResponse & { error?: string };
       if (!response.ok) {
@@ -128,7 +135,7 @@ export function ScoreboardView({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Scoreboard request failed");
     }
-  }, [date, division, subdivision, view, week, year]);
+    }, [date, division, subdivision, view, week, year, league]);
 
   useLivePoll(refresh, { intervalMs: BOARD_REFRESH_MS });
 
@@ -162,8 +169,9 @@ export function ScoreboardView({
       conference: next.conference ?? localConference,
       status: next.status ?? localStatus,
       q: next.q ?? localQuery,
-      week: nextWeek,
-      year: nextYear,
+      week: dateOnly ? null : nextWeek,
+      year: dateOnly ? null : nextYear,
+      league,
     });
   };
 
@@ -222,51 +230,64 @@ export function ScoreboardView({
       <div className="sticky top-0 z-30 border-b border-white/10 bg-[#0e0e0e]/82 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-3 py-2 sm:gap-3 sm:px-5 sm:py-3">
           <div className="flex flex-wrap items-center gap-2">
-            {DIVISIONS.map((item) => {
-              const active = division === item.id;
-              return (
-                <FilterChip
-                  key={item.id}
-                  href={hrefFor({
-                    division: item.id,
-                    subdivision: "all",
-                    conference: "all",
-                  })}
-                  active={active}
-                  tone="red"
-                >
-                  {item.label}
-                  <span className="ml-2 hidden font-mono text-[10px] tracking-normal text-white/60 sm:inline">
-                    {item.hint}
-                  </span>
-                </FilterChip>
-              );
-            })}
+            {league === "cfb" ? (
+              <>
+                {DIVISIONS.map((item) => {
+                  const active = division === item.id;
+                  return (
+                    <FilterChip
+                      key={item.id}
+                      href={hrefFor({
+                        division: item.id,
+                        subdivision: "all",
+                        conference: "all",
+                      })}
+                      active={active}
+                      tone="red"
+                    >
+                      {item.label}
+                      <span className="ml-2 hidden font-mono text-[10px] tracking-normal text-white/60 sm:inline">
+                        {item.hint}
+                      </span>
+                    </FilterChip>
+                  );
+                })}
 
-            {division === "d1" && (
-              <div className="ml-auto flex items-center gap-1 sm:ml-4">
-                {(
-                  [
-                    ["all", "ALL"],
-                    ["fbs", "FBS"],
-                    ["fcs", "FCS"],
-                  ] as const
-                ).map(([id, label]) => (
-                  <FilterChip
-                    key={id}
-                    href={hrefFor({ subdivision: id })}
-                    active={subdivision === id}
-                    tone="inverse"
-                    className="font-mono text-[10px] tracking-[0.14em]"
-                  >
-                    {label}
-                  </FilterChip>
-                ))}
-              </div>
+                {division === "d1" && (
+                  <div className="ml-auto flex items-center gap-1 sm:ml-4">
+                    {(
+                      [
+                        ["all", "ALL"],
+                        ["fbs", "FBS"],
+                        ["fcs", "FCS"],
+                      ] as const
+                    ).map(([id, label]) => (
+                      <FilterChip
+                        key={id}
+                        href={hrefFor({ subdivision: id })}
+                        active={subdivision === id}
+                        tone="inverse"
+                        className="font-mono text-[10px] tracking-[0.14em]"
+                      >
+                        {label}
+                      </FilterChip>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <span className="chip-inverse chip-hit font-display text-[11px] tracking-[0.16em]">
+                DIV I
+                <span className="ml-2 hidden font-mono text-[10px] tracking-normal text-white/60 sm:inline">
+                  ESPN group 50
+                </span>
+              </span>
             )}
           </div>
 
-          <WeekStrip weeks={weeks} selectedWeek={selectedWeek} hrefFor={weekHref} />
+          {dateOnly ? null : (
+            <WeekStrip weeks={weeks} selectedWeek={selectedWeek} hrefFor={weekHref} />
+          )}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="flex items-center gap-1">
@@ -325,6 +346,9 @@ export function ScoreboardView({
             >
               <input type="hidden" name="division" value={division} />
               <input type="hidden" name="date" value={date} />
+              {league !== DEFAULT_LEAGUE ? (
+                <input type="hidden" name="league" value={league} />
+              ) : null}
               {view === "week" && week ? <input type="hidden" name="week" value={week} /> : null}
               {view === "week" && year ? <input type="hidden" name="year" value={year} /> : null}
               {subdivision !== "all" ? (
@@ -447,7 +471,9 @@ export function ScoreboardView({
             headline="NO GAMES MATCH THIS BOARD"
             detail={
               board.games.length === 0
-                ? division === "naia"
+                ? league === "mbb"
+                  ? "ESPN has no D1 men’s basketball games on this Eastern date. September slates are often empty out of season. Try another date — scores are never invented."
+                  : division === "naia"
                   ? "ESPN’s NAIA group is quiet for this date. Many NAIA-only games never appear here. Try another Saturday or check D1/D2."
                   : view === "week"
                     ? "ESPN has no college football games for this week for the selected division."
@@ -508,7 +534,7 @@ export function ScoreboardView({
 
         <div className="grid gap-3 sm:grid-cols-2">
           {games.map((game) => (
-            <GameCard key={game.id} game={game} />
+            <GameCard key={game.id} game={game} league={league} />
           ))}
         </div>
       </main>

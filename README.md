@@ -1,6 +1,6 @@
 # The Harmon Line
 
-Nostalgic ESPN-style live college football scoreboard for **Christian Harmon**. It covers NCAA Division I (FBS + FCS), NCAA Division II, and NAIA using public ESPN scoreboard/summary feeds — no API key.
+Nostalgic ESPN-style live scoreboard for **Christian Harmon**. The home board is **college football** (NCAA D1 FBS + FCS, D2, and partial NAIA). Men’s college basketball (NCAA D1) is the second shipped sport, switched from the header or `?league=mbb`. Public ESPN scoreboard/summary feeds — no API key.
 
 ## Run locally
 
@@ -15,7 +15,20 @@ Unit checks for period scores, subdivision labels, poll-clock timezone, week/dat
 npm test
 ```
 
-Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s games in US/Eastern**, with a week strip to jump ESPN regular-season weeks. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it. **Rankings** (`/rankings`) lists AP, Coaches, FCS, D2, and D3 polls from the same public ESPN JSON.
+Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s college football games in US/Eastern**, with a week strip to jump ESPN regular-season weeks. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it. **Rankings** (`/rankings`) lists AP, Coaches, FCS, D2, and D3 football polls from the same public ESPN JSON.
+
+### Switch sports (CFB ↔ MBB)
+
+College football stays the default. Men’s college basketball is on the same app via `?league=mbb` (or the **CFB / MBB** chips in the red header). NBA, NFL, and MLB remain dormant stubs.
+
+| Surface | CFB (default) | MBB |
+| --- | --- | --- |
+| Scoreboard | `/` — week chips + Eastern date | `/?league=mbb` — **date arrows only** (`?dates=YYYYMMDD` on ESPN). No football week chips. |
+| Game | `/game/{espnId}` | `/game/{espnId}?league=mbb` — boxscore TEAM STATS / player cats, **plays** PBP (not drives), news links. No Deep Dive / odds / ATS. |
+| Rankings | `/rankings` | `/rankings?league=mbb` — AP and Coaches when ESPN publishes them; honest empty out of season. |
+| Team | `/team/{espnId}` | `/team/{espnId}?league=mbb` (same NCAA ids as football — always pass `league`) |
+
+September MBB slates are often empty. Jump the date (for example `/?league=mbb&date=20251115`) rather than expecting a football-style week strip. Scores and poll points are never invented.
 
 **DELL / Home Screen / Tailscale:** prefer production (`npm run build && npm start`). `next dev` gates the HMR websocket (`/_next/hmr`) with an Origin check. Opening the board as `http://127.0.0.1:43173` or a LAN/Tailscale IP can fail that check (`Unauthorized`), so React never hydrates. The highlights strip is server-rendered so cards still paint, but production has no HMR and is the reliable way to pin or share the board. `next.config` sets `allowedDevOrigins` for `localhost`, `127.0.0.1`, Tailscale MagicDNS (`**.ts.net`), and this machine’s LAN/Tailscale IPv4 addresses.
 
@@ -100,7 +113,7 @@ Tap a school name on a scoreboard card or game page to open `/team/{espnId}`. Th
 
 ## Highlights / Reactions strip
 
-The home board shows a swipeable **HIGHLIGHTS / REACTIONS** row under the ESPN red header and above the game grid. It mixes game highlights / big plays with reaction videos for the current college football season.
+The **college football** home board shows a swipeable **HIGHLIGHTS / REACTIONS** row under the ESPN red header and above the game grid. It mixes game highlights / big plays with reaction videos for the current college football season. The MBB board (`?league=mbb`) does not show this strip.
 
 **Default source (no API key):** public YouTube channel Atom RSS — `https://www.youtube.com/feeds/videos.xml?channel_id=…` — from ESPN College Football, CFB ON FOX, Big Ten Network (highlights) plus Cover 3, Brandon Walker CFB, and Barstool Bench Mob (reactions). Titles that say “reacting” / “highlights” override the channel bucket. Thumbnails use `i.ytimg.com`. Cards open YouTube.
 
@@ -135,14 +148,16 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 
 ## What you can do
 
-- Filter D1 / D2 / NAIA, plus FBS vs FCS on Division I
-- Jump ESPN regular-season weeks from the home-board week strip, or shift the Eastern date
+- Filter D1 / D2 / NAIA, plus FBS vs FCS on Division I (CFB)
+- Jump ESPN regular-season weeks from the CFB home-board week strip, or shift the Eastern date
+- Switch to **MBB** from the header chips (or `?league=mbb`) for a D1 basketball date board
 - Filter by conference, live/upcoming/final, team search, and date
-- Open **Rankings** for AP / Coaches / FCS / D2 / D3 and tap a school into its team page
-- Open a game for the scorebug, quarter lines, scoring plays, and a drive-by-drive feed (or a clear “no PBP” state)
-- Open **DEEP DIVE / SIM** on a game or team page for matchup stats, a simulation range, and prop-feedback cards
+- Open **Rankings** for CFB AP / Coaches / FCS / D2 / D3, or MBB AP / Coaches, and tap a school into its team page
+- Open a CFB game for the scorebug, quarter lines, scoring plays, and a drive-by-drive feed (or a clear “no PBP” state)
+- Open an MBB game for halves, TEAM STATS / player box, scoring, and a plays PBP (or a clear empty state)
+- Open **DEEP DIVE / SIM** on a CFB game or team page for matchup stats, a simulation range, and prop-feedback cards (CFB only)
 - Tap a school name on the board, a game, or a rankings row to open recent scores, the upcoming slate, and the roster
-- Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips
+- Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips (CFB home)
 - Watch the bottom-line ticker for the full slate
 - Install the board on a phone home screen or pin it as a Windows app
 
@@ -152,15 +167,23 @@ Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui. Server routes prox
 
 ## Phase 0 — sport-agnostic ESPN registry (foundation)
 
-This build is still **college football only** in the UI. Phase 0 lands the `SportLeague` registry and parameterized ESPN paths so men’s college basketball can be the next board (Phase 1) without rewriting the fetch layer.
+The fetch layer is parameterized by a `SportLeague` registry. Host-only `ESPN_WEB_BASE` / `ESPN_SITE_BASE` plus `sports/{sport}/{league}`. `/api/scoreboard?league=` and game detail `league` default to `cfb` so existing football clients omit the param.
+
+## Phase 1 — men’s college basketball (MBB) v0
+
+MBB is the first second-sport UI on that registry. CFB remains the default home and is unchanged (week strip, Rankings, Gamecast, Deep Dive, highlights).
 
 | Piece | Status |
 | --- | --- |
-| CFB scoreboard, week strip, Rankings, Gamecast, Deep Dive, team pages, highlights SSR, PWA | Unchanged |
-| Registry (`cfb` shipped; `mbb` / `nba` / `nfl` / `mlb` stubs) | In |
-| Host-only `ESPN_WEB_BASE` / `ESPN_SITE_BASE` + `sports/{sport}/{league}` | In |
-| `/api/scoreboard?league=` and game detail `league` (default `cfb`) | In — existing CFB clients omit the param |
-| Sport switcher | Dormant — CFB badge only; no other-sport UI |
-| MBB / NBA / NFL / MLB scoreboards | Out of scope until a later phase |
+| CFB scoreboard, week strip, Rankings, Gamecast, Deep Dive, team pages, highlights SSR, PWA | Unchanged — default home |
+| Registry | `cfb` + `mbb` shipped; `nba` / `nfl` / `mlb` still stubs |
+| MBB scoreboard | `/?league=mbb` — ESPN `basketball/mens-college-basketball`, **group 50** (D1), `limit=400`, date nav |
+| MBB game | `/game/{id}?league=mbb` — TEAM STATS, player cats when present, flat `plays[]` PBP, outbound news. No football drives/situation, no odds/winprob/ATS/pickcenter, no Deep Dive |
+| MBB rankings | `/rankings?league=mbb` — AP (`id` 1) and Coaches (`id` 2 / `type` usa) when ESPN publishes them |
+| Sport switcher | Header **CFB** / **MBB** links; NBA/NFL/MLB stay disabled |
+| Logos | NCAA namespace for MBB (same as CFB) |
+| API | `league=mbb` returns a real scoreboard (`demo: false`). Unshipped leagues still `501` |
+
+**Deferred:** D2/NAIA basketball; MBB Deep Dive/props; odds on cards; NFL/NBA/MLB UI.
 
 Stub leagues return `501` with `demo: false` and coverage notes. Scores are never invented.

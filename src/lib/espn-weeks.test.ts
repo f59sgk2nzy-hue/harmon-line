@@ -186,6 +186,20 @@ describe("espnScoreboardPath", () => {
       "/scoreboard?groups=81&week=2&seasontype=2&dates=2025&limit=300"
     );
   });
+
+  it("loads D1 MBB with ESPN group 50, calendar date, and a high event limit — never week chips", () => {
+    assert.equal(
+      espnScoreboardPath({
+        group: "50",
+        date: "20260916",
+        week: 3,
+        year: 2026,
+        view: "date",
+        limit: 400,
+      }),
+      "/scoreboard?groups=50&dates=20260916&limit=400"
+    );
+  });
 });
 
 describe("boardHref week params", () => {
@@ -208,6 +222,25 @@ describe("boardHref week params", () => {
         date: "20260916",
       }),
       "/?division=d1&date=20260916"
+    );
+  });
+
+  it("keeps CFB URLs unchanged and adds league=mbb only when switching sports", () => {
+    assert.equal(
+      boardHref({
+        division: "d1",
+        date: "20260916",
+        league: "cfb",
+      }),
+      "/?division=d1&date=20260916"
+    );
+    assert.equal(
+      boardHref({
+        division: "d1",
+        date: "20260916",
+        league: "mbb",
+      }),
+      "/?division=d1&date=20260916&league=mbb"
     );
   });
 });

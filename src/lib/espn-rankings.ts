@@ -1,8 +1,9 @@
 import { espnGet } from "@/lib/espn-http";
 import { teamLogoUrl } from "@/lib/espn-path";
-import { DEFAULT_LEAGUE } from "@/lib/leagues";
+import { DEFAULT_LEAGUE, assertLeagueShipped } from "@/lib/leagues";
 import type {
   CoverageNote,
+  LeagueId,
   PollId,
   RankTrend,
   RankingPoll,
@@ -25,7 +26,19 @@ export const POLL_TABS: ReadonlyArray<{
   { id: "d3", label: "D3", longLabel: "D3", name: "AFCA Division III Coaches Poll" },
 ];
 
-const POLL_IDS = new Set<PollId>(POLL_TABS.map((tab) => tab.id));
+export const MBB_POLL_TABS: ReadonlyArray<{
+  id: PollId;
+  label: string;
+  longLabel: string;
+  name: string;
+}> = [
+  { id: "ap", label: "AP", longLabel: "AP TOP 25", name: "AP Top 25" },
+  { id: "coaches", label: "COACHES", longLabel: "COACHES", name: "Coaches Poll" },
+];
+
+export function pollTabsFor(league: LeagueId = DEFAULT_LEAGUE) {
+  return league === "mbb" ? MBB_POLL_TABS : POLL_TABS;
+}
 
 function asRecord(value: unknown): Json | null {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Json) : null;
@@ -53,14 +66,22 @@ function hexColor(value: unknown): string | null {
   return `#${raw.toLowerCase()}`;
 }
 
-export function parsePollParam(value: string | null | undefined): PollId {
+export function parsePollParam(
+  value: string | null | undefined,
+  league: LeagueId = DEFAULT_LEAGUE
+): PollId {
   const slug = str(value).trim().toLowerCase();
-  if (POLL_IDS.has(slug as PollId)) return slug as PollId;
+  const tabs = pollTabsFor(league);
+  if (tabs.some((tab) => tab.id === slug)) return slug as PollId;
   return "ap";
 }
 
-export function rankingsHref(poll: PollId): string {
-  return poll === "ap" ? "/rankings" : `/rankings?poll=${poll}`;
+export function rankingsHref(poll: PollId, league: LeagueId = DEFAULT_LEAGUE): string {
+  const params = new URLSearchParams();
+  if (poll !== "ap") params.set("poll", poll);
+  if (league !== DEFAULT_LEAGUE) params.set("league", league);
+  const query = params.toString();
+  return query ? `/rankings?${query}` : "/rankings";
 }
 
 export function parseRankTrend(value: unknown): RankTrend {
@@ -89,7 +110,7 @@ function pollIdFromEspn(raw: Json): PollId | null {
   return null;
 }
 
-function parseRow(raw: unknown): RankingRow | null {
+function parseRow(raw: unknown, league: LeagueId = DEFAULT_LEAGUE): RankingRow | null {
   const row = asRecord(raw);
   if (!row) return null;
   const rank = num(row.current);
@@ -109,14 +130,14 @@ function parseRow(raw: unknown): RankingRow | null {
       id,
       name,
       abbreviation,
-      logo: str(team.logo) || teamLogoUrl(id, DEFAULT_LEAGUE),
+      logo: str(team.logo) || teamLogoUrl(id, league),
       color: hexColor(team.color),
     },
   };
 }
 
-function emptyPoll(id: PollId): RankingPoll {
-  const tab = POLL_TABS.find((item) => item.id === id) ?? POLL_TABS[0];
+function emptyPoll(id: PollId, league: LeagueId = DEFAULT_LEAGUE): RankingPoll {
+  const tab = pollTabsFor(league).find((item) => item.id === id) ?? pollTabsFor(league)[0];
   return {
     id,
     espnId: null,
@@ -129,17 +150,18 @@ function emptyPoll(id: PollId): RankingPoll {
   };
 }
 
-function parsePoll(raw: unknown): RankingPoll | null {
+function parsePoll(raw: unknown, league: LeagueId = DEFAULT_LEAGUE): RankingPoll | null {
   const poll = asRecord(raw);
   if (!poll) return null;
   const id = pollIdFromEspn(poll);
   if (!id) return null;
+  if (!pollTabsFor(league).some((tab) => tab.id === id)) return null;
   const occurrence = asRecord(poll.occurrence);
   const ranks = asArray(poll.ranks)
-    .map(parseRow)
+    .map((row) => parseRow(row, league))
     .filter((row): row is RankingRow => Boolean(row))
     .sort((a, b) => a.rank - b.rank);
-  const tab = POLL_TABS.find((item) => item.id === id);
+  const tab = pollTabsFor(league).find((item) => item.id === id);
   return {
     id,
     espnId: str(poll.id) || null,
@@ -152,24 +174,30 @@ function parsePoll(raw: unknown): RankingPoll | null {
   };
 }
 
-export function parseRankingsPayload(payload: unknown): RankingPoll[] {
+export function parseRankingsPayload(
+  payload: unknown,
+  league: LeagueId = DEFAULT_LEAGUE
+): RankingPoll[] {
   const root = asRecord(payload) ?? {};
   const byId = new Map<PollId, RankingPoll>();
   for (const raw of asArray(root.rankings)) {
-    const poll = parsePoll(raw);
+    const poll = parsePoll(raw, league);
     if (!poll) continue;
     byId.set(poll.id, poll);
   }
-  return POLL_TABS.map((tab) => byId.get(tab.id)).filter((poll): poll is RankingPoll => Boolean(poll));
+  return pollTabsFor(league)
+    .map((tab) => byId.get(tab.id))
+    .filter((poll): poll is RankingPoll => Boolean(poll));
 }
 
-function coverageFor(polls: RankingPoll[]): CoverageNote {
+function coverageFor(polls: RankingPoll[], league: LeagueId = DEFAULT_LEAGUE): CoverageNote {
   const live = polls.filter((poll) => poll.ranks.length > 0).map((poll) => poll.shortName);
+  const sport = league === "mbb" ? "men’s college basketball" : "college-football";
   return {
     headline: "Rankings from ESPN public poll feed",
     detail:
       live.length > 0
-        ? `${live.join(", ")} come from ESPN’s unofficial college-football /rankings JSON. Points and trends are whatever ESPN published — this app does not fabricate poll points.`
+        ? `${live.join(", ")} come from ESPN’s unofficial ${sport} /rankings JSON. Points and trends are whatever ESPN published — this app does not fabricate poll points.`
         : "ESPN’s public /rankings JSON did not include a ranked poll. No sample points are shown.",
   };
 }
@@ -177,16 +205,19 @@ function coverageFor(polls: RankingPoll[]): CoverageNote {
 export function assembleRankingsPage({
   payload,
   poll,
+  league = DEFAULT_LEAGUE,
   now = new Date(),
 }: {
   payload: unknown;
   poll: PollId;
+  league?: LeagueId;
   now?: Date;
 }): RankingsResponse {
-  const parsed = parseRankingsPayload(payload);
+  const tabs = pollTabsFor(league);
+  const parsed = parseRankingsPayload(payload, league);
   const byId = new Map(parsed.map((item) => [item.id, item]));
-  const polls = POLL_TABS.map((tab) => byId.get(tab.id) ?? emptyPoll(tab.id));
-  const requested = parsePollParam(poll);
+  const polls = tabs.map((tab) => byId.get(tab.id) ?? emptyPoll(tab.id, league));
+  const requested = parsePollParam(poll, league);
   const selected = polls.find((item) => item.id === requested) ?? polls[0] ?? null;
   const root = asRecord(payload) ?? {};
   const season = asRecord(root.requestedSeason) ?? asRecord(root.latestSeason);
@@ -194,17 +225,22 @@ export function assembleRankingsPage({
   return {
     source: "espn",
     demo: false,
+    league,
     generatedAt: now.toISOString(),
     week: num(seasonWeek?.number) ?? selected?.week ?? null,
     seasonYear: num(season?.year),
     poll: selected?.id ?? "ap",
     polls,
     selected,
-    coverage: coverageFor(polls),
+    coverage: coverageFor(polls, league),
   };
 }
 
-export async function getRankings(poll: PollId = "ap"): Promise<RankingsResponse> {
-  const payload = await espnGet("/rankings");
-  return assembleRankingsPage({ payload, poll });
+export async function getRankings(
+  poll: PollId = "ap",
+  leagueParam?: LeagueId | string | null
+): Promise<RankingsResponse> {
+  const league = assertLeagueShipped(leagueParam);
+  const payload = await espnGet("/rankings", league.id);
+  return assembleRankingsPage({ payload, poll, league: league.id });
 }

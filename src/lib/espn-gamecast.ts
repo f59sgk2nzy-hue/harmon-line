@@ -138,11 +138,15 @@ function parseCopiedStats(value: unknown): string[] {
 function parsePlayerCategory(raw: unknown): PlayerBoxCategory | null {
   const rec = asRecord(raw);
   if (!rec) return null;
-  const name = displayText(rec.name);
-  const labels = asArray(rec.labels)
-    .map((label) => displayText(label))
-    .filter((label): label is string => Boolean(label));
-  if (!name || labels.length === 0) return null;
+    const name =
+      displayText(rec.name) ??
+      displayText(rec.text) ??
+      displayText(asArray(rec.names)[0]) ??
+      "players";
+    const labels = asArray(rec.labels)
+      .map((label) => displayText(label))
+      .filter((label): label is string => Boolean(label));
+    if (labels.length === 0) return null;
 
   const athletes: PlayerBoxAthlete[] = [];
   for (const row of asArray(rec.athletes)) {
@@ -165,7 +169,7 @@ function parsePlayerCategory(raw: unknown): PlayerBoxCategory | null {
 
   return {
     name,
-    text: displayText(rec.text) ?? name,
+    text: displayText(rec.text) ?? displayText(asArray(rec.names)[0]) ?? name,
     labels,
     athletes,
     totals,

@@ -3,6 +3,7 @@ import { parseDateParam } from "@/lib/dates";
 import { parseDivision, parseSubdivision } from "@/lib/espn";
 import { parseSeasonYear, parseWeekParam } from "@/lib/espn-weeks";
 import { redirectPreservingHost } from "@/lib/http";
+import { parseLeagueParam } from "@/lib/leagues";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export function GET(request: Request) {
     q: src.searchParams.get("q") ?? "",
     week,
     year: week ? parseSeasonYear(src.searchParams.get("year"), date) : null,
+    league: parseLeagueParam(src.searchParams.get("league")),
   });
   return redirectPreservingHost(request, dest);
 }
