@@ -8,6 +8,7 @@ import {
   cfbdTeamQueryName,
   fetchCfbdSeasonStats,
 } from "@/lib/cfbd";
+import { isBettingQuestion } from "@/lib/betting";
 import { DEFAULT_LEAGUE, getLeague, parseLeagueParam } from "@/lib/leagues";
 import { BETTING_DISCLAIMER_LONG } from "@/lib/sim";
 import type {
@@ -87,8 +88,7 @@ export type OracleFeeds = {
   getCfbdSeasonStats: (teamName: string, year: number) => Promise<Partial<TeamSeasonStats>>;
 };
 
-const BETTING_RE =
-  /\b(ats|against the spread|cover(?:s|ed|ing)?(?:\s+the)?\s+spread|the spread|moneyline|\bml\b|over\/?under|o\/u|parlay|teaser|pick'?em|odds|vig|juice|polymarket|pickcenter|winprob|win probability|should i bet|wager|best bet|unit bet|paid odds)\b/i;
+export { isBettingQuestion } from "@/lib/betting";
 
 const VIDEO_RE = /\b(highlights?|youtube|clip|film|video)\b/i;
 
@@ -222,10 +222,6 @@ function uniqueNeedles(values: string[]): string[] {
     out.push(n);
   }
   return out;
-}
-
-export function isBettingQuestion(q: string): boolean {
-  return BETTING_RE.test(q);
 }
 
 function intentFrom(q: string, betting: boolean, needles: string[]): OracleIntent {

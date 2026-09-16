@@ -4,6 +4,7 @@ import { ResearchView } from "@/components/research-view";
 import { formatBoardDate, todayEspnDate } from "@/lib/dates";
 import { parseLeagueParam } from "@/lib/leagues";
 import { getResearchBrief, loadResearchFeed } from "@/lib/research";
+import { answerResearchAsk, createGoogleSearchClient, googleSearchConfigured } from "@/lib/research-ask";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ function firstString(value: string | string[] | undefined): string | null {
 export const metadata: Metadata = {
   title: "Research — The Harmon Line",
   description:
-    "Read-only Deep Lore anomaly briefs and Post-Game Tactical X-Rays from Board routines. Evidence vs inference. Nothing is invented when the feed is empty.",
+    "Google-grounded sports research answers plus read-only Deep Lore briefs and Post-Game X-Rays. Evidence vs inference. Nothing is invented when Search is missing or the disk feed is empty.",
 };
 
 export default async function ResearchPage({
@@ -28,8 +29,13 @@ export default async function ResearchPage({
   const params = await searchParams;
   const league = parseLeagueParam(firstString(params.league));
   const requestedId = firstString(params.id);
+  const query = firstString(params.q) ?? "";
   const feed = await loadResearchFeed();
   const selected = getResearchBrief(feed, requestedId);
+  const googleConfigured = googleSearchConfigured();
+  const ask = query
+    ? await answerResearchAsk({ q: query, league }, createGoogleSearchClient())
+    : null;
 
   return (
     <>
@@ -44,6 +50,9 @@ export default async function ResearchPage({
           feed={feed}
           selected={selected}
           requestedId={requestedId}
+          query={query}
+          ask={ask}
+          googleConfigured={googleConfigured}
         />
       </PageTransition>
     </>

@@ -5,6 +5,9 @@ import { useEffect, useRef } from "react";
 /** Default board / game refresh: 10 minutes. */
 export const BOARD_REFRESH_MS = 10 * 60 * 1000;
 
+/** Research brief drop-folder poll so new files appear without a full reload. */
+export const RESEARCH_BRIEF_REFRESH_MS = 30_000;
+
 export function useLivePoll(
   callback: () => void,
   options: { intervalMs?: number; runOnMount?: boolean } = {}

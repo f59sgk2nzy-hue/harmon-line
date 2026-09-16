@@ -12,6 +12,7 @@ export function FilterChip({
   children,
   onSelect,
   className,
+  prefetch = true,
 }: {
   href: string;
   active: boolean;
@@ -19,12 +20,13 @@ export function FilterChip({
   children: React.ReactNode;
   onSelect?: () => void;
   className?: string;
+  prefetch?: boolean;
 }) {
   return (
     <Link
       href={href}
       scroll={false}
-      prefetch
+      prefetch={prefetch}
       aria-current={active ? "page" : undefined}
       onClick={(event) => {
         if (!onSelect) return;

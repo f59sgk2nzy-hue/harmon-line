@@ -2,6 +2,8 @@
 
 Read-only Deep Lore + Post-Game Tactical X-Ray briefs for `/research` and `GET /api/research`.
 
+Google-grounded ask lives on the same page (`?q=`) and on `GET|POST /api/research/ask`. It does not read these files. Set `GOOGLE_API_KEY` and `GOOGLE_CSE_ID` (or `GOOGLE_SEARCH_ENGINE_ID`) for real Custom Search snippets; missing keys return **GOOGLE SEARCH NOT CONFIGURED**.
+
 ## Where files are read
 
 | Path | Role |
