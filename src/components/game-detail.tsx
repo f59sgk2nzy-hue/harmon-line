@@ -1,5 +1,6 @@
 "use client";
 
+import { GamecastDepth } from "@/components/gamecast-depth";
 import { PlayByPlay } from "@/components/play-by-play";
 import { TeamLogo } from "@/components/team-logo";
 import { formatKickoff, formatPollClock } from "@/lib/dates";
@@ -130,7 +131,18 @@ export function GameDetailView({
     );
   }
 
-  const { game, scoringPlays, drives, leaders, playByPlayAvailable, coverage } = detail;
+  const {
+    game,
+    scoringPlays,
+    drives,
+    leaders,
+    playByPlayAvailable,
+    coverage,
+    teamStats,
+    playerBox,
+    standings,
+    news,
+  } = detail;
   const awayHasBall = game.situation?.possessionTeamId === game.away.id;
   const homeHasBall = game.situation?.possessionTeamId === game.home.id;
   const showQuarters =
@@ -311,6 +323,13 @@ export function GameDetailView({
           </section>
         </aside>
       </div>
+
+      <GamecastDepth
+        teamStats={teamStats ?? []}
+        playerBox={playerBox ?? { available: false, teams: [] }}
+        standings={standings ?? null}
+        news={news ?? { article: null, articles: [] }}
+      />
     </div>
   );
 }
