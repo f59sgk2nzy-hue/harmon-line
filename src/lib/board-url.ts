@@ -89,3 +89,12 @@ export function sportResearchHref(league: LeagueId, id?: string | null): string 
   const qs = params.toString();
   return qs ? `/research?${qs}` : "/research";
 }
+
+export function sportResearchAskHref(league: LeagueId, q?: string | null): string {
+  const params = new URLSearchParams();
+  if (league !== DEFAULT_LEAGUE) params.set("league", league);
+  const query = q?.trim();
+  if (query) params.set("q", query);
+  const qs = params.toString();
+  return qs ? `/research?${qs}` : "/research";
+}
