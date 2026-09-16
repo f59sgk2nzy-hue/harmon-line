@@ -4,9 +4,11 @@ import { sportOracleHref } from "./board-url";
 import {
   answerOracle,
   isBettingQuestion,
+  oracleAskLabel,
   parseOracleQuestion,
   type OracleFeeds,
 } from "./oracle";
+import type { GeminiGroundingResult } from "./gemini-grounding";
 import type {
   GameDetailResponse,
   GameSummary,
@@ -208,6 +210,9 @@ function feeds(options: {
   team?: TeamPageResponse | null;
   cfbdConfigured?: boolean;
   cfbdStats?: Record<string, number>;
+  geminiConfigured?: boolean;
+  gemini?: GeminiGroundingResult | (() => Promise<GeminiGroundingResult>);
+  onGemini?: (question: string) => void;
 }): OracleFeeds {
   const scoreboard = options.scoreboard ?? board([OSU_TEX, PRE_GAME]);
   return {
@@ -228,8 +233,33 @@ function feeds(options: {
     },
     cfbdConfigured: options.cfbdConfigured ?? false,
     getCfbdSeasonStats: async () => options.cfbdStats ?? {},
+    geminiConfigured: options.geminiConfigured ?? Boolean(options.gemini),
+    askGemini: options.gemini
+      ? async (question) => {
+          options.onGemini?.(question);
+          return typeof options.gemini === "function" ? options.gemini() : options.gemini!;
+        }
+      : undefined,
   };
 }
+
+const CELTICS_1974: GeminiGroundingResult = {
+  text: "The Boston Celtics won the 1974 NBA Finals, defeating the Milwaukee Bucks 4-3.",
+  grounded: true,
+  webSearchQueries: ["who won the 1974 NBA Finals"],
+  citations: [
+    {
+      title: "1974 NBA Finals — NBA.com",
+      uri: "https://www.nba.com/news/history-finals-1974",
+      snippet: "The Boston Celtics won the 1974 NBA Finals",
+    },
+    {
+      title: "1974 NBA Finals Bucks vs Celtics | Basketball-Reference",
+      uri: "https://www.basketball-reference.com/playoffs/1974-nba-finals-bucks-vs-celtics.html",
+      snippet: "Boston Celtics defeated the Milwaukee Bucks 4-3",
+    },
+  ],
+};
 
 describe("parseOracleQuestion", () => {
   it("reads league + vs matchup from a CFB score question", () => {
@@ -458,5 +488,109 @@ describe("answerOracle", () => {
     assert.match(result.inference.join("\n"), /inference|simulation|not a live score|does not forecast/i);
     assert.doesNotMatch(result.evidence.join("\n"), /will win/i);
     assert.doesNotMatch(JSON.stringify(result), FORBIDDEN);
+  });
+
+  it("answers 1974 NBA Finals from Gemini Google Search grounding, not invented cells", async () => {
+    const result = await answerOracle(
+      { q: "Who won the 1974 NBA Finals?" },
+      feeds({
+        scoreboard: board([LAKERS], "nba"),
+        geminiConfigured: true,
+        gemini: CELTICS_1974,
+      })
+    );
+    assert.equal(result.demo, false);
+    assert.equal(result.source, "gemini");
+    assert.equal(result.scope, "grounded");
+    assert.equal(result.simulation, false);
+    assert.match(result.evidence.join("\n"), /Boston Celtics/i);
+    assert.match(result.evidence.join("\n"), /nba\.com|basketball-reference/i);
+    assert.match(result.inference.join("\n"), /Boston Celtics/i);
+    assert.ok(result.sources.some((src) => src.kind === "google-grounding" && /nba\.com/i.test(src.href ?? "")));
+    assert.doesNotMatch(JSON.stringify(result), FORBIDDEN);
+    assert.doesNotMatch(JSON.stringify(result), /customsearch\.googleapis|cse\.google\.com|&cx=/i);
+    assert.match(result.answerMarkdown, /google search grounding/i);
+  });
+
+  it("keeps ESPN-slice empty plus an honest note when no Gemini key is set", async () => {
+    const result = await answerOracle(
+      { q: "Who won the 1974 NBA Finals?" },
+      feeds({ scoreboard: board([LAKERS], "nba"), geminiConfigured: false })
+    );
+    assert.equal(result.source, "espn");
+    assert.equal(result.scope, "empty");
+    assert.equal(result.demo, false);
+    assert.deepEqual(result.evidence, []);
+    assert.match(result.honesty.headline, /not on this feed/i);
+    assert.match(`${result.honesty.detail} ${result.inference.join(" ")}`, /ESPN|gemini|GOOGLE_GENERATIVE_AI_API_KEY|GEMINI_API_KEY/i);
+    assert.doesNotMatch(result.answerMarkdown, /Boston Celtics/i);
+  });
+
+  it("refuses betting advice even when Gemini grounding is configured", async () => {
+    let geminiCalls = 0;
+    const result = await answerOracle(
+      { q: "Does Boston cover the spread ATS in the 1974 Finals?" },
+      feeds({
+        scoreboard: board([LAKERS], "nba"),
+        geminiConfigured: true,
+        gemini: CELTICS_1974,
+        onGemini: () => {
+          geminiCalls += 1;
+        },
+      })
+    );
+    assert.equal(result.scope, "refused");
+    assert.equal(geminiCalls, 0);
+    assert.deepEqual(result.evidence, []);
+    assert.ok(result.rgDisclaimer);
+    assert.match(result.rgDisclaimer, /1-800-GAMBLER/);
+  });
+
+  it("still answers a live ESPN slice when Gemini is configured", async () => {
+    let geminiCalls = 0;
+    const result = await answerOracle(
+      { q: "Lakers vs Celtics score" },
+      feeds({
+        scoreboard: board([LAKERS], "nba"),
+        geminiConfigured: true,
+        gemini: CELTICS_1974,
+        onGemini: () => {
+          geminiCalls += 1;
+        },
+      })
+    );
+    assert.equal(result.source, "espn");
+    assert.equal(result.scope, "game");
+    assert.equal(geminiCalls, 0);
+    assert.match(result.evidence.join("\n"), /88/);
+    assert.match(result.evidence.join("\n"), /91/);
+  });
+
+  it("labels ungrounded Gemini synthesis as SIMULATION and does not invent evidence", async () => {
+    const result = await answerOracle(
+      { q: "Who won the 1974 NBA Finals?" },
+      feeds({
+        scoreboard: board([LAKERS], "nba"),
+        geminiConfigured: true,
+        gemini: {
+          text: "The Celtics might have won, but this is not sourced.",
+          grounded: false,
+          citations: [],
+          webSearchQueries: [],
+        },
+      })
+    );
+    assert.equal(result.source, "gemini");
+    assert.equal(result.simulation, true);
+    assert.deepEqual(result.evidence, []);
+    assert.match(result.inference.join("\n"), /SIMULATION/i);
+    assert.doesNotMatch(result.evidence.join("\n"), /\b4-3\b|\b108\b/);
+  });
+});
+
+describe("oracleAskLabel", () => {
+  it("says ASK GOOGLE when Gemini is configured and ASK ESPN otherwise", () => {
+    assert.equal(oracleAskLabel(true), "ASK GOOGLE");
+    assert.equal(oracleAskLabel(false), "ASK ESPN");
   });
 });
