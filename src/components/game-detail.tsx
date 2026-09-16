@@ -8,6 +8,7 @@ import { formatKickoff, formatPollClock } from "@/lib/dates";
 import { hasPeriodScores, periodLabel, periodSportFor, playPeriodLabel } from "@/lib/espn-parse";
 import { deepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
+import { oracleHrefForGame } from "@/lib/oracle";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type { GameDetailResponse, LeagueId, TeamSide } from "@/lib/types";
@@ -265,19 +266,27 @@ export function GameDetailView({
         </div>
       </section>
 
-      {showDeepDive ? (
-        <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link
+          href={oracleHrefForGame(game, league)}
+          className="inline-flex min-h-11 items-center rounded-sm border border-white/20 bg-white/5 px-3 font-display text-[11px] tracking-[0.18em] text-white no-underline"
+        >
+          STAT ORACLE
+        </Link>
+        {showDeepDive ? (
           <Link
             href={deepDiveHref(game.id)}
             className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[11px] tracking-[0.18em] text-white no-underline"
           >
             DEEP DIVE / SIM
           </Link>
-          <p className="self-center font-mono text-[10px] text-white/40">
-            Matchup stats, simulation range, prop feedback
-          </p>
-        </div>
-      ) : null}
+        ) : null}
+        <p className="self-center font-mono text-[10px] text-white/40">
+          {showDeepDive
+            ? "Ask the ESPN slice  ·  Matchup stats, simulation range, prop feedback"
+            : "Ask a situational question on this ESPN slice"}
+        </p>
+      </div>
 
       {error ? (
         <p className="mt-3 border border-[#cc0000] bg-[#2a0000] px-3 py-2 font-mono text-xs text-[#ffb3b3]">

@@ -3,6 +3,7 @@ import { TeamLogo } from "@/components/team-logo";
 import { formatKickoff, formatPollClock } from "@/lib/dates";
 import { deepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
+import { oracleHrefForGame } from "@/lib/oracle";
 import { formatWinPct } from "@/lib/sim";
 import type {
   DeepDiveResponse,
@@ -141,13 +142,21 @@ export function DeepDiveView({
   return (
     <div className="mx-auto w-full max-w-5xl px-3 py-4 pb-20 sm:px-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href={`/game/${game.id}`}
-          className="inline-flex min-h-11 items-center gap-1.5 font-display text-xs tracking-[0.16em] text-white/70"
-        >
-          <ArrowLeft className="size-3.5" />
-          GAME
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/game/${game.id}`}
+            className="inline-flex min-h-11 items-center gap-1.5 font-display text-xs tracking-[0.16em] text-white/70"
+          >
+            <ArrowLeft className="size-3.5" />
+            GAME
+          </Link>
+          <Link
+            href={oracleHrefForGame(game)}
+            className="inline-flex min-h-11 items-center rounded-sm border border-white/20 bg-white/5 px-3 font-display text-[10px] tracking-[0.16em] text-white no-underline"
+          >
+            STAT ORACLE
+          </Link>
+        </div>
         <p className="font-mono text-[10px] tracking-[0.14em] text-white/40">
           {game.subdivision}  ·  DEEP DIVE  ·  {stamp}
         </p>
