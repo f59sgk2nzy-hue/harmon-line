@@ -273,8 +273,8 @@ export function clipQueryForGame(input: {
 }): ClipQuery {
   return {
     league: input.league,
-    awayName: input.away.shortName || input.away.name,
-    homeName: input.home.shortName || input.home.name,
+    awayName: input.away.name || input.away.shortName,
+    homeName: input.home.name || input.home.shortName,
     awayAbbr: input.away.abbreviation,
     homeAbbr: input.home.abbreviation,
     playText: input.playText || input.scoring?.text || null,

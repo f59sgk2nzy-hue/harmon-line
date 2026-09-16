@@ -249,4 +249,23 @@ describe("clipLookupForGame", () => {
     assert.equal(clip.match?.id, "osuTexHL");
     assert.equal(clip.emptyHeadline, null);
   });
+
+  it("still matches when ESPN shortName is the abbreviation (OSU / TEX)", () => {
+    const clip = clipLookupForGame(
+      [
+        video({
+          id: "osuTexHL",
+          title: "Ohio State vs Texas | Full Game Highlights",
+        }),
+      ],
+      {
+        league: "cfb",
+        away: { name: "Ohio State Buckeyes", shortName: "OSU", abbreviation: "OSU" },
+        home: { name: "Texas Longhorns", shortName: "TEX", abbreviation: "TEX" },
+        playText: "Connor Hawkins 26 Yd Field Goal",
+      }
+    );
+    assert.equal(clip.match?.id, "osuTexHL");
+    assert.equal(clip.demo, false);
+  });
 });
