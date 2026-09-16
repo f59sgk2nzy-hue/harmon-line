@@ -60,9 +60,9 @@ export function layoutXrayGraph(
   const width = options.width ?? DEFAULT_WIDTH;
   const height = options.height ?? DEFAULT_HEIGHT;
   const plot: XrayGraphPlot = {
-    x: 56,
+    x: 84,
     y: 28,
-    width: Math.max(1, width - 76),
+    width: Math.max(1, width - 108),
     height: Math.max(1, height - 64),
   };
   const midlineY = plot.y + plot.height / 2;

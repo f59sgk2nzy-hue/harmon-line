@@ -147,7 +147,7 @@ export function XrayGraph({
               textAnchor="end"
               className="xray-axis-label"
             >
-              {series.homeAbbr ?? "H"} 100
+              100
             </text>
             <text
               x={layout.plot.x - 8}
@@ -163,7 +163,7 @@ export function XrayGraph({
               textAnchor="end"
               className="xray-axis-label"
             >
-              {series.awayAbbr ?? "A"} 0
+              0
             </text>
             {layout.areaPath ? <path d={layout.areaPath} className="xray-wave-fill" /> : null}
             {layout.path ? <path d={layout.path} className="xray-wave-line" /> : null}
