@@ -118,7 +118,8 @@ export function parseTeamBoxStats(boxscore: unknown): TeamBoxStats[] {
       .map(parseStatLine)
       .filter((row): row is TeamBoxStatLine => Boolean(row));
     if (statistics.length === 0) continue;
-    const homeAway = rec.homeAway === "home" || rec.homeAway === "away" ? rec.homeAway : "away";
+    const homeAway = rec.homeAway === "home" || rec.homeAway === "away" ? rec.homeAway : null;
+    if (!homeAway) continue;
     teams.push({
       teamId,
       teamName: teamDisplayName(team) || teamAbbreviation(team),
@@ -233,7 +234,10 @@ function parseStandingsEntry(raw: unknown): StandingsSnippetEntry | null {
     ),
     conference: publishedRecord(
       stats,
-      (row) => row.type === "vsconf" || /conf/i.test(str(row.name))
+      (row) =>
+        row.type === "vsconf" ||
+        str(row.name).toLowerCase() === "vs. conf." ||
+        str(row.abbreviation).toUpperCase() === "CONF"
     ),
   };
 }
@@ -324,8 +328,8 @@ export function pairTeamStatRows(teams: TeamBoxStats[]): Array<{
   away: string | null;
   home: string | null;
 }> {
-  const away = teams.find((row) => row.homeAway === "away") ?? teams[0];
-  const home = teams.find((row) => row.homeAway === "home") ?? teams[1];
+  const away = teams.find((row) => row.homeAway === "away");
+  const home = teams.find((row) => row.homeAway === "home");
   const names: string[] = [];
   const seen = new Set<string>();
   for (const team of [away, home]) {

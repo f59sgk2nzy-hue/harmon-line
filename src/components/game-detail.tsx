@@ -329,6 +329,7 @@ export function GameDetailView({
         playerBox={playerBox ?? { available: false, teams: [] }}
         standings={standings ?? null}
         news={news ?? { article: null, articles: [] }}
+        pregame={game.status.state === "pre"}
       />
     </div>
   );

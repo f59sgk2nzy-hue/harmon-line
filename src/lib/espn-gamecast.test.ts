@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   NEWS_ARTICLE_LIMIT,
+  pairTeamStatRows,
   parseGamecastDepth,
   parsePlayerBoxscore,
   parseStandingsSnippet,
@@ -157,6 +158,18 @@ describe("parseTeamBoxStats", () => {
     assert.equal(teams[0]?.statistics[0]?.name, "firstDowns");
     assert.equal(teams[0]?.statistics[0]?.displayValue, "21");
   });
+
+  it("skips a team that has no ESPN homeAway instead of stuffing it into both columns", () => {
+    const teams = parseTeamBoxStats({
+      teams: [
+        {
+          team: { id: "333", abbreviation: "ALA", displayName: "Alabama" },
+          statistics: [{ name: "firstDowns", label: "1st Downs", displayValue: "21" }],
+        },
+      ],
+    });
+    assert.deepEqual(teams, []);
+  });
 });
 
 describe("parsePlayerBoxscore", () => {
@@ -208,6 +221,47 @@ describe("parseStandingsSnippet", () => {
     assert.equal(parseStandingsSnippet(undefined), null);
     assert.equal(parseStandingsSnippet({ header: "2026 Standings" }), null);
   });
+
+  it("does not treat conferenceRank as a conference W-L", () => {
+    const snippet = parseStandingsSnippet({
+      groups: [
+        {
+          header: "SEC",
+          standings: {
+            entries: [
+              {
+                team: "Alabama",
+                id: "333",
+                stats: [
+                  { name: "overall", type: "total", displayValue: "2-0" },
+                  { name: "conferenceRank", type: "rank", displayValue: "1" },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+    assert.equal(snippet?.groups[0]?.entries[0]?.overall, "2-0");
+    assert.equal(snippet?.groups[0]?.entries[0]?.conference, null);
+  });
+});
+
+describe("pairTeamStatRows", () => {
+  it("leaves the missing side blank instead of copying the other team's displayValue", () => {
+    const rows = pairTeamStatRows([
+      {
+        teamId: "356",
+        teamName: "Illinois",
+        abbreviation: "ILL",
+        homeAway: "home",
+        statistics: [{ name: "firstDowns", label: "1st Downs", displayValue: "23" }],
+      },
+    ]);
+    assert.deepEqual(rows, [
+      { name: "firstDowns", label: "1st Downs", away: null, home: "23" },
+    ]);
+  });
 });
 
 describe("parseGamecastDepth", () => {
@@ -218,6 +272,7 @@ describe("parseGamecastDepth", () => {
       article: {
         type: "Recap",
         headline: "Duke rallies to beat Illinois",
+        story: "<p>Invented HTML recap that must never ship first-party.</p>",
         links: { web: { href: "http://www.espn.com/ncf/recap?gameId=401858217" } },
       },
       news: {
@@ -258,6 +313,7 @@ describe("parseGamecastDepth", () => {
     );
     assert.equal(depth.news.articles.length, 1);
     assert.equal(depth.news.articles[0]?.href.includes("espn.com/video"), true);
+    assert.equal(JSON.stringify(depth).includes("Invented HTML recap"), false);
     assert.equal(
       JSON.stringify(depth).includes("homeWinPercentage") ||
         JSON.stringify(depth).includes("gameProjection") ||

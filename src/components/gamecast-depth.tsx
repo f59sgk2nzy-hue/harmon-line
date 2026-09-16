@@ -36,14 +36,25 @@ function EmptyCopy({ children }: { children: ReactNode }) {
   return <p className="px-3 py-4 font-mono text-[11px] text-white/45">{children}</p>;
 }
 
-function TeamStatsModule({ teams }: { teams: TeamBoxStats[] }) {
-  const away = teams.find((row) => row.homeAway === "away") ?? teams[0];
-  const home = teams.find((row) => row.homeAway === "home") ?? teams[1];
+function TeamStatsModule({
+  teams,
+  pregame,
+}: {
+  teams: TeamBoxStats[];
+  pregame: boolean;
+}) {
+  const away = teams.find((row) => row.homeAway === "away");
+  const home = teams.find((row) => row.homeAway === "home");
   const rows = pairTeamStatRows(teams);
   if (rows.length === 0) return null;
 
   return (
     <ModuleFrame kicker="TEAM STATS">
+      {pregame ? (
+        <p className="border-b border-white/8 px-3 py-2 font-mono text-[10px] leading-relaxed text-white/40">
+          Season rates from this summary until ESPN publishes a live box.
+        </p>
+      ) : null}
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,1fr)] gap-2 border-b border-white/10 px-3 py-2 font-display text-[10px] tracking-[0.14em] text-white/45">
         <span className="text-left text-white/80">{away?.abbreviation ?? "AWAY"}</span>
         <span className="text-center">STAT</span>
@@ -238,10 +249,10 @@ function NewsModule({ news }: { news: GamecastNews }) {
               href={news.article.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="pressable mt-1 inline-flex min-h-11 items-center font-display text-base leading-snug tracking-wide text-white no-underline"
+              className="pressable mt-1 flex min-h-11 items-start gap-2 font-display text-base leading-snug tracking-wide text-white no-underline"
             >
-              {news.article.headline}
-              <ExternalLink className="ml-2 size-3.5 shrink-0 text-white/45" aria-hidden />
+              <span className="min-w-0 text-wrap">{news.article.headline}</span>
+              <ExternalLink className="mt-1 size-3.5 shrink-0 text-white/45" aria-hidden />
             </a>
           ) : (
             <p className="mt-1 font-display text-base leading-snug tracking-wide text-white">
@@ -287,17 +298,19 @@ export function GamecastDepth({
   playerBox,
   standings,
   news,
+  pregame = false,
 }: {
   teamStats: TeamBoxStats[];
   playerBox: PlayerBoxscore;
   standings: StandingsSnippet | null;
   news: GamecastNews;
+  pregame?: boolean;
 }) {
   const showNews = Boolean(news.article) || news.articles.length > 0;
 
   return (
     <div className="mt-4 space-y-4">
-      {teamStats.length > 0 ? <TeamStatsModule teams={teamStats} /> : null}
+      {teamStats.length > 0 ? <TeamStatsModule teams={teamStats} pregame={pregame} /> : null}
       <PlayerBoxModule box={playerBox} />
       {standings ? <StandingsModule snippet={standings} /> : null}
       {showNews ? <NewsModule news={news} /> : null}
