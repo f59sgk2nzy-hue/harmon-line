@@ -1,5 +1,11 @@
 import { cn } from "@/lib/utils";
-import { sportBoardHref, sportOpsHref, sportOracleHref, sportRankingsHref } from "@/lib/board-url";
+import {
+  sportBoardHref,
+  sportOpsHref,
+  sportOracleHref,
+  sportRankingsHref,
+  sportResearchHref,
+} from "@/lib/board-url";
 import { SportSwitcher } from "@/components/sport-switcher";
 import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type { LeagueId } from "@/lib/types";
@@ -9,6 +15,7 @@ const NAV = [
   { id: "board", label: "SCOREBOARD" },
   { id: "rankings", label: "RANKINGS" },
   { id: "oracle", label: "ORACLE" },
+  { id: "research", label: "RESEARCH" },
   { id: "ops", label: "OPS" },
 ] as const;
 
@@ -20,7 +27,7 @@ export function BoardHeader({
 }: {
   dateLabel: string;
   week?: number | null;
-  section?: "board" | "rankings" | "ops" | "oracle";
+  section?: "board" | "rankings" | "ops" | "oracle" | "research";
   league?: LeagueId;
 }) {
   const spec = getLeague(league);
@@ -28,6 +35,7 @@ export function BoardHeader({
   const rankingsHref = sportRankingsHref(league);
   const opsHref = sportOpsHref(league);
   const oracleHref = sportOracleHref(league);
+  const researchHref = sportResearchHref(league);
   const kicker =
     section === "rankings"
       ? `${spec.label.toUpperCase()} RANKINGS`
@@ -35,11 +43,14 @@ export function BoardHeader({
         ? "AGENT GRAPH"
         : section === "oracle"
           ? "STAT ORACLE"
-          : `${spec.label.toUpperCase()} SCOREBOARD`;
+          : section === "research"
+            ? "DEEP LORE"
+            : `${spec.label.toUpperCase()} SCOREBOARD`;
   const hrefFor = (id: (typeof NAV)[number]["id"]) => {
     if (id === "rankings") return rankingsHref;
     if (id === "ops") return opsHref;
     if (id === "oracle") return oracleHref;
+    if (id === "research") return researchHref;
     return boardHref;
   };
 
@@ -84,7 +95,10 @@ export function BoardHeader({
           <p
             className={cn(
               "font-display text-[11px] tracking-[0.22em] text-[#f3c14b] sm:text-xs",
-              (section === "rankings" || section === "ops" || section === "oracle") &&
+              (section === "rankings" ||
+                section === "ops" ||
+                section === "oracle" ||
+                section === "research") &&
                 "hidden sm:block"
             )}
           >

@@ -1,0 +1,17 @@
+{
+  "kind": "deep-lore",
+  "title": "SAMPLE — published-cell shape only",
+  "publishedAt": "2026-09-01T12:00:00Z",
+  "league": "cfb",
+  "sample": true,
+  "evidence": [
+    "This file is a labeled SAMPLE fixture for schema dogfood, not a Board cron brief.",
+    "Copy it into public/research/ to see a SAMPLE badge. It is not loaded from examples/ automatically."
+  ],
+  "inference": [
+    "Do not treat SAMPLE copy as an on-feed anomaly. WPA and scores are never invented."
+  ],
+  "narrative": "SAMPLE model paragraph. The UI stamps SIMULATION on narrative even when the file is a fixture.",
+  "simulation": true,
+  "sources": [{ "label": "SAMPLE fixture" }]
+}

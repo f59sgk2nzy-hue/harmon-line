@@ -50,6 +50,7 @@ None required. Copy `.env.example` only if you want to point at a different ESPN
 | `ESPN_WEB_BASE` | no | Primary public **host** (defaults to `https://site.web.api.espn.com`). Sport/league is appended from the registry. |
 | `ESPN_SITE_BASE` | no | Fallback **host** (`https://site.api.espn.com`). |
 | `YOUTUBE_API_KEY` | no | Optional YouTube Data API v3 key. Highlights work without it via public channel RSS. |
+| `RESEARCH_DIR` | no | Optional folder of Deep Lore / X-Ray JSON or markdown for `/research`. Defaults to repo `research/` plus the DELL drop folder `public/research/`. |
 
 ## Data sources and coverage
 
@@ -118,6 +119,22 @@ Open [http://localhost:43173/ops](http://localhost:43173/ops). Try [http://local
 | Not | StatMuse SQL, live agent-feed upgrades, Scrub-to-Film, Coach Cam, GM Sandbox, Momentum Wave, Debate Arena |
 
 Open [http://localhost:43173/oracle](http://localhost:43173/oracle). Try [http://localhost:43173/oracle?q=Ohio+State+vs+Texas+score](http://localhost:43173/oracle?q=Ohio+State+vs+Texas+score) — if that matchup is not on today’s ESPN slice you get **NOT ON THIS FEED**, not a demo score.
+
+## Deep Lore / Post-Game X-Ray (research v0)
+
+`/research` is a read-only panel for **Board routine** writeups: Deep Lore anomaly briefs and Post-Game Tactical X-Rays. Header **RESEARCH** sits next to SCOREBOARD / RANKINGS / ORACLE / OPS. The sport switcher stays on `/research?league=` so CFB / MBB / NFL / NBA / MLB chrome is unchanged.
+
+| Piece | v0 |
+| --- | --- |
+| List | Latest Deep Lore brief + recent X-Rays from disk. Open a row for Evidence vs Inference. Model narrative wears a **SIMULATION** badge. |
+| API | `GET /api/research` and `GET /api/research?id=` → `{ demo: false, latestDeepLore, xrays, briefs, honesty }` |
+| Honesty | Empty disk → **NO BRIEF ON THIS FEED YET**. Anomalies, WPA, odds, and scores are never invented. Labeled **SAMPLE** only when the file says so. |
+| Ingest | `RESEARCH_DIR` (optional) then repo `research/*.json|*.md`, plus DELL drop folder `public/research/`. Subfolders such as `research/examples/` are not auto-loaded. |
+| Not | Live lab filesystem on DELL, POST ingest, Scrub-to-Film, odds / winprob / Polymarket / PnL |
+
+Lab cron files (`deep-lore-*.md`, `postgame-xray-*.md`) must be copied onto this app’s disk. On DELL, drop them in `public/research/` (or set `RESEARCH_DIR`) and refresh. Schema and copy-paste SAMPLE fixtures: `research/README.md` and `research/examples/`.
+
+Open [http://localhost:43173/research](http://localhost:43173/research). With nothing staged you get the empty state, not a demo brief.
 
 ## Week / schedule nav
 
@@ -198,6 +215,7 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 - Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips (every home board; keyed off `league`)
 - Open **OPS** for the hub-and-spoke agent map (static roster; live status feed is not connected)
 - Ask **Stat Oracle** (`/oracle`) a named-game or named-team question and get Evidence vs Inference from public ESPN JSON
+- Open **RESEARCH** (`/research`) for read-only Deep Lore briefs and Post-Game X-Rays staged on disk (honest empty when none)
 - Watch the bottom-line ticker for the full slate
 - Install the board on a phone home screen or pin it as a Windows app
 
