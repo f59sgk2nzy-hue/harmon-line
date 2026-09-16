@@ -2,6 +2,7 @@ import { BoardHeader } from "@/components/header";
 import { PageTransition } from "@/components/page-transition";
 import { ResearchView } from "@/components/research-view";
 import { formatBoardDate, todayEspnDate } from "@/lib/dates";
+import { attachResearchGraphs } from "@/lib/espn-winprob";
 import { parseLeagueParam } from "@/lib/leagues";
 import { getResearchBrief, loadResearchFeed } from "@/lib/research";
 import type { Metadata } from "next";
@@ -30,6 +31,14 @@ export default async function ResearchPage({
   const requestedId = firstString(params.id);
   const feed = await loadResearchFeed();
   const selected = getResearchBrief(feed, requestedId);
+  const graphs =
+    requestedId && !selected
+      ? { xrayGraph: null, featuredXrayGraph: null }
+      : await attachResearchGraphs({
+          feed,
+          selected,
+          fallbackLeague: league,
+        });
 
   return (
     <>
@@ -44,6 +53,8 @@ export default async function ResearchPage({
           feed={feed}
           selected={selected}
           requestedId={requestedId}
+          xrayGraph={graphs.xrayGraph}
+          featuredXrayGraph={graphs.featuredXrayGraph}
         />
       </PageTransition>
     </>

@@ -1,3 +1,5 @@
+import { attachResearchGraphs } from "@/lib/espn-winprob";
+import { parseLeagueParam } from "@/lib/leagues";
 import { getResearchBrief, loadResearchFeed } from "@/lib/research";
 import { NextResponse } from "next/server";
 
@@ -8,10 +10,20 @@ export async function GET(request: Request) {
   const feed = await loadResearchFeed();
   const id = url.searchParams.get("id");
   const brief = id ? getResearchBrief(feed, id) : null;
+  const league = parseLeagueParam(url.searchParams.get("league"));
+  const graphs =
+    id && !brief
+      ? { xrayGraph: null, featuredXrayGraph: null }
+      : await attachResearchGraphs({
+          feed,
+          selected: brief,
+          fallbackLeague: league,
+        });
   return NextResponse.json(
     {
       ...feed,
       brief,
+      ...graphs,
     },
     {
       headers: {
