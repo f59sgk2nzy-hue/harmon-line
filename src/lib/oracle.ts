@@ -8,6 +8,12 @@ import {
   cfbdTeamQueryName,
   fetchCfbdSeasonStats,
 } from "@/lib/cfbd";
+import {
+  createGeminiGroundingClient,
+  evidenceLinesFromCitations,
+  geminiConfigured,
+  type GeminiGroundingResult,
+} from "@/lib/gemini-grounding";
 import { DEFAULT_LEAGUE, getLeague, parseLeagueParam } from "@/lib/leagues";
 import { BETTING_DISCLAIMER_LONG } from "@/lib/sim";
 import type {
@@ -22,7 +28,9 @@ import type {
   TeamSide,
 } from "@/lib/types";
 
-export const ORACLE_VERSION = "stat-oracle-lite-v0";
+export const ORACLE_VERSION = "stat-oracle-gemini-v0";
+export const ESPN_ONLY_NOTE =
+  "This install is ESPN-slice only. Historical / off-feed questions need GOOGLE_GENERATIVE_AI_API_KEY, GOOGLE_API_KEY, or GEMINI_API_KEY in .env.local (Gemini + Google Search grounding — not a Custom Search Engine id).";
 
 export type OracleIntent =
   | "score"
@@ -53,7 +61,8 @@ export type OracleSourceKind =
   | "espn-summary"
   | "espn-rankings"
   | "espn-team"
-  | "cfbd";
+  | "cfbd"
+  | "google-grounding";
 
 export type OracleSource = {
   label: string;
@@ -61,10 +70,17 @@ export type OracleSource = {
   kind: OracleSourceKind;
 };
 
-export type OracleScope = "game" | "team" | "rankings" | "scoreboard" | "empty" | "refused";
+export type OracleScope =
+  | "game"
+  | "team"
+  | "rankings"
+  | "scoreboard"
+  | "empty"
+  | "refused"
+  | "grounded";
 
 export type OracleResponse = {
-  source: "espn";
+  source: "espn" | "gemini";
   demo: false;
   query: string;
   league: LeagueId;
@@ -76,6 +92,8 @@ export type OracleResponse = {
   answerMarkdown: string;
   sources: OracleSource[];
   rgDisclaimer: string | null;
+  geminiConfigured: boolean;
+  simulation: boolean;
 };
 
 export type OracleFeeds = {
@@ -85,7 +103,13 @@ export type OracleFeeds = {
   getRankings: (poll: "ap", league: LeagueId) => Promise<RankingsResponse>;
   cfbdConfigured: boolean;
   getCfbdSeasonStats: (teamName: string, year: number) => Promise<Partial<TeamSeasonStats>>;
+  geminiConfigured: boolean;
+  askGemini?: (question: string) => Promise<GeminiGroundingResult>;
 };
+
+export function oracleAskLabel(groundingEnabled: boolean): string {
+  return groundingEnabled ? "ASK GOOGLE" : "ASK ESPN";
+}
 
 const BETTING_RE =
   /\b(ats|against the spread|cover(?:s|ed|ing)?(?:\s+the)?\s+spread|the spread|moneyline|\bml\b|over\/?under|o\/u|parlay|teaser|pick'?em|odds|vig|juice|polymarket|pickcenter|winprob|win probability|should i bet|wager|best bet|unit bet|paid odds)\b/i;
@@ -341,7 +365,12 @@ function rankLine(team: TeamSide): string | null {
   return `${team.shortName} listed at #${team.rank} on this ESPN slice`;
 }
 
-function markdown(evidence: string[], inference: string[], extra = ""): string {
+function markdown(
+  evidence: string[],
+  inference: string[],
+  extra = "",
+  source: OracleResponse["source"] = "espn"
+): string {
   const ev =
     evidence.length > 0
       ? evidence.map((line) => `- ${line}`).join("\n")
@@ -350,15 +379,32 @@ function markdown(evidence: string[], inference: string[], extra = ""): string {
     inference.length > 0
       ? inference.map((line) => `- ${line}`).join("\n")
       : "- No inference. Stat Oracle v0 does not invent scores, percentiles, sample sizes, or video.";
-  return `**Evidence** (public ESPN cells only — never invented)\n\n${ev}\n\n**Inference** (labeled restatement, not a live score we created)\n\n${inf}${extra ? `\n\n${extra}` : ""}\n\n_Stat Oracle v0 reads one ESPN scoreboard/summary slice. It is not StatMuse SQL._`;
+  const evidenceLabel =
+    source === "gemini"
+      ? "**Evidence** (Google Search grounding citations/snippets/URLs — never invented)"
+      : "**Evidence** (public ESPN cells only — never invented)";
+  const inferenceLabel =
+    source === "gemini"
+      ? "**Inference** (model synthesis; SIMULATION when speculative — not a score we invented)"
+      : "**Inference** (labeled restatement, not a live score we created)";
+  const footer =
+    source === "gemini"
+      ? "_Stat Oracle v0 used Gemini with Google Search grounding. It is not StatMuse SQL._"
+      : "_Stat Oracle v0 reads one ESPN scoreboard/summary slice. It is not StatMuse SQL._";
+  return `${evidenceLabel}\n\n${ev}\n\n${inferenceLabel}\n\n${inf}${extra ? `\n\n${extra}` : ""}\n\n${footer}`;
 }
 
 function emptyAnswer(
   query: string,
   league: LeagueId,
   inference: string[],
-  generatedAt: string
+  generatedAt: string,
+  groundingEnabled: boolean
 ): OracleResponse {
+  const note = groundingEnabled
+    ? "Stat Oracle v0 answers from a fetched ESPN scoreboard or summary slice, then Gemini + Google Search grounding when a key is set. This named game/team is not on this feed and Google did not return a grounded answer. Scores, percentiles, sample sizes, and video are never invented."
+    : `Stat Oracle v0 answers from a fetched ESPN scoreboard or summary slice. This named game/team is not on this feed. Scores, percentiles, sample sizes, and video are never invented. ${ESPN_ONLY_NOTE}`;
+  const lines = groundingEnabled ? inference : [...inference, ESPN_ONLY_NOTE];
   return {
     source: "espn",
     demo: false,
@@ -368,14 +414,64 @@ function emptyAnswer(
     scope: "empty",
     honesty: {
       headline: "NOT ON THIS FEED",
-      detail:
-        "Stat Oracle v0 answers from a fetched ESPN scoreboard or summary slice. This named game/team is not on this feed. Scores, percentiles, sample sizes, and video are never invented.",
+      detail: note,
     },
     evidence: [],
-    inference,
-    answerMarkdown: markdown([], inference),
+    inference: lines,
+    answerMarkdown: markdown([], lines),
     sources: [],
     rgDisclaimer: null,
+    geminiConfigured: groundingEnabled,
+    simulation: false,
+  };
+}
+
+function geminiAnswer(
+  query: string,
+  league: LeagueId,
+  generatedAt: string,
+  result: GeminiGroundingResult
+): OracleResponse {
+  const evidence = evidenceLinesFromCitations(result.citations);
+  const grounded = result.grounded && evidence.length > 0;
+  const simulation = !grounded;
+  const synthesis = result.text.trim();
+  const inference = simulation
+    ? [
+        synthesis
+          ? `SIMULATION: ${synthesis} Google Search grounding did not attach citation URLs, so this is speculative synthesis — not a published score.`
+          : "SIMULATION: Gemini did not return a grounded answer. Scores and champions are never invented.",
+      ]
+    : [
+        synthesis
+          ? `INFERENCE: ${synthesis}`
+          : "INFERENCE: Grounded citations are listed as Evidence. Synthesis is labeled and is not a score we invented.",
+      ];
+  const sources: OracleSource[] = result.citations.map((citation) => ({
+    label: citation.title || citation.uri,
+    href: citation.uri,
+    kind: "google-grounding",
+  }));
+  return {
+    source: "gemini",
+    demo: false,
+    query,
+    league,
+    generatedAt,
+    scope: grounded ? "grounded" : "empty",
+    honesty: {
+      headline: grounded ? "EVIDENCE FROM GOOGLE SEARCH GROUNDING" : "UNGROUNDED SYNTHESIS",
+      detail: grounded
+        ? "Evidence is copied from Gemini Google Search grounding metadata (citations, snippets, URLs). Inference is model synthesis, not a live score we invented."
+        : "Gemini returned text without grounding citation URLs. Inference is labeled SIMULATION. Scores and champions are never invented.",
+    },
+    evidence: grounded ? evidence : [],
+    inference,
+    answerMarkdown: markdown(grounded ? evidence : [], inference, "", "gemini"),
+    sources: grounded ? sources : [],
+    rgDisclaimer: null,
+    geminiConfigured: true,
+    simulation,
   };
 }
 
@@ -401,7 +497,31 @@ export function createDefaultOracleFeeds(): OracleFeeds {
       if (!key) return {};
       return fetchCfbdSeasonStats(cfbdTeamQueryName(teamName, teamName), year, key);
     },
+    geminiConfigured: geminiConfigured(),
+    askGemini: geminiConfigured()
+      ? async (question) => {
+          const client = createGeminiGroundingClient();
+          if (!client) throw new Error("Gemini is not configured");
+          return client.generate(question);
+        }
+      : undefined,
   };
+}
+
+async function tryGeminiAnswer(
+  query: string,
+  league: LeagueId,
+  generatedAt: string,
+  feeds: OracleFeeds
+): Promise<OracleResponse | null> {
+  if (!feeds.geminiConfigured || !feeds.askGemini) return null;
+  try {
+    const result = await feeds.askGemini(query);
+    if (!result.grounded && !result.text.trim()) return null;
+    return geminiAnswer(query, league, generatedAt, result);
+  } catch {
+    return null;
+  }
 }
 
 export async function answerOracle(
@@ -411,6 +531,7 @@ export async function answerOracle(
   const generatedAt = new Date().toISOString();
   const parsed = parseOracleQuestion(input.q, input.league);
   const spec = getLeague(parsed.league);
+  const groundingEnabled = feeds.geminiConfigured;
 
   if (!parsed.query) {
     return emptyAnswer(
@@ -419,7 +540,8 @@ export async function answerOracle(
       [
         "Ask a named game or team on a Harmon Line league (CFB / MBB / NFL / NBA / MLB). Stat Oracle v0 is not StatMuse SQL.",
       ],
-      generatedAt
+      generatedAt,
+      groundingEnabled
     );
   }
 
@@ -443,6 +565,8 @@ export async function answerOracle(
       answerMarkdown: markdown([], inference),
       sources: [],
       rgDisclaimer: BETTING_DISCLAIMER_LONG,
+      geminiConfigured: groundingEnabled,
+      simulation: false,
     };
   }
 
@@ -453,7 +577,8 @@ export async function answerOracle(
       [
         "Highlights live on the home-board YouTube strip, not in Stat Oracle. Video ids and clips are never invented here.",
       ],
-      generatedAt
+      generatedAt,
+      groundingEnabled
     );
   }
 
@@ -461,11 +586,14 @@ export async function answerOracle(
   try {
     board = await feeds.getScoreboard({ league: parsed.league });
   } catch {
+    const grounded = await tryGeminiAnswer(parsed.query, parsed.league, generatedAt, feeds);
+    if (grounded) return grounded;
     return emptyAnswer(
       parsed.query,
       parsed.league,
       ["ESPN scoreboard was not reachable. Live scores are never invented."],
-      generatedAt
+      generatedAt,
+      groundingEnabled
     );
   }
 
@@ -534,6 +662,8 @@ export async function answerOracle(
           answerMarkdown: markdown(evidence, inference),
           sources,
           rgDisclaimer: null,
+          geminiConfigured: groundingEnabled,
+          simulation: false,
         };
       }
     } catch {
@@ -609,13 +739,16 @@ export async function answerOracle(
   }
 
   if (scope === "empty") {
+    const grounded = await tryGeminiAnswer(parsed.query, parsed.league, generatedAt, feeds);
+    if (grounded) return grounded;
     return emptyAnswer(
       parsed.query,
       parsed.league,
       [
         "Named game or team is not on this feed. Stat Oracle v0 does not invent scores, percentiles, sample sizes, or video.",
       ],
-      generatedAt
+      generatedAt,
+      groundingEnabled
     );
   }
 
@@ -636,6 +769,8 @@ export async function answerOracle(
     answerMarkdown: markdown(evidence, inference),
     sources,
     rgDisclaimer: null,
+    geminiConfigured: groundingEnabled,
+    simulation: parsed.intent === "forecast",
   };
 }
 

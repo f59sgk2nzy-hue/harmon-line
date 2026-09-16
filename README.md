@@ -43,14 +43,19 @@ npm start
 
 ## Environment variables
 
-None required. Copy `.env.example` only if you want to point at a different ESPN host or add optional YouTube search.
+None required. Copy `.env.example` into `.env.local` on DELL only if you want optional YouTube search, CFBD fills, Gemini-grounded Oracle, or a different ESPN host.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `ESPN_WEB_BASE` | no | Primary public **host** (defaults to `https://site.web.api.espn.com`). Sport/league is appended from the registry. |
 | `ESPN_SITE_BASE` | no | Fallback **host** (`https://site.api.espn.com`). |
 | `YOUTUBE_API_KEY` | no | Optional YouTube Data API v3 key. Highlights work without it via public channel RSS. |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | no | Google AI Studio **Gemini** API key (preferred name). Enables Stat Oracle Google Search grounding for historical / off-feed questions. Not a Custom Search Engine id. |
+| `GOOGLE_API_KEY` | no | Same Gemini key, alternate name. First match wins: `GOOGLE_GENERATIVE_AI_API_KEY`, then `GOOGLE_API_KEY`, then `GEMINI_API_KEY`. |
+| `GEMINI_API_KEY` | no | Same Gemini key, alternate name. |
+| `GEMINI_MODEL` | no | Optional model override. Defaults to `gemini-2.5-flash` (then `gemini-2.0-flash` if that 404s). |
 | `RESEARCH_DIR` | no | Optional folder of Deep Lore / X-Ray JSON or markdown for `/research`. Defaults to repo `research/` plus the DELL drop folder `public/research/`. |
+| `CFBD_API_KEY` | no | Optional CollegeFootballData token. Fills blank ESPN season-stat cells on Deep Dive / Oracle only. |
 
 ## Data sources and coverage
 
@@ -105,20 +110,24 @@ No PnL, Polymarket, Monte Carlo dollars, win probability, or paid-odds chrome. S
 
 Open [http://localhost:43173/ops](http://localhost:43173/ops). Try [http://localhost:43173/ops?busy=board](http://localhost:43173/ops?busy=board) to see The Board bright with edge traffic.
 
-## Stat Oracle lite v0
+## Stat Oracle v0 (ESPN slice + optional Gemini grounding)
 
-`/oracle` is a small natural-language Q&A surface over **the same public ESPN JSON** the board already uses (scoreboard / summary / rankings / team). Header **ORACLE** sits next to SCOREBOARD / RANKINGS / OPS. The sport switcher stays on `/oracle?league=` so CFB / MBB / NFL / NBA / MLB questions hit that league’s slice.
+`/oracle` is a small natural-language Q&A surface. Header **ORACLE** sits next to SCOREBOARD / RANKINGS / OPS. The sport switcher stays on `/oracle?league=` so CFB / MBB / NFL / NBA / MLB questions hit that league’s slice.
+
+Live named games still copy **the same public ESPN JSON** the board already uses. When a Gemini API key is set, questions **not on this ESPN slice** (historical results, off-feed teams) are answered with **Gemini + Google Search grounding**. No Custom Search Engine id is required.
 
 | Piece | v0 |
 | --- | --- |
-| Ask | Plain-language question about a **named** game, team, or league (`Ohio State vs Texas score`, `Where is Alabama ranked?`, `Lakers vs Celtics`) |
-| API | `GET /api/oracle?q=` and `POST /api/oracle` `{ q, league }` → `{ demo: false, evidence[], inference[], answerMarkdown, sources[] }` |
-| Honesty | **Evidence** = published ESPN cells. **Inference** = labeled restatement. Missing scores / leaders / ranks stay empty — never invented, never 0-0 placeholders, never percentiles or video. |
-| Betting | ATS / spread / odds / pickcenter / winprob / Polymarket questions are **refused**, with the 21+ / 1-800-GAMBLER disclaimer. |
+| Ask | Plain-language question about a **named** game, team, league, or historical result (`Who won the 1974 NBA Finals?`, `Ohio State vs Texas score`, `Where is Alabama ranked?`, `Lakers vs Celtics`) |
+| Button | **ASK GOOGLE** when a Gemini key is configured; **ASK ESPN** when the install is ESPN-slice only |
+| API | `GET /api/oracle?q=` and `POST /api/oracle` `{ q, league }` → `{ demo: false, evidence[], inference[], answerMarkdown, sources[], geminiConfigured, simulation }` |
+| Honesty | **Evidence** = published ESPN cells, or Google grounding citations / snippets / URLs. **Inference** = labeled restatement or model synthesis. Speculative synthesis wears a **SIMULATION** badge. Missing scores stay empty — never invented, never 0-0 placeholders, never percentiles or video. |
+| Gemini | Optional. Set `GOOGLE_GENERATIVE_AI_API_KEY` **or** `GOOGLE_API_KEY` **or** `GEMINI_API_KEY` in DELL `.env.local`. Uses Gemini `google_search` grounding (not CSE). |
+| Betting | ATS / spread / odds / pickcenter / winprob / Polymarket questions are **refused**, with the 21+ / 1-800-GAMBLER disclaimer — even when Gemini is configured. |
 | CFBD | Optional. Used only when `CFBD_API_KEY` is set, and only to fill blank ESPN season-stat cells. No invented CFBD numbers. |
-| Not | StatMuse SQL, live agent-feed upgrades, Scrub-to-Film, Coach Cam, GM Sandbox, Momentum Wave, Debate Arena |
+| Not | StatMuse SQL, Custom Search Engine, live agent-feed upgrades, Scrub-to-Film, Coach Cam, GM Sandbox, Momentum Wave, Debate Arena |
 
-Open [http://localhost:43173/oracle](http://localhost:43173/oracle). Try [http://localhost:43173/oracle?q=Ohio+State+vs+Texas+score](http://localhost:43173/oracle?q=Ohio+State+vs+Texas+score) — if that matchup is not on today’s ESPN slice you get **NOT ON THIS FEED**, not a demo score.
+Open [http://localhost:43173/oracle](http://localhost:43173/oracle). Try [http://localhost:43173/oracle?q=Who+won+the+1974+NBA+Finals%3F](http://localhost:43173/oracle?q=Who+won+the+1974+NBA+Finals%3F) — with a Gemini key you should get **Boston Celtics** plus grounded sources; without a key you get **NOT ON THIS FEED** (ESPN-slice only), not a demo champion.
 
 ## Deep Lore / Post-Game X-Ray (research v0)
 
@@ -215,7 +224,7 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 - Tap a school or NFL club name on the board, a game, or a rankings row to open recent scores, the upcoming slate, and the roster
 - Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips (every home board; keyed off `league`)
 - Open **OPS** for the hub-and-spoke agent map (static roster; live status feed is not connected)
-- Ask **Stat Oracle** (`/oracle`) a named-game or named-team question and get Evidence vs Inference from public ESPN JSON
+- Ask **Stat Oracle** (`/oracle`) a named-game, named-team, or historical question. Live slice answers copy public ESPN JSON. With a Gemini key, off-feed questions use Google Search grounding (Evidence vs Inference; SIMULATION when speculative).
 - Open **RESEARCH** (`/research`) for read-only Deep Lore briefs and Post-Game X-Rays staged on disk (honest empty when none). An X-Ray with `league` + ESPN `gameId` shows the interactive WP graph when ESPN published `winprobability`; otherwise **WIN PROBABILITY NOT ON THIS FEED**.
 - Watch the bottom-line ticker for the full slate
 - Install the board on a phone home screen or pin it as a Windows app
