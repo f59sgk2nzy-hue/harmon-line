@@ -164,6 +164,18 @@ describe("loadResearchFeed json", () => {
       pnl: 12,
     });
     await writeFile(join(dir, "readme.txt"), "ignore me", "utf8");
+    await writeFile(
+      join(dir, "README.md"),
+      `---
+kind: deep-lore
+title: Documentation is not a brief
+---
+
+## Narrative
+This README should never appear on the research feed.
+`,
+      "utf8"
+    );
     const feed = await loadResearchFeed({ dirs: [dir] });
     assert.equal(feed.briefs.length, 0);
     assert.equal(feed.honesty.headline, "NO BRIEF ON THIS FEED YET");
@@ -210,10 +222,19 @@ describe("loadResearchFeed json", () => {
       evidence: ["Published cell A."],
       inference: [],
     });
+    await writeJson(dir, "deep-lore-evil.json", {
+      id: "../secrets",
+      kind: "deep-lore",
+      title: "Traversal id is rewritten",
+      publishedAt: "2026-09-15T00:00:00Z",
+      evidence: ["Published cell B."],
+      inference: [],
+    });
     const feed = await loadResearchFeed({ dirs: [dir] });
     assert.equal(getResearchBrief(feed, "deep-lore-alpha")?.title, "Alpha");
     assert.equal(getResearchBrief(feed, "nope"), null);
     assert.equal(getResearchBrief(feed, "../secrets"), null);
+    assert.equal(feed.briefs.find((brief) => brief.title === "Traversal id is rewritten")?.id, "deep-lore-evil");
   });
 });
 
@@ -327,6 +348,13 @@ describe("briefShape helper stays honest", () => {
       odds: { spread: -7.5 },
       winProb: 0.72,
     });
+    await writeJson(join(dir, "nested"), "deep-lore-nested.json", {
+      kind: "deep-lore",
+      title: "Nested should not load",
+      publishedAt: "2026-09-16T00:00:00Z",
+      evidence: ["Should stay off the feed."],
+      inference: [],
+    });
     const feed = await loadResearchFeed({ dirs: [dir] });
     const brief = feed.latestDeepLore;
     assert.ok(brief);
@@ -335,5 +363,10 @@ describe("briefShape helper stays honest", () => {
     assert.doesNotMatch(JSON.stringify(brief), FORBIDDEN);
     assert.equal("odds" in brief, false);
     assert.equal("winProb" in brief, false);
+    assert.equal(feed.briefs.length, 1);
+    assert.equal(
+      feed.briefs.some((entry) => entry.title === "Nested should not load"),
+      false
+    );
   });
 });

@@ -149,6 +149,7 @@ async function listFiles(dir: string): Promise<string[]> {
       .map((entry) => entry.name)
       .filter((name) => !name.startsWith("."))
       .filter((name) => /\.(json|md|markdown)$/i.test(name))
+      .filter((name) => !/^readme\.(md|markdown)$/i.test(name))
       .sort();
   } catch (error) {
     if (isMissing(error)) return [];
@@ -230,9 +231,6 @@ function parseJsonBrief(raw: string, fileName: string): ParsedStub | null {
   }
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
-  if (hasForbiddenKeys(record)) {
-    // Keep published evidence; drop betting chrome. If nothing honest remains, skip.
-  }
   const kind = kindFrom(record.kind ?? record.type, fileName);
   const evidence = stringList(record.evidence);
   const inference = stringList(record.inference);
@@ -242,7 +240,7 @@ function parseJsonBrief(raw: string, fileName: string): ParsedStub | null {
     return null;
   }
   return {
-    id: firstString(record.id) || idFromFileName(fileName),
+    id: sanitizeResearchId(firstString(record.id)) || idFromFileName(fileName),
     kind,
     title,
     publishedAt: firstString(record.publishedAt ?? record.date ?? record.published),
@@ -269,7 +267,7 @@ function parseMarkdownBrief(raw: string, fileName: string): ParsedStub | null {
     prose(sections.narrative) ??
     null;
   return {
-    id: firstString(frontmatter.id) || idFromFileName(fileName),
+    id: sanitizeResearchId(firstString(frontmatter.id)) || idFromFileName(fileName),
     kind,
     title: firstString(frontmatter.title) ?? headingTitle ?? "",
     publishedAt: firstString(frontmatter.publishedAt ?? frontmatter.date ?? frontmatter.published),

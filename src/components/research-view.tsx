@@ -30,8 +30,8 @@ function LineList({ lines, empty }: { lines: string[]; empty: string }) {
   }
   return (
     <ul className="mt-1 list-disc pl-4 font-mono text-[11px] leading-relaxed text-white/70">
-      {lines.map((line) => (
-        <li key={line} className="mt-1 first:mt-0">
+      {lines.map((line, index) => (
+        <li key={`${index}-${line.slice(0, 48)}`} className="mt-1 first:mt-0">
           {line}
         </li>
       ))}
