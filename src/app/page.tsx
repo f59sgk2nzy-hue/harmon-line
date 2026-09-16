@@ -27,8 +27,8 @@ export default async function Home({
   const spec = getLeague(league);
   const dateParam = firstString(params.date);
   const date = parseDateParam(dateParam);
-  const division = league === "mbb" || league === "nfl" ? "d1" : parseDivision(firstString(params.division));
-  const subdivision = league === "mbb" || league === "nfl" ? "all" : parseSubdivision(firstString(params.subdivision));
+  const division = league === "cfb" ? parseDivision(firstString(params.division)) : "d1";
+  const subdivision = league === "cfb" ? parseSubdivision(firstString(params.subdivision)) : "all";
   const conference = firstString(params.conference) ?? "all";
   const status = parseStatusFilter(firstString(params.status));
   const query = firstString(params.q) ?? "";

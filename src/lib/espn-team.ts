@@ -88,9 +88,11 @@ export function parseTeamProfile(
         : nflConference?.abbreviation === "NFC"
           ? "NFC"
           : "NFL"
-      : league === "mbb"
-        ? "D1"
-        : classifySubdivision(ids);
+      : league === "nba"
+        ? "NBA"
+        : league === "mbb"
+          ? "D1"
+          : classifySubdivision(ids);
 
   return {
     id,
@@ -252,7 +254,9 @@ function scheduleCoverage(
           ? "Recent results and upcoming games come from ESPN’s unofficial men’s college basketball team schedule."
           : league === "nfl"
             ? "Recent results and upcoming games come from ESPN’s unofficial NFL team schedule."
-            : "Recent results and upcoming games come from ESPN’s unofficial college-football team schedule.",
+            : league === "nba"
+              ? "Recent results and upcoming games come from ESPN’s unofficial NBA team schedule."
+              : "Recent results and upcoming games come from ESPN’s unofficial college-football team schedule.",
     };
   }
   if (subdivision === "NAIA") {

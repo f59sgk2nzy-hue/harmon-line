@@ -1,5 +1,5 @@
 import { CONFERENCE_SUBDIVISION } from "./conferences";
-import type { Classification, DivisionId } from "./types";
+import type { Classification, DivisionId, LeagueId } from "./types";
 
 type Json = Record<string, unknown>;
 
@@ -134,6 +134,11 @@ export function divisionFromClassification(classification: Classification): Divi
 
 export function hasPeriodScores(lines: Array<number | null> | undefined): boolean {
   return Boolean(lines?.some((value) => value != null));
+}
+
+/** MBB uses halves; NBA/NFL/CFB use quarter clocks. Never invent periods. */
+export function periodSportFor(league: LeagueId): "football" | "basketball" {
+  return league === "mbb" ? "basketball" : "football";
 }
 
 export function periodLabel(

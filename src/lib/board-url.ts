@@ -1,4 +1,4 @@
-import { DEFAULT_LEAGUE } from "@/lib/leagues";
+import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type { DivisionId, LeagueId, StatusFilter, SubdivisionId } from "@/lib/types";
 
 export function boardHref(options: {
@@ -16,7 +16,8 @@ export function boardHref(options: {
   const params = new URLSearchParams();
   params.set("division", options.division);
   params.set("date", options.date);
-  if (options.week && options.week > 0) {
+  const spec = getLeague(options.league);
+  if (spec.navMode === "week" && options.week && options.week > 0) {
     params.set("week", String(options.week));
     if (options.year && options.year > 0) {
       params.set("year", String(options.year));

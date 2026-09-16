@@ -193,10 +193,10 @@ export function parseRankingsPayload(
 
 function coverageFor(polls: RankingPoll[], league: LeagueId = DEFAULT_LEAGUE): CoverageNote {
   if (!getLeague(league).rankings) {
+    const label = getLeague(league).label;
     return {
-      headline: "No ESPN rankings for this league",
-      detail:
-        "ESPN’s public /rankings JSON 404s for the NFL. This page does not fabricate polls or poll points.",
+      headline: `No ESPN rankings for ${label}`,
+      detail: `ESPN’s public /rankings JSON 404s for ${label}. This page does not fabricate polls or poll points.`,
     };
   }
   const live = polls.filter((poll) => poll.ranks.length > 0).map((poll) => poll.shortName);

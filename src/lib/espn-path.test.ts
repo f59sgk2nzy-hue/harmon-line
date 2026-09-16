@@ -77,6 +77,10 @@ describe("espnSportPath / espnRequestUrl", () => {
       espnRequestUrl(DEFAULT_ESPN_WEB_ORIGIN, "nfl", "/scoreboard?week=1&seasontype=2&limit=300"),
       "https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?week=1&seasontype=2&limit=300"
     );
+    assert.equal(
+      espnRequestUrl(DEFAULT_ESPN_WEB_ORIGIN, "nba", "/scoreboard?dates=20260415&limit=300"),
+      "https://site.web.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=20260415&limit=300"
+    );
   });
 });
 
@@ -97,6 +101,10 @@ describe("teamLogoUrl", () => {
     assert.equal(
       teamLogoUrl("13", "nba"),
       "https://a.espncdn.com/i/teamlogos/nba/500/13.png"
+    );
+    assert.equal(
+      teamLogoUrl("13", "nba", "LAL"),
+      "https://a.espncdn.com/i/teamlogos/nba/500/lal.png"
     );
     assert.equal(
       teamLogoUrl("10", "nfl"),

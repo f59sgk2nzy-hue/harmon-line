@@ -11,6 +11,7 @@ export function PlayByPlay({
   available,
   note,
   mode = "drives",
+  periodSport,
 }: {
   drives: Drive[];
   plays?: PlayByPlayPlay[];
@@ -18,9 +19,10 @@ export function PlayByPlay({
   available: boolean;
   note: string;
   mode?: "drives" | "plays";
+  periodSport?: "football" | "basketball";
 }) {
   const endRef = useRef<HTMLDivElement>(null);
-  const sport = mode === "plays" ? "basketball" : "football";
+  const sport = periodSport ?? (mode === "plays" ? "basketball" : "football");
   const playCount =
     mode === "plays" ? plays.length : drives.reduce((sum, drive) => sum + drive.plays.length, 0);
 

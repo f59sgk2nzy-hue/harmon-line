@@ -83,10 +83,11 @@ export const SPORT_LEAGUES: Record<LeagueId, SportLeague> = {
     logoNamespace: "nba",
     detailModules: { primary: "plays", footballSituation: false },
     rankings: false,
-    shipped: false,
+    shipped: true,
     coverage: {
-      headline: "NBA — not shipped",
-      detail: `Phase 0 stub. ESPN slug nba is reserved for a later phase. ${STUB_DETAIL}`,
+      headline: "NBA — ESPN public scoreboard",
+      detail:
+        "NBA slate from ESPN’s unofficial public site API (basketball/nba). Date nav uses dates=YYYYMMDD, not football week chips. Rankings 404 on this feed and are not shown. Deep Dive, odds, pickcenter, winprob, and ATS stay off this board. Scores are never invented.",
     },
   },
   nfl: {

@@ -1,9 +1,19 @@
 export type DivisionId = "d1" | "d2" | "naia";
 export type SubdivisionId = "all" | "fbs" | "fcs";
-export type Classification = "FBS" | "FCS" | "D1" | "D2" | "D3" | "NAIA" | "NFL" | "AFC" | "NFC";
+export type Classification =
+  | "FBS"
+  | "FCS"
+  | "D1"
+  | "D2"
+  | "D3"
+  | "NAIA"
+  | "NFL"
+  | "AFC"
+  | "NFC"
+  | "NBA";
 export type GameState = "pre" | "in" | "post";
 export type StatusFilter = "all" | "live" | "final" | "upcoming";
-/** Harmon Line sport instance. CFB is default; MBB and NFL ship via the sport switcher. */
+/** Harmon Line sport instance. CFB is default; MBB, NFL, and NBA ship via the sport switcher. */
 export type LeagueId = "cfb" | "mbb" | "nba" | "nfl" | "mlb";
 
 export type TeamSide = {
