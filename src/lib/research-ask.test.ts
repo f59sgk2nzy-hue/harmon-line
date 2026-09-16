@@ -228,4 +228,20 @@ describe("answerResearchAsk", () => {
     assert.deepEqual(result.evidence, []);
     assert.deepEqual(result.sources, []);
   });
+
+  it("scopes the Google query with the league label without changing the displayed question", async () => {
+    let seen = "";
+    const result = await answerResearchAsk(
+      { q: "Ohio State vs Texas recap", league: "cfb" },
+      client({
+        hits: [OSU_HIT],
+        onSearch: (query) => {
+          seen = query;
+        },
+      })
+    );
+    assert.equal(result.query, "Ohio State vs Texas recap");
+    assert.match(seen, /Ohio State vs Texas recap/);
+    assert.match(seen, /College Football/i);
+  });
 });

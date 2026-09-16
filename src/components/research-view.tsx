@@ -232,8 +232,8 @@ function AskAnswer({ data }: { data: ResearchAskResponse }) {
             GOOGLE RESULT LINKS
           </p>
           <ul className="mt-2 flex flex-col gap-2">
-            {data.sources.map((src) => (
-              <li key={src.href} className="min-w-0">
+            {data.sources.map((src, index) => (
+              <li key={`${src.href}-${index}`} className="min-w-0">
                 <a
                   href={src.href}
                   target="_blank"
@@ -348,7 +348,13 @@ export function ResearchView({
       const response = await fetch("/api/research", { cache: "no-store" });
       if (!response.ok) return;
       const payload = (await response.json()) as ResearchFeed;
-      if (payload && payload.demo === false && Array.isArray(payload.briefs)) {
+      if (
+        payload &&
+        payload.demo === false &&
+        Array.isArray(payload.briefs) &&
+        payload.honesty &&
+        typeof payload.honesty.headline === "string"
+      ) {
         setLiveFeed(payload);
       }
     } catch {
@@ -422,6 +428,7 @@ export function ResearchView({
               href={sportResearchAskHref(example.league, example.q)}
               active={query === example.q && league === example.league}
               tone="default"
+              prefetch={false}
               className="chip-hit-lg shrink-0"
             >
               {example.label}

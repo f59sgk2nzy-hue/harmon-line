@@ -1,5 +1,5 @@
 import { isBettingQuestion } from "@/lib/betting";
-import { parseLeagueParam } from "@/lib/leagues";
+import { getLeague, parseLeagueParam } from "@/lib/leagues";
 import { BETTING_DISCLAIMER_LONG } from "@/lib/sim";
 import type { LeagueId } from "@/lib/types";
 
@@ -207,6 +207,15 @@ function baseAnswer(options: {
   };
 }
 
+function googleQuery(q: string, league: LeagueId): string {
+  const spec = getLeague(league);
+  const hay = q.toLowerCase();
+  if (hay.includes(spec.label.toLowerCase()) || hay.includes(spec.shortLabel.toLowerCase())) {
+    return q;
+  }
+  return `${q} ${spec.label}`;
+}
+
 export async function answerResearchAsk(
   input: { q: string; league?: LeagueId | string | null },
   search: GoogleSearchClient = createGoogleSearchClient()
@@ -272,7 +281,7 @@ export async function answerResearchAsk(
 
   let hits: GoogleSearchHit[] = [];
   try {
-    hits = await search.search(query);
+    hits = await search.search(googleQuery(query, league));
   } catch {
     return baseAnswer({
       query,
