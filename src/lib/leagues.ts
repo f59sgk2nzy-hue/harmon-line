@@ -1,0 +1,169 @@
+import type { CoverageNote, LeagueId } from "@/lib/types";
+
+export const DEFAULT_LEAGUE: LeagueId = "cfb";
+
+export const LEAGUE_IDS = ["cfb", "mbb", "nba", "nfl", "mlb"] as const satisfies readonly LeagueId[];
+
+export type NavMode = "week" | "date";
+export type LogoNamespace = "ncaa" | "nba" | "nfl" | "mlb";
+export type DetailModuleKind = "drives" | "plays" | "atBats";
+
+export type DetailModules = {
+  primary: DetailModuleKind;
+  footballSituation: boolean;
+};
+
+export type SportLeague = {
+  id: LeagueId;
+  sport: string;
+  league: string;
+  label: string;
+  shortLabel: string;
+  navMode: NavMode;
+  logoNamespace: LogoNamespace;
+  detailModules: DetailModules;
+  rankings: boolean;
+  shipped: boolean;
+  coverage: CoverageNote;
+};
+
+export type UnshippedLeaguePayload = {
+  error: string;
+  source: "espn";
+  demo: false;
+  league: LeagueId;
+  coverage: CoverageNote;
+};
+
+const STUB_DETAIL =
+  "No scoreboard UI in this build. This app never invents scores.";
+
+export const SPORT_LEAGUES: Record<LeagueId, SportLeague> = {
+  cfb: {
+    id: "cfb",
+    sport: "football",
+    league: "college-football",
+    label: "College Football",
+    shortLabel: "CFB",
+    navMode: "week",
+    logoNamespace: "ncaa",
+    detailModules: { primary: "drives", footballSituation: true },
+    rankings: true,
+    shipped: true,
+    coverage: {
+      headline: "College football — ESPN public scoreboard",
+      detail:
+        "NCAA D1 (FBS + FCS), D2, and partial NAIA from ESPN’s unofficial public site API. Scores are never invented. Play-by-play depends on ESPN publishing a summary feed.",
+    },
+  },
+  mbb: {
+    id: "mbb",
+    sport: "basketball",
+    league: "mens-college-basketball",
+    label: "Men’s College Basketball",
+    shortLabel: "MBB",
+    navMode: "date",
+    logoNamespace: "ncaa",
+    detailModules: { primary: "plays", footballSituation: false },
+    rankings: true,
+    shipped: false,
+    coverage: {
+      headline: "Men’s college basketball — not shipped",
+      detail: `Phase 0 stub. ESPN slug mens-college-basketball is reserved for Phase 1. ${STUB_DETAIL}`,
+    },
+  },
+  nba: {
+    id: "nba",
+    sport: "basketball",
+    league: "nba",
+    label: "NBA",
+    shortLabel: "NBA",
+    navMode: "date",
+    logoNamespace: "nba",
+    detailModules: { primary: "plays", footballSituation: false },
+    rankings: false,
+    shipped: false,
+    coverage: {
+      headline: "NBA — not shipped",
+      detail: `Phase 0 stub. ESPN slug nba is reserved for a later phase. ${STUB_DETAIL}`,
+    },
+  },
+  nfl: {
+    id: "nfl",
+    sport: "football",
+    league: "nfl",
+    label: "NFL",
+    shortLabel: "NFL",
+    navMode: "week",
+    logoNamespace: "nfl",
+    detailModules: { primary: "drives", footballSituation: true },
+    rankings: false,
+    shipped: false,
+    coverage: {
+      headline: "NFL — not shipped",
+      detail: `Phase 0 stub. ESPN slug nfl is reserved for a later phase. ${STUB_DETAIL}`,
+    },
+  },
+  mlb: {
+    id: "mlb",
+    sport: "baseball",
+    league: "mlb",
+    label: "MLB",
+    shortLabel: "MLB",
+    navMode: "date",
+    logoNamespace: "mlb",
+    detailModules: { primary: "atBats", footballSituation: false },
+    rankings: false,
+    shipped: false,
+    coverage: {
+      headline: "MLB — not shipped",
+      detail: `Phase 0 stub. ESPN slug mlb is reserved for a later phase. ${STUB_DETAIL}`,
+    },
+  },
+};
+
+const LEAGUE_SET = new Set<string>(LEAGUE_IDS);
+
+export function parseLeagueParam(value: string | null | undefined): LeagueId {
+  const slug = (value ?? "").trim().toLowerCase();
+  if (LEAGUE_SET.has(slug)) return slug as LeagueId;
+  return DEFAULT_LEAGUE;
+}
+
+export function getLeague(id: string | null | undefined): SportLeague {
+  return SPORT_LEAGUES[parseLeagueParam(id)];
+}
+
+export function shippedLeagues(): SportLeague[] {
+  return LEAGUE_IDS.map((id) => SPORT_LEAGUES[id]).filter((league) => league.shipped);
+}
+
+export class LeagueNotShippedError extends Error {
+  readonly league: SportLeague;
+  readonly status = 501;
+  readonly payload: UnshippedLeaguePayload;
+
+  constructor(league: SportLeague) {
+    const error = `${league.label} is not on The Harmon Line yet`;
+    super(error);
+    this.name = "LeagueNotShippedError";
+    this.league = league;
+    this.payload = {
+      error,
+      source: "espn",
+      demo: false,
+      league: league.id,
+      coverage: league.coverage,
+    };
+  }
+}
+
+export function assertLeagueShipped(id: string | null | undefined): SportLeague {
+  const league = getLeague(id);
+  if (!league.shipped) throw new LeagueNotShippedError(league);
+  return league;
+}
+
+export function isLeagueNotShippedError(error: unknown): error is LeagueNotShippedError {
+  return error instanceof LeagueNotShippedError;
+}

@@ -1,12 +1,14 @@
 import { isEspnDate, todayEspnDate } from "@/lib/dates";
 import { getScoreboard, parseDivision, parseSubdivision } from "@/lib/espn";
 import { parseSeasonYear, parseWeekParam } from "@/lib/espn-weeks";
+import { isLeagueNotShippedError, parseLeagueParam } from "@/lib/leagues";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const league = parseLeagueParam(url.searchParams.get("league"));
   const division = parseDivision(url.searchParams.get("division"));
   const subdivision = parseSubdivision(url.searchParams.get("subdivision"));
   const dateParam = url.searchParams.get("date");
@@ -17,6 +19,7 @@ export async function GET(request: Request) {
 
   try {
     const board = await getScoreboard({
+      league,
       division,
       date,
       subdivision,
@@ -30,12 +33,16 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
+    if (isLeagueNotShippedError(error)) {
+      return NextResponse.json(error.payload, { status: error.status });
+    }
     const message = error instanceof Error ? error.message : "Scoreboard unavailable";
     return NextResponse.json(
       {
         error: message,
         source: "espn",
         demo: false,
+        league,
         date,
         division,
       },

@@ -4,6 +4,8 @@ import {
   DIVISION_GROUPS,
   conferenceLabel,
 } from "@/lib/conferences";
+import { espnGet } from "@/lib/espn-http";
+import { teamLogoUrl } from "@/lib/espn-path";
 import { parseGamecastDepth } from "@/lib/espn-gamecast";
 import {
   classifySubdivision,
@@ -17,6 +19,7 @@ import {
   parseSeasonYear,
   weekForEspnDate,
 } from "@/lib/espn-weeks";
+import { DEFAULT_LEAGUE, assertLeagueShipped, getLeague } from "@/lib/leagues";
 import type {
   ConferenceOption,
   CoverageNote,
@@ -27,6 +30,7 @@ import type {
   GameSummary,
   GameSituation,
   LeaderLine,
+  LeagueId,
   PlayByPlayPlay,
   ScoreboardResponse,
   ScoreboardView,
@@ -35,15 +39,6 @@ import type {
   SubdivisionId,
   TeamSide,
 } from "@/lib/types";
-
-const ESPN_WEB =
-  process.env.ESPN_WEB_BASE ??
-  "https://site.web.api.espn.com/apis/site/v2/sports/football/college-football";
-const ESPN_SITE =
-  process.env.ESPN_SITE_BASE ??
-  "https://site.api.espn.com/apis/site/v2/sports/football/college-football";
-
-const FETCH_TIMEOUT_MS = 12_000;
 
 type Json = Record<string, unknown>;
 
@@ -69,53 +64,10 @@ function num(value: unknown): number | null {
   return null;
 }
 
-function teamLogo(teamId: string): string {
-  return `https://a.espncdn.com/i/teamlogos/ncaa/500/${teamId}.png`;
-}
-
 function hexColor(value: unknown): string | null {
   const raw = str(value).replace("#", "");
   if (!/^[0-9a-fA-F]{6}$/.test(raw)) return null;
   return `#${raw.toLowerCase()}`;
-}
-
-async function espnGet(path: string): Promise<Json> {
-  const bases = [ESPN_WEB, ESPN_SITE];
-  let lastError: Error | null = null;
-
-  for (const base of bases) {
-    const url = `${base}${path}`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          Accept: "application/json",
-          "User-Agent":
-            "HarmonLine/1.0 (college football scoreboard; +https://localhost)",
-        },
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        lastError = new Error(`ESPN ${response.status} from ${base}`);
-        continue;
-      }
-      const data = (await response.json()) as unknown;
-      const record = asRecord(data);
-      if (!record) {
-        lastError = new Error("ESPN returned a non-object payload");
-        continue;
-      }
-      return record;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  throw lastError ?? new Error("Unable to reach ESPN public APIs");
 }
 
 function parseState(value: unknown): GameState {
@@ -124,7 +76,11 @@ function parseState(value: unknown): GameState {
   return "pre";
 }
 
-function parseTeam(raw: unknown, fallbackHomeAway: "home" | "away"): TeamSide | null {
+function parseTeam(
+  raw: unknown,
+  fallbackHomeAway: "home" | "away",
+  league: LeagueId = DEFAULT_LEAGUE
+): TeamSide | null {
   const competitor = asRecord(raw);
   if (!competitor) return null;
   const team = asRecord(competitor.team) ?? {};
@@ -154,7 +110,7 @@ function parseTeam(raw: unknown, fallbackHomeAway: "home" | "away"): TeamSide | 
     rank: rankValue && rankValue > 0 && rankValue <= 25 ? rankValue : null,
     color: hexColor(team.color),
     altColor: hexColor(team.alternateColor),
-    logo: teamLogo(id),
+    logo: teamLogoUrl(id, league),
     conferenceId,
     conferenceName: conferenceLabel(conferenceId),
     winner: Boolean(competitor.winner),
@@ -183,7 +139,8 @@ function parseSituation(raw: unknown): GameSituation | null {
 function parseEvent(
   raw: unknown,
   division: DivisionId,
-  groupIds: string | string[] = []
+  groupIds: string | string[] = [],
+  league: LeagueId = DEFAULT_LEAGUE
 ): GameSummary | null {
   const event = asRecord(raw);
   if (!event) return null;
@@ -195,8 +152,8 @@ function parseEvent(
     competitors.map(asRecord).find((row) => row?.homeAway === "home") ?? competitors[0];
   const awayRaw =
     competitors.map(asRecord).find((row) => row?.homeAway === "away") ?? competitors[1];
-  const home = parseTeam(homeRaw, "home");
-  const away = parseTeam(awayRaw, "away");
+  const home = parseTeam(homeRaw, "home", league);
+  const away = parseTeam(awayRaw, "away", league);
   if (!home || !away) return null;
 
   const venue = asRecord(competition.venue);
@@ -229,7 +186,9 @@ function parseEvent(
     venue: str(venue?.fullName) || null,
     venueCity: [str(address?.city), str(address?.state)].filter(Boolean).join(", ") || null,
     broadcast: names[0] ?? (str(competition.broadcast) || null),
-    situation: parseSituation(competition.situation),
+    situation: getLeague(league).detailModules.footballSituation
+      ? parseSituation(competition.situation)
+      : null,
     playByPlayAvailable: Boolean(competition.playByPlayAvailable),
     subdivision: resolveSubdivision(
       [event, competition, homeRaw, awayRaw],
@@ -292,7 +251,9 @@ export async function getScoreboard(options: {
   week?: number | null;
   year?: number | null;
   view?: ScoreboardView;
+  league?: LeagueId | string | null;
 }): Promise<ScoreboardResponse> {
+  const league = assertLeagueShipped(options.league);
   const { division, date } = options;
   const view: ScoreboardView = options.view ?? (options.week ? "week" : "date");
   const groups =
@@ -310,7 +271,8 @@ export async function getScoreboard(options: {
           week: options.week,
           year: options.year,
           view,
-        })
+        }),
+        league.id
       ),
     }))
   );
@@ -329,7 +291,7 @@ export async function getScoreboard(options: {
     const weekNumber = num(asRecord(data.week)?.number);
     if (weekNumber) payloadWeek = weekNumber;
     for (const event of asArray(data.events)) {
-      const game = parseEvent(event, division, group);
+      const game = parseEvent(event, division, group, league.id);
       if (!game) continue;
       const existing = byId.get(game.id);
       if (!existing) {
@@ -360,6 +322,7 @@ export async function getScoreboard(options: {
   return {
     source: "espn",
     demo: false,
+    league: league.id,
     date,
     division,
     week,
@@ -461,7 +424,8 @@ function parseLeaders(raw: unknown): LeaderLine[] {
 function gameFromHeader(
   header: Json,
   fallbackId: string,
-  extra?: Json | null
+  extra?: Json | null,
+  league: LeagueId = DEFAULT_LEAGUE
 ): GameSummary | null {
   const competitions = asArray(header.competitions);
   const wrapped = {
@@ -474,7 +438,7 @@ function gameFromHeader(
   const division: DivisionId = classified
     ? divisionFromClassification(classified)
     : "d1";
-  return parseEvent(wrapped, division, ids);
+  return parseEvent(wrapped, division, ids, league);
 }
 
 function pbpCoverage(game: GameSummary, hasDrives: boolean): CoverageNote {
@@ -507,19 +471,25 @@ function pbpCoverage(game: GameSummary, hasDrives: boolean): CoverageNote {
   };
 }
 
-export async function getGameDetail(eventId: string): Promise<GameDetailResponse> {
+export async function getGameDetail(
+  eventId: string,
+  leagueParam?: LeagueId | string | null
+): Promise<GameDetailResponse> {
   if (!/^\d+$/.test(eventId)) {
     throw new Error("Invalid game id");
   }
 
-  const data = await espnGet(`/summary?event=${eventId}`);
+  const league = assertLeagueShipped(leagueParam);
+  const data = await espnGet(`/summary?event=${eventId}`, league.id);
   const header = asRecord(data.header) ?? {};
-  let game = gameFromHeader(header, eventId, asRecord(data.meta));
+  let game = gameFromHeader(header, eventId, asRecord(data.meta), league.id);
 
   if (!game) {
-    const scoreboard = await espnGet(`/scoreboard?limit=300`);
+    const scoreboard = await espnGet(`/scoreboard?limit=300`, league.id);
     const match = asArray(scoreboard.events)
-      .map((event) => parseEvent(event, "d1", collectClassificationIds(asRecord(event) ?? {})))
+      .map((event) =>
+        parseEvent(event, "d1", collectClassificationIds(asRecord(event) ?? {}), league.id)
+      )
       .find((row) => row?.id === eventId);
     if (!match) {
       throw new Error("Game not found on ESPN");
@@ -527,10 +497,15 @@ export async function getGameDetail(eventId: string): Promise<GameDetailResponse
     game = match;
   }
 
-  const drivesNode = asRecord(data.drives);
-  const previous = asArray(drivesNode?.previous).map(parseDrive);
-  const current = parseDrive(drivesNode?.current);
-  const drives = [...previous, current].filter((row): row is Drive => Boolean(row));
+  const drives =
+    league.detailModules.primary === "drives"
+      ? (() => {
+          const drivesNode = asRecord(data.drives);
+          const previous = asArray(drivesNode?.previous).map(parseDrive);
+          const current = parseDrive(drivesNode?.current);
+          return [...previous, current].filter((row): row is Drive => Boolean(row));
+        })()
+      : [];
   const scoringPlays = asArray(data.scoringPlays)
     .map(parseScoringPlay)
     .filter((row): row is ScoringPlay => Boolean(row));
@@ -562,6 +537,7 @@ export async function getGameDetail(eventId: string): Promise<GameDetailResponse
   return {
     source: "espn",
     demo: false,
+    league: league.id,
     generatedAt: new Date().toISOString(),
     game: hydrated,
     scoringPlays,

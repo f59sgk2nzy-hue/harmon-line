@@ -1,3 +1,6 @@
+import { espnGet } from "@/lib/espn-http";
+import { teamLogoUrl } from "@/lib/espn-path";
+import { DEFAULT_LEAGUE } from "@/lib/leagues";
 import type {
   CoverageNote,
   PollId,
@@ -6,15 +9,6 @@ import type {
   RankingRow,
   RankingsResponse,
 } from "@/lib/types";
-
-const ESPN_WEB =
-  process.env.ESPN_WEB_BASE ??
-  "https://site.web.api.espn.com/apis/site/v2/sports/football/college-football";
-const ESPN_SITE =
-  process.env.ESPN_SITE_BASE ??
-  "https://site.api.espn.com/apis/site/v2/sports/football/college-football";
-
-const FETCH_TIMEOUT_MS = 12_000;
 
 type Json = Record<string, unknown>;
 
@@ -51,10 +45,6 @@ function num(value: unknown): number | null {
     return Number(value);
   }
   return null;
-}
-
-function teamLogo(teamId: string): string {
-  return `https://a.espncdn.com/i/teamlogos/ncaa/500/${teamId}.png`;
 }
 
 function hexColor(value: unknown): string | null {
@@ -119,7 +109,7 @@ function parseRow(raw: unknown): RankingRow | null {
       id,
       name,
       abbreviation,
-      logo: str(team.logo) || teamLogo(id),
+      logo: str(team.logo) || teamLogoUrl(id, DEFAULT_LEAGUE),
       color: hexColor(team.color),
     },
   };
@@ -212,40 +202,6 @@ export function assembleRankingsPage({
     selected,
     coverage: coverageFor(polls),
   };
-}
-
-async function espnGet(path: string): Promise<Json> {
-  const bases = [ESPN_WEB, ESPN_SITE];
-  let lastError: Error | null = null;
-  for (const base of bases) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    try {
-      const response = await fetch(`${base}${path}`, {
-        signal: controller.signal,
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "HarmonLine/1.0 (college football scoreboard; +https://localhost)",
-        },
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        lastError = new Error(`ESPN ${response.status} from ${base}`);
-        continue;
-      }
-      const data = asRecord(await response.json());
-      if (!data) {
-        lastError = new Error("ESPN returned a non-object payload");
-        continue;
-      }
-      return data;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-  throw lastError ?? new Error("Unable to reach ESPN public APIs");
 }
 
 export async function getRankings(poll: PollId = "ap"): Promise<RankingsResponse> {

@@ -3,6 +3,8 @@ export type SubdivisionId = "all" | "fbs" | "fcs";
 export type Classification = "FBS" | "FCS" | "D2" | "D3" | "NAIA";
 export type GameState = "pre" | "in" | "post";
 export type StatusFilter = "all" | "live" | "final" | "upcoming";
+/** Harmon Line sport instance. CFB is the only shipped board in Phase 0. */
+export type LeagueId = "cfb" | "mbb" | "nba" | "nfl" | "mlb";
 
 export type TeamSide = {
   id: string;
@@ -82,6 +84,7 @@ export type ScoreboardWeek = {
 export type ScoreboardResponse = {
   source: "espn";
   demo: false;
+  league: LeagueId;
   date: string;
   division: DivisionId;
   week: number | null;
@@ -325,6 +328,7 @@ export type GamecastNews = {
 export type GameDetailResponse = {
   source: "espn";
   demo: false;
+  league: LeagueId;
   generatedAt: string;
   game: GameSummary;
   scoringPlays: ScoringPlay[];
