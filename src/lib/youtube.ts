@@ -120,7 +120,7 @@ const CFB_PROGRAMS =
   /\b(alabama|auburn|georgia|florida|lsu|tennessee|kentucky|ole miss|mississippi|arkansas|missouri|oklahoma|texas|baylor|tcu|houston|ohio state|michigan|penn state|oregon|washington|usc|ucla|iowa|wisconsin|nebraska|illinois|indiana|purdue|minnesota|maryland|rutgers|notre dame|clemson|miami|florida state|north carolina|nc state|virginia|louisville|syracuse|pitt|stanford|colorado|utah|arizona|kansas|byu|cincinnati|ucf|memphis|tulane|navy|army|boise state|liberty)\b/i;
 
 const MBB_NON_SPORT =
-  /\b(football|soccer|baseball|softball|volleyball|hockey|lacrosse|wrestling|nfl|nba|mlb|wnba|nascar)\b/i;
+  /football|\b(soccer|baseball|softball|volleyball|hockey|lacrosse|wrestling|nfl|nba|mlb|wnba|nascar)\b/i;
 const MBB_SIGNAL =
   /\b(basketball|hoops|march madness|cbb|ncaab|ncaa tournament|college basketball|college hoops)\b/i;
 const MBB_PROGRAMS =
@@ -181,6 +181,7 @@ export function isLeagueVideo(league: LeagueId, title: string, channel: string):
   if (spec.signal.test(title) || spec.signal.test(channel)) return true;
   if (ownChannels.has(ch)) return true;
   if (resolved === "cfb" && (ch.includes("college football") || ch.includes("cfb"))) return true;
+  if (MIXED_SPORTS_CHANNELS.has(ch) && resolved !== "cfb") return false;
   return spec.programs.test(title);
 }
 

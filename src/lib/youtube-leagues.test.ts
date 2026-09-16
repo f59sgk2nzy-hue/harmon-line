@@ -92,6 +92,14 @@ describe("isLeagueVideo", () => {
       isLeagueVideo("cfb", "Michigan vs Ohio State | Football Highlights", "Big Ten Network"),
       true
     );
+    assert.equal(
+      isLeagueVideo(
+        "mbb",
+        "Just a couple of Texas icons #texasfootball #hookem #archmanning",
+        "CBS Sports"
+      ),
+      false
+    );
   });
 });
 
