@@ -7,6 +7,7 @@ import type { OracleResponse } from "@/lib/oracle";
 import type { LeagueId } from "@/lib/types";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 const EXAMPLES: Array<{ q: string; league: LeagueId; label: string }> = [
   { q: "Ohio State vs Texas score", league: "cfb", label: "OSU vs TEX" },
@@ -14,6 +15,42 @@ const EXAMPLES: Array<{ q: string; league: LeagueId; label: string }> = [
   { q: "Lakers vs Celtics score", league: "nba", label: "LAL vs BOS" },
   { q: "Chiefs record this week", league: "nfl", label: "CHIEFS" },
 ];
+
+function renderInline(text: string): ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    const bold = part.match(/^\*\*([^*]+)\*\*$/);
+    if (bold) {
+      return (
+        <strong key={index} className="font-semibold text-white">
+          {bold[1]}
+        </strong>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
+function MarkdownAnswer({ text }: { text: string }) {
+  const blocks = text.split(/\n{2,}/);
+  return (
+    <div className="mt-2 space-y-2 font-sans text-sm leading-relaxed text-white/80">
+      {blocks.map((block, index) => {
+        const lines = block.split("\n");
+        if (lines.every((line) => line.startsWith("- "))) {
+          return (
+            <ul key={index} className="list-disc space-y-1 pl-4 font-mono text-[12px] text-white/70">
+              {lines.map((line) => (
+                <li key={line}>{renderInline(line.slice(2))}</li>
+              ))}
+            </ul>
+          );
+        }
+        return <p key={index}>{renderInline(block.replaceAll("\n", " "))}</p>;
+      })}
+    </div>
+  );
+}
 
 function LineList({ lines, empty }: { lines: string[]; empty: string }) {
   if (lines.length === 0) {
@@ -152,9 +189,7 @@ export function OracleView({
 
           <article className="border border-white/10 bg-[#0e0e0e] p-3 sm:p-4">
             <p className="font-display text-[10px] tracking-[0.16em] text-white/40">ANSWER</p>
-            <div className="mt-2 space-y-2 font-sans text-sm leading-relaxed whitespace-pre-wrap text-white/80">
-              {data.answerMarkdown}
-            </div>
+            <MarkdownAnswer text={data.answerMarkdown} />
           </article>
 
           {data.sources.length > 0 ? (
