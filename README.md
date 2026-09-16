@@ -104,6 +104,21 @@ No PnL, Polymarket, Monte Carlo dollars, win probability, or paid-odds chrome. S
 
 Open [http://localhost:43173/ops](http://localhost:43173/ops). Try [http://localhost:43173/ops?busy=board](http://localhost:43173/ops?busy=board) to see The Board bright with edge traffic.
 
+## Stat Oracle lite v0
+
+`/oracle` is a natural-language situational Q&A box over **public ESPN** summary / scoreboard / rankings JSON already used by the boards (optional CFBD season stats when `CFBD_API_KEY` is set). Header **ORACLE** sits next to SCOREBOARD / RANKINGS / OPS. Game pages, team pages, and CFB Deep Dive chrome also link in with `gameId` / `teamId` so answers ground on that payload.
+
+| Piece | v0 |
+| --- | --- |
+| UI | `/oracle` (and `?league=&gameId=&teamId=&q=`) — ESPN red/gold, Evidence vs Inference panels, 44px Ask control |
+| API | `GET`/`POST` `/api/oracle` — `{ question, league?, gameId?, teamId? }` → structured answer, **`demo: false`** |
+| Evidence | Observed cells only (score, record, rank, leaders, situation, published PPG). Blank → “not on this feed” |
+| Inference | Model narrative with **INFERENCE** / **SIMULATION** badges. No invented percentiles, sample sizes, or scores |
+| Betting | No odds / winprob / pickcenter / ATS. Betting-adjacent language gets the Deep Dive **1-800-GAMBLER** disclaimer |
+| CFBD | Optional fill of blank ESPN season-stat cells when `CFBD_API_KEY` is set; labeled in Evidence |
+
+Open [http://localhost:43173/oracle](http://localhost:43173/oracle). Try [http://localhost:43173/oracle?q=What%27s%20the%20score](http://localhost:43173/oracle?q=What%27s%20the%20score) or pass `gameId` from a live card.
+
 ## Week / schedule nav
 
 The home board is still Eastern-date based by default (`?date=YYYYMMDD`), but a swipeable **WEEK** chip strip lets you jump the way ESPN’s scoreboard URL does: `/_/week/N/year/YYYY/seasontype/2`.
@@ -182,6 +197,7 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 - Tap a school or NFL club name on the board, a game, or a rankings row to open recent scores, the upcoming slate, and the roster
 - Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips (every home board; keyed off `league`)
 - Open **OPS** for the hub-and-spoke agent map (static roster; live status feed is not connected)
+- Open **ORACLE** (`/oracle`) and ask a situational question; answers split Evidence (observed ESPN/CFBD cells) vs Inference (badged model narrative), or an honest empty
 - Watch the bottom-line ticker for the full slate
 - Install the board on a phone home screen or pin it as a Windows app
 

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { sportBoardHref, sportOpsHref, sportRankingsHref } from "@/lib/board-url";
+import { sportBoardHref, sportOpsHref, sportOracleHref, sportRankingsHref } from "@/lib/board-url";
 import { SportSwitcher } from "@/components/sport-switcher";
 import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type { LeagueId } from "@/lib/types";
@@ -8,6 +8,7 @@ import Link from "next/link";
 const NAV = [
   { id: "board", label: "SCOREBOARD" },
   { id: "rankings", label: "RANKINGS" },
+  { id: "oracle", label: "ORACLE" },
   { id: "ops", label: "OPS" },
 ] as const;
 
@@ -19,22 +20,26 @@ export function BoardHeader({
 }: {
   dateLabel: string;
   week?: number | null;
-  section?: "board" | "rankings" | "ops";
+  section?: "board" | "rankings" | "ops" | "oracle";
   league?: LeagueId;
 }) {
   const spec = getLeague(league);
   const boardHref = sportBoardHref(league);
   const rankingsHref = sportRankingsHref(league);
   const opsHref = sportOpsHref(league);
+  const oracleHref = sportOracleHref(league);
   const kicker =
     section === "rankings"
       ? `${spec.label.toUpperCase()} RANKINGS`
       : section === "ops"
         ? "AGENT GRAPH"
-        : `${spec.label.toUpperCase()} SCOREBOARD`;
+        : section === "oracle"
+          ? "STAT ORACLE"
+          : `${spec.label.toUpperCase()} SCOREBOARD`;
   const hrefFor = (id: (typeof NAV)[number]["id"]) => {
     if (id === "rankings") return rankingsHref;
     if (id === "ops") return opsHref;
+    if (id === "oracle") return oracleHref;
     return boardHref;
   };
 
@@ -79,7 +84,8 @@ export function BoardHeader({
           <p
             className={cn(
               "font-display text-[11px] tracking-[0.22em] text-[#f3c14b] sm:text-xs",
-              (section === "rankings" || section === "ops") && "hidden sm:block"
+              (section === "rankings" || section === "ops" || section === "oracle") &&
+                "hidden sm:block"
             )}
           >
             {kicker}

@@ -492,3 +492,57 @@ export type DeepDiveResponse = {
   disclaimer: string;
   disclaimerLong: string;
 };
+
+export type OracleIntent =
+  | "score"
+  | "winner"
+  | "record"
+  | "rank"
+  | "leaders"
+  | "situation"
+  | "schedule"
+  | "stats"
+  | "comparison"
+  | "betting"
+  | "general";
+
+export type OracleEvidenceItem = {
+  kind: "observed";
+  text: string;
+  field?: string;
+};
+
+export type OracleInferenceItem = {
+  kind: "model";
+  badge: "INFERENCE" | "SIMULATION";
+  text: string;
+};
+
+export type OracleGrounding = {
+  gameId: string | null;
+  teamId: string | null;
+  endpoints: string[];
+};
+
+export type OracleAnswer = {
+  headline: string;
+  summary: string;
+};
+
+export type OracleResponse = {
+  source: "espn" | "espn+cfbd";
+  demo: false;
+  generatedAt: string;
+  modelVersion: string;
+  question: string;
+  league: LeagueId;
+  empty: boolean;
+  grounded: OracleGrounding;
+  honesty: CoverageNote;
+  answer: OracleAnswer;
+  evidence: OracleEvidenceItem[];
+  inference: OracleInferenceItem[];
+  coverage: CoverageNote;
+  disclaimer: string | null;
+  disclaimerLong: string | null;
+};
