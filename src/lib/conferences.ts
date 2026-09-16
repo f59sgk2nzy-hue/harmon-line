@@ -4,6 +4,57 @@ import type { Classification, ConferenceOption, CoverageNote, DivisionId, League
 export const MBB_D1_GROUP = "50";
 export const MBB_SCOREBOARD_LIMIT = 400;
 
+/** ESPN NFL standings children (probed 2026-09-16): AFC=8, NFC=7. */
+export const NFL_AFC_GROUP = "8";
+export const NFL_NFC_GROUP = "7";
+
+export const NFL_CONFERENCE_NAMES: Record<string, ConferenceOption> = {
+  [NFL_AFC_GROUP]: { id: NFL_AFC_GROUP, name: "AFC", abbreviation: "AFC" },
+  [NFL_NFC_GROUP]: { id: NFL_NFC_GROUP, name: "NFC", abbreviation: "NFC" },
+};
+
+/** ESPN team id → standings conference id. Not invented scores — classification only. */
+export const NFL_TEAM_CONFERENCE: Record<string, typeof NFL_AFC_GROUP | typeof NFL_NFC_GROUP> = {
+  "1": NFL_NFC_GROUP,
+  "2": NFL_AFC_GROUP,
+  "3": NFL_NFC_GROUP,
+  "4": NFL_AFC_GROUP,
+  "5": NFL_AFC_GROUP,
+  "6": NFL_NFC_GROUP,
+  "7": NFL_AFC_GROUP,
+  "8": NFL_NFC_GROUP,
+  "9": NFL_NFC_GROUP,
+  "10": NFL_AFC_GROUP,
+  "11": NFL_AFC_GROUP,
+  "12": NFL_AFC_GROUP,
+  "13": NFL_AFC_GROUP,
+  "14": NFL_NFC_GROUP,
+  "15": NFL_AFC_GROUP,
+  "16": NFL_NFC_GROUP,
+  "17": NFL_AFC_GROUP,
+  "18": NFL_NFC_GROUP,
+  "19": NFL_NFC_GROUP,
+  "20": NFL_AFC_GROUP,
+  "21": NFL_NFC_GROUP,
+  "22": NFL_NFC_GROUP,
+  "23": NFL_AFC_GROUP,
+  "24": NFL_AFC_GROUP,
+  "25": NFL_NFC_GROUP,
+  "26": NFL_NFC_GROUP,
+  "27": NFL_NFC_GROUP,
+  "28": NFL_NFC_GROUP,
+  "29": NFL_NFC_GROUP,
+  "30": NFL_AFC_GROUP,
+  "33": NFL_AFC_GROUP,
+  "34": NFL_AFC_GROUP,
+};
+
+export function nflConferenceForTeam(teamId: string | null | undefined): ConferenceOption | null {
+  if (!teamId) return null;
+  const conferenceId = NFL_TEAM_CONFERENCE[teamId];
+  return conferenceId ? NFL_CONFERENCE_NAMES[conferenceId] ?? null : null;
+}
+
 /** ESPN college-football group IDs for the 2026 season. */
 export const DIVISION_GROUPS: Record<
   DivisionId,
@@ -151,6 +202,7 @@ export function scoreboardGroups(
   division: DivisionId,
   subdivision?: SubdivisionId
 ): string[] {
+  if (league === "nfl") return [];
   if (league === "mbb") return [MBB_D1_GROUP];
   if (division === "d1" && subdivision && subdivision !== "all") {
     return [subdivision === "fbs" ? "80" : "81"];
@@ -158,13 +210,18 @@ export function scoreboardGroups(
   return DIVISION_GROUPS[division].groups;
 }
 
+function conferenceTable(league: LeagueId): Record<string, ConferenceOption> {
+  if (league === "mbb") return MBB_CONFERENCE_NAMES;
+  if (league === "nfl") return NFL_CONFERENCE_NAMES;
+  return CONFERENCE_NAMES;
+}
+
 export function conferenceLabel(
   id: string | null | undefined,
   league: LeagueId = DEFAULT_LEAGUE
 ): string | null {
   if (!id) return null;
-  const table = league === "mbb" ? MBB_CONFERENCE_NAMES : CONFERENCE_NAMES;
-  return table[id]?.name ?? `Conference ${id}`;
+  return conferenceTable(league)[id]?.name ?? `Conference ${id}`;
 }
 
 export function coverageFor(
@@ -172,6 +229,17 @@ export function coverageFor(
   league: LeagueId = DEFAULT_LEAGUE,
   meta?: { gameCount?: number; limit?: number }
 ): CoverageNote {
+  if (league === "nfl") {
+    const gameCount = meta?.gameCount ?? 0;
+    const empty =
+      gameCount === 0
+        ? " Empty weeks are labeled empty — scores are never invented."
+        : "";
+    return {
+      headline: "NFL — ESPN public 32-team scoreboard",
+      detail: `32-team National Football League from ESPN’s unofficial football/nfl scoreboard (no college D1/D2/NAIA groups). Week nav uses week/year/seasontype. Preseason and postseason chips appear only when ESPN’s calendar published them. Rankings 404 on this feed and are not shown. Scores are never invented.${empty}`,
+    };
+  }
   if (league === "mbb") {
     const gameCount = meta?.gameCount ?? 0;
     const limit = meta?.limit ?? MBB_SCOREBOARD_LIMIT;

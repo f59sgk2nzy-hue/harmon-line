@@ -1,4 +1,5 @@
 import { isEspnDate, todayEspnDate } from "@/lib/dates";
+import type { LeagueId } from "@/lib/types";
 
 export const REGULAR_SEASON_TYPE = 2;
 export const MAX_REGULAR_WEEK = 20;
@@ -47,8 +48,14 @@ export function parseWeekParam(value: string | null | undefined): number | null 
   return week;
 }
 
-/** v0 is regular season only (`seasontype=2`). Preseason/postseason stay a follow-up. */
-export function parseSeasonType(_value: string | null | undefined): number {
+/** CFB v0 is regular season only. NFL honors pre/regular/post when ESPN published them. */
+export function parseSeasonType(
+  value: string | null | undefined,
+  league: LeagueId = "cfb"
+): number {
+  if (league === "nfl" && (value === "1" || value === "2" || value === "3")) {
+    return Number(value);
+  }
   return REGULAR_SEASON_TYPE;
 }
 
@@ -75,7 +82,11 @@ export function espnDateUtcMs(yyyymmdd: string): number {
   return Date.UTC(year, month - 1, day, 16, 0, 0);
 }
 
-export function parseRegularSeasonWeeks(payload: unknown): EspnCalendarWeek[] {
+export function parseCalendarWeeks(
+  payload: unknown,
+  seasonTypes?: number[]
+): EspnCalendarWeek[] {
+  const allowed = seasonTypes ? new Set(seasonTypes) : null;
   const root = asRecord(payload);
   const leagues = asArray(root?.leagues);
   const league = asRecord(leagues[0]);
@@ -86,7 +97,8 @@ export function parseRegularSeasonWeeks(payload: unknown): EspnCalendarWeek[] {
     const row = asRecord(bucket);
     if (!row) continue;
     const seasonType = num(row.value);
-    if (seasonType !== REGULAR_SEASON_TYPE) continue;
+    if (!seasonType || seasonType < 1) continue;
+    if (allowed && !allowed.has(seasonType)) continue;
     for (const entry of asArray(row.entries)) {
       const item = asRecord(entry);
       if (!item) continue;
@@ -103,12 +115,17 @@ export function parseRegularSeasonWeeks(payload: unknown): EspnCalendarWeek[] {
         startDate,
         endDate,
         startEspnDate,
-        seasonType: REGULAR_SEASON_TYPE,
+        seasonType,
       });
     }
   }
 
-  return weeks.sort((a, b) => a.number - b.number);
+  return weeks.sort((a, b) => a.seasonType - b.seasonType || a.number - b.number);
+}
+
+/** CFB week chips — regular season only. */
+export function parseRegularSeasonWeeks(payload: unknown): EspnCalendarWeek[] {
+  return parseCalendarWeeks(payload, [REGULAR_SEASON_TYPE]);
 }
 
 export function weekForEspnDate(
@@ -128,7 +145,7 @@ export function weekForEspnDate(
 }
 
 export function espnScoreboardPath(options: {
-  group: string;
+  group?: string | null;
   date: string;
   week?: number | null;
   year?: number | null;
@@ -139,11 +156,15 @@ export function espnScoreboardPath(options: {
   const limit = options.limit ?? 300;
   const week = options.week;
   const view = options.view ?? (week ? "week" : "date");
+  const groupPart = options.group ? `groups=${options.group}&` : "";
   if (view === "week" && week) {
     const year = options.year ?? parseSeasonYear(null, options.date);
     const seasonType = options.seasonType ?? REGULAR_SEASON_TYPE;
     const yearPart = year ? `&dates=${year}` : "";
-    return `/scoreboard?groups=${options.group}&week=${week}&seasontype=${seasonType}${yearPart}&limit=${limit}`;
+    return `/scoreboard?${groupPart}week=${week}&seasontype=${seasonType}${yearPart}&limit=${limit}`;
   }
-  return `/scoreboard?groups=${options.group}&dates=${options.date}&limit=${limit}`;
+  if (view === "week") {
+    return `/scoreboard?${groupPart}limit=${limit}`;
+  }
+  return `/scoreboard?${groupPart}dates=${options.date}&limit=${limit}`;
 }

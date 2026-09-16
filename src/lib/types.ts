@@ -1,9 +1,9 @@
 export type DivisionId = "d1" | "d2" | "naia";
 export type SubdivisionId = "all" | "fbs" | "fcs";
-export type Classification = "FBS" | "FCS" | "D1" | "D2" | "D3" | "NAIA";
+export type Classification = "FBS" | "FCS" | "D1" | "D2" | "D3" | "NAIA" | "NFL" | "AFC" | "NFC";
 export type GameState = "pre" | "in" | "post";
 export type StatusFilter = "all" | "live" | "final" | "upcoming";
-/** Harmon Line sport instance. CFB is default; MBB is the second shipped board. */
+/** Harmon Line sport instance. CFB is default; MBB and NFL ship via the sport switcher. */
 export type LeagueId = "cfb" | "mbb" | "nba" | "nfl" | "mlb";
 
 export type TeamSide = {
@@ -79,6 +79,7 @@ export type ScoreboardWeek = {
   label: string;
   detail: string;
   startEspnDate: string;
+  seasonType: number;
 };
 
 export type ScoreboardResponse = {

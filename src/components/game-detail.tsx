@@ -104,6 +104,7 @@ export function GameDetailView({
 
   const spec = getLeague(league);
   const football = spec.detailModules.footballSituation;
+  const showDeepDive = league === "cfb";
   const periodSport = spec.sport === "basketball" ? "basketball" : "football";
 
   const refresh = useCallback(async () => {
@@ -261,7 +262,7 @@ export function GameDetailView({
         </div>
       </section>
 
-      {football ? (
+      {showDeepDive ? (
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
             href={deepDiveHref(game.id)}

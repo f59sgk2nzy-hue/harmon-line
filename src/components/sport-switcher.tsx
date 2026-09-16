@@ -12,8 +12,10 @@ export function SportSwitcher({
   section?: "board" | "rankings" | "game" | "team";
 }) {
   const shipped = shippedLeagues();
-  const hrefFor = (id: LeagueId) =>
-    section === "rankings" ? sportRankingsHref(id) : sportBoardHref(id);
+  const hrefFor = (id: LeagueId) => {
+    if (section === "rankings" && !getLeague(id).rankings) return sportBoardHref(id);
+    return section === "rankings" ? sportRankingsHref(id) : sportBoardHref(id);
+  };
 
   if (shipped.length < 2) {
     const league = getLeague(current);

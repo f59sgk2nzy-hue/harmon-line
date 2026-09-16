@@ -1,4 +1,4 @@
-import { conferenceLabel } from "@/lib/conferences";
+import { conferenceLabel, nflConferenceForTeam } from "@/lib/conferences";
 import { espnGet } from "@/lib/espn-http";
 import { classifySubdivision, collectClassificationIds } from "@/lib/espn-parse";
 import { teamLogoUrl } from "@/lib/espn-path";
@@ -77,9 +77,20 @@ export function parseTeamProfile(
   const rank = asRecord(team.rank);
   const rankValue = num(rank?.current);
   const groups = asRecord(team.groups);
-  const conferenceId = str(team.conferenceId) || str(groups?.id) || null;
+  const conferenceFromTeam = str(team.conferenceId) || str(groups?.id) || null;
+  const nflConference = league === "nfl" ? nflConferenceForTeam(id) : null;
+  const conferenceId = nflConference?.id ?? conferenceFromTeam;
   const ids = collectClassificationIds(team, groups);
-  const subdivision = league === "mbb" ? "D1" : classifySubdivision(ids);
+  const subdivision =
+    league === "nfl"
+      ? nflConference?.abbreviation === "AFC"
+        ? "AFC"
+        : nflConference?.abbreviation === "NFC"
+          ? "NFC"
+          : "NFL"
+      : league === "mbb"
+        ? "D1"
+        : classifySubdivision(ids);
 
   return {
     id,
@@ -88,11 +99,11 @@ export function parseTeamProfile(
     abbreviation: str(team.abbreviation, "UNK").toUpperCase(),
     color: hexColor(team.color),
     altColor: hexColor(team.alternateColor),
-    logo: teamLogoUrl(id, league),
+    logo: teamLogoUrl(id, league, str(team.abbreviation) || null),
     record: overall ? str(overall.summary) || null : str(team.recordSummary) || null,
     standing: str(team.standingSummary) || null,
     conferenceId,
-    conferenceName: conferenceLabel(conferenceId, league),
+    conferenceName: nflConference?.name ?? conferenceLabel(conferenceId, league),
     rank: rankValue && rankValue > 0 && rankValue <= 25 ? rankValue : null,
     subdivision,
   };
@@ -149,7 +160,7 @@ export function parseScheduleEvents(
         id: oppId,
         name: str(oppTeam.displayName || oppTeam.name, "Opponent"),
         abbreviation: str(oppTeam.abbreviation, "OPP").toUpperCase(),
-        logo: teamLogoUrl(oppId || "0", league),
+        logo: teamLogoUrl(oppId || "0", league, str(oppTeam.abbreviation) || null),
       },
       teamScore,
       opponentScore,
@@ -239,7 +250,9 @@ function scheduleCoverage(
       detail:
         league === "mbb"
           ? "Recent results and upcoming games come from ESPN’s unofficial men’s college basketball team schedule."
-          : "Recent results and upcoming games come from ESPN’s unofficial college-football team schedule.",
+          : league === "nfl"
+            ? "Recent results and upcoming games come from ESPN’s unofficial NFL team schedule."
+            : "Recent results and upcoming games come from ESPN’s unofficial college-football team schedule.",
     };
   }
   if (subdivision === "NAIA") {

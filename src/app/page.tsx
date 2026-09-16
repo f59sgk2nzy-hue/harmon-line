@@ -5,7 +5,7 @@ import { ScoreboardView } from "@/components/scoreboard-view";
 import { parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, parseDateParam } from "@/lib/dates";
 import { getScoreboard, parseDivision, parseSubdivision } from "@/lib/espn";
-import { parseSeasonYear, parseWeekParam } from "@/lib/espn-weeks";
+import { parseSeasonType, parseSeasonYear, parseWeekParam } from "@/lib/espn-weeks";
 import { getLeague, parseLeagueParam } from "@/lib/leagues";
 import { loadHighlights, sampleHighlightsBoard } from "@/lib/youtube";
 
@@ -25,15 +25,18 @@ export default async function Home({
   const params = await searchParams;
   const league = parseLeagueParam(firstString(params.league));
   const spec = getLeague(league);
-  const date = parseDateParam(firstString(params.date));
-  const division = league === "mbb" ? "d1" : parseDivision(firstString(params.division));
-  const subdivision = league === "mbb" ? "all" : parseSubdivision(firstString(params.subdivision));
+  const dateParam = firstString(params.date);
+  const date = parseDateParam(dateParam);
+  const division = league === "mbb" || league === "nfl" ? "d1" : parseDivision(firstString(params.division));
+  const subdivision = league === "mbb" || league === "nfl" ? "all" : parseSubdivision(firstString(params.subdivision));
   const conference = firstString(params.conference) ?? "all";
   const status = parseStatusFilter(firstString(params.status));
   const query = firstString(params.q) ?? "";
   const week = spec.navMode === "week" ? parseWeekParam(firstString(params.week)) : null;
   const year = parseSeasonYear(firstString(params.year), date);
-  const view = week ? "week" : "date";
+  const seasonType = parseSeasonType(firstString(params.seasontype), league);
+  const view =
+    league === "nfl" ? (week || !dateParam ? "week" : "date") : week ? "week" : "date";
 
   let initial = null;
   let initialError: string | null = null;
@@ -45,6 +48,7 @@ export default async function Home({
       subdivision,
       week: view === "week" ? week : null,
       year: view === "week" ? year : null,
+      seasonType: league === "nfl" && view === "week" ? seasonType : null,
       view,
     });
   } catch (error) {
@@ -74,7 +78,7 @@ export default async function Home({
           <HighlightsStrip initial={highlights} initialError={highlightsError} />
         ) : null}
         <ScoreboardView
-          key={`${league}-${division}-${date}-${subdivision}-${view}-${week ?? ""}`}
+          key={`${league}-${division}-${date}-${subdivision}-${view}-${week ?? ""}-${seasonType}`}
           initial={initial}
           initialError={initialError}
           date={date}
@@ -85,6 +89,7 @@ export default async function Home({
           query={query}
           week={week}
           year={year}
+          seasonType={league === "nfl" ? (initial?.seasonType ?? seasonType) : null}
           view={view}
           league={league}
         />

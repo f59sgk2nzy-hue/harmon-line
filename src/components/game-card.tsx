@@ -5,7 +5,7 @@ import { gameHref } from "@/lib/board-url";
 import { formatKickoff } from "@/lib/dates";
 import { deepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
-import { DEFAULT_LEAGUE } from "@/lib/leagues";
+import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type { GameSummary, LeagueId, TeamSide } from "@/lib/types";
 import Link from "next/link";
 import { ViewTransition } from "react";
@@ -80,9 +80,11 @@ export function GameCard({
   game: GameSummary;
   league?: LeagueId;
 }) {
+  const spec = getLeague(league);
   const live = game.status.state === "in";
   const final = game.status.state === "post";
-  const football = league === "cfb";
+  const football = spec.detailModules.footballSituation;
+  const showDeepDive = league === "cfb";
   const awayHasBall = football && game.situation?.possessionTeamId === game.away.id;
   const homeHasBall = football && game.situation?.possessionTeamId === game.home.id;
   const awayLead =
@@ -152,7 +154,7 @@ export function GameCard({
               : [game.venue, game.broadcast].filter(Boolean).join("  · ") || "Tap for game detail"}
         </Link>
         <div className="flex shrink-0 items-center gap-2">
-          {football ? (
+          {showDeepDive ? (
             <Link
               href={deepDiveHref(game.id)}
               className="inline-flex min-h-11 items-center font-display text-[10px] tracking-[0.16em] text-[#f3c14b] no-underline"

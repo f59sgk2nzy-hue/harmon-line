@@ -31,7 +31,15 @@ export function espnRequestUrl(
   return `${origin}${espnSportPath(league)}${suffix}`;
 }
 
-export function teamLogoUrl(teamId: string, league: LeagueId = DEFAULT_LEAGUE): string {
+export function teamLogoUrl(
+  teamId: string,
+  league: LeagueId = DEFAULT_LEAGUE,
+  abbreviation?: string | null
+): string {
   const ns = getLeague(league).logoNamespace;
-  return `https://a.espncdn.com/i/teamlogos/${ns}/500/${teamId}.png`;
+  const token =
+    ns === "ncaa"
+      ? teamId
+      : (abbreviation ?? "").trim().toLowerCase() || teamId.toLowerCase();
+  return `https://a.espncdn.com/i/teamlogos/${ns}/500/${token}.png`;
 }

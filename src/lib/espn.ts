@@ -2,8 +2,10 @@ import {
   CONFERENCE_NAMES,
   MBB_CONFERENCE_NAMES,
   MBB_SCOREBOARD_LIMIT,
+  NFL_CONFERENCE_NAMES,
   coverageFor,
   conferenceLabel,
+  nflConferenceForTeam,
   scoreboardGroups,
 } from "@/lib/conferences";
 import { espnGet } from "@/lib/espn-http";
@@ -18,6 +20,7 @@ import {
 import { parseLeaders, parsePlay, parsePlays, parseScoringPlays } from "@/lib/espn-plays";
 import {
   espnScoreboardPath,
+  parseCalendarWeeks,
   parseRegularSeasonWeeks,
   parseSeasonYear,
   weekForEspnDate,
@@ -99,7 +102,10 @@ function parseTeam(
     competitor.homeAway === "home" || competitor.homeAway === "away"
       ? competitor.homeAway
       : fallbackHomeAway;
-  const conferenceId = str(team.conferenceId) || null;
+  const conferenceFromTeam = str(team.conferenceId) || null;
+  const nflConference = league === "nfl" ? nflConferenceForTeam(id) : null;
+  const conferenceId = nflConference?.id ?? conferenceFromTeam;
+  const conferenceName = nflConference?.name ?? conferenceLabel(conferenceId, league);
 
   return {
     id,
@@ -111,9 +117,9 @@ function parseTeam(
     rank: rankValue && rankValue > 0 && rankValue <= 25 ? rankValue : null,
     color: hexColor(team.color),
     altColor: hexColor(team.alternateColor),
-    logo: teamLogoUrl(id, league),
+    logo: teamLogoUrl(id, league, str(team.abbreviation) || null),
     conferenceId,
-    conferenceName: conferenceLabel(conferenceId, league),
+    conferenceName,
     winner: Boolean(competitor.winner),
     linescores: parseLinescores(competitor.linescores),
     homeAway,
@@ -209,6 +215,14 @@ function resolveSubdivision(
   division: DivisionId,
   league: LeagueId = DEFAULT_LEAGUE
 ): GameSummary["subdivision"] {
+  if (league === "nfl") {
+    const unique = [
+      ...new Set(conferenceIds.filter((id): id is string => Boolean(id))),
+    ];
+    if (unique.length === 1 && unique[0] === "8") return "AFC";
+    if (unique.length === 1 && unique[0] === "7") return "NFC";
+    return "NFL";
+  }
   if (league === "mbb") return "D1";
   const extra = Array.isArray(groupIds) ? groupIds : [groupIds];
   return (
@@ -231,7 +245,12 @@ function sortGames(games: GameSummary[]): GameSummary[] {
 }
 
 function collectConferences(games: GameSummary[], league: LeagueId = DEFAULT_LEAGUE): ConferenceOption[] {
-  const table = league === "mbb" ? MBB_CONFERENCE_NAMES : CONFERENCE_NAMES;
+  const table =
+    league === "mbb"
+      ? MBB_CONFERENCE_NAMES
+      : league === "nfl"
+        ? NFL_CONFERENCE_NAMES
+        : CONFERENCE_NAMES;
   const map = new Map<string, ConferenceOption>();
   for (const game of games) {
     for (const team of [game.away, game.home]) {
@@ -255,27 +274,34 @@ export async function getScoreboard(options: {
   subdivision?: SubdivisionId;
   week?: number | null;
   year?: number | null;
+  seasonType?: number | null;
   view?: ScoreboardView;
   league?: LeagueId | string | null;
 }): Promise<ScoreboardResponse> {
   const league = assertLeagueShipped(options.league);
-  const division: DivisionId = league.id === "mbb" ? "d1" : options.division;
+  const division: DivisionId = league.id === "mbb" || league.id === "nfl" ? "d1" : options.division;
   const { date } = options;
   const view: ScoreboardView =
-    league.navMode === "date" ? "date" : options.view ?? (options.week ? "week" : "date");
+    league.navMode === "date"
+      ? "date"
+      : league.id === "nfl"
+        ? options.view ?? "week"
+        : options.view ?? (options.week ? "week" : "date");
   const weekParam = view === "week" ? options.week : null;
   const groups = scoreboardGroups(league.id, division, options.subdivision);
+  const fetchGroups = groups.length > 0 ? groups : [""];
   const limit = league.id === "mbb" ? MBB_SCOREBOARD_LIMIT : 300;
 
   const payloads = await Promise.all(
-    groups.map(async (group) => ({
+    fetchGroups.map(async (group) => ({
       group,
       data: await espnGet(
         espnScoreboardPath({
-          group,
+          group: group || undefined,
           date,
           week: weekParam,
           year: options.year,
+          seasonType: league.id === "nfl" ? options.seasonType : undefined,
           view,
           limit,
         }),
@@ -311,12 +337,18 @@ export async function getScoreboard(options: {
     }
   }
 
-  const parsedWeeks = league.navMode === "week" ? parseRegularSeasonWeeks(calendarSource) : [];
+  const parsedWeeks =
+    league.navMode === "week"
+      ? league.id === "nfl"
+        ? parseCalendarWeeks(calendarSource)
+        : parseRegularSeasonWeeks(calendarSource)
+      : [];
   const weeks: ScoreboardWeek[] = parsedWeeks.map((entry) => ({
     number: entry.number,
     label: entry.label,
     detail: entry.detail,
     startEspnDate: entry.startEspnDate,
+    seasonType: entry.seasonType,
   }));
   const mapped = weekForEspnDate(date, parsedWeeks);
   const week =
@@ -324,8 +356,11 @@ export async function getScoreboard(options: {
       ? null
       : view === "week" && weekParam
         ? weekParam
-        : (mapped?.number ?? (seasonType === 2 ? payloadWeek : null));
+        : (mapped?.number ?? payloadWeek);
   seasonYear = seasonYear ?? parseSeasonYear(null, date);
+  if (league.id === "nfl" && view === "week") {
+    seasonType = options.seasonType ?? mapped?.seasonType ?? seasonType;
+  }
 
   const games = sortGames([...byId.values()]);
   return {

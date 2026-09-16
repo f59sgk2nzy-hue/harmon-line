@@ -8,7 +8,7 @@ import { formatPollClock } from "@/lib/dates";
 import { pollTabsFor, rankingsHref } from "@/lib/espn-rankings";
 import { teamHref } from "@/lib/espn-team";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
-import { DEFAULT_LEAGUE } from "@/lib/leagues";
+import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type { LeagueId, PollId, RankingRow, RankingsResponse } from "@/lib/types";
 import { ArrowLeft, ChevronDown, ChevronUp, Minus, RefreshCw } from "lucide-react";
 import Link from "next/link";
@@ -186,7 +186,9 @@ export function RankingsView({
             kicker={selected?.name ?? "ESPN RANKINGS"}
             headline={error ?? "POLL NOT PUBLISHED"}
             detail={
-              selected?.headline && selected.headline !== "ESPN has not published this poll"
+              !getLeague(league).rankings
+                ? "ESPN’s public rankings JSON 404s for this league. Polls are never invented."
+                : selected?.headline && selected.headline !== "ESPN has not published this poll"
                 ? selected.headline
                 : "ESPN has not published this poll on the public rankings feed. No sample ballot is shown."
             }

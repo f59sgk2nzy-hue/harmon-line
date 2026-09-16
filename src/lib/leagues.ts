@@ -99,10 +99,11 @@ export const SPORT_LEAGUES: Record<LeagueId, SportLeague> = {
     logoNamespace: "nfl",
     detailModules: { primary: "drives", footballSituation: true },
     rankings: false,
-    shipped: false,
+    shipped: true,
     coverage: {
-      headline: "NFL — not shipped",
-      detail: `Phase 0 stub. ESPN slug nfl is reserved for a later phase. ${STUB_DETAIL}`,
+      headline: "NFL — ESPN public scoreboard",
+      detail:
+        "32-team NFL slate from ESPN’s unofficial public site API (football/nfl). Week nav uses week/year/seasontype. Regular season is the default; preseason and postseason chips appear only when ESPN’s calendar published them. No college D1/D2/NAIA groups. Rankings, Deep Dive, CFBD, and odds/pickcenter/winprob stay off this board. Scores are never invented.",
     },
   },
   mlb: {
@@ -167,4 +168,9 @@ export function assertLeagueShipped(id: string | null | undefined): SportLeague 
 
 export function isLeagueNotShippedError(error: unknown): error is LeagueNotShippedError {
   return error instanceof LeagueNotShippedError;
+}
+
+/** Favorites / pins must be league-scoped so ESPN team ids do not collide across sports. */
+export function favoriteKey(league: LeagueId, teamId: string): string {
+  return `${parseLeagueParam(league)}:${teamId}`;
 }

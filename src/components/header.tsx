@@ -52,7 +52,7 @@ export function BoardHeader({
       <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0b0b0b]/90 px-3 py-2 backdrop-blur-md sm:px-5">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <nav aria-label="Site" className="flex items-center gap-1">
-            {NAV.map((item) => (
+            {(spec.rankings ? NAV : NAV.filter((item) => item.id !== "rankings")).map((item) => (
               <Link
                 key={item.id}
                 href={item.id === "rankings" ? rankingsHref : boardHref}
