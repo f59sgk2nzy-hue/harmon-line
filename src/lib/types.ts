@@ -246,6 +246,82 @@ export type RankingsResponse = {
   coverage: CoverageNote;
 };
 
+export type TeamBoxStatLine = {
+  name: string;
+  label: string;
+  displayValue: string;
+};
+
+export type TeamBoxStats = {
+  teamId: string;
+  teamName: string;
+  abbreviation: string;
+  homeAway: "home" | "away";
+  statistics: TeamBoxStatLine[];
+};
+
+export type PlayerBoxAthlete = {
+  id: string | null;
+  name: string;
+  jersey: string | null;
+  stats: string[];
+};
+
+export type PlayerBoxCategory = {
+  name: string;
+  text: string;
+  labels: string[];
+  athletes: PlayerBoxAthlete[];
+  totals: string[] | null;
+};
+
+export type PlayerBoxTeam = {
+  teamId: string;
+  teamName: string;
+  abbreviation: string;
+  categories: PlayerBoxCategory[];
+};
+
+export type PlayerBoxscore = {
+  available: boolean;
+  teams: PlayerBoxTeam[];
+};
+
+export type StandingsSnippetEntry = {
+  id: string;
+  name: string;
+  overall: string | null;
+  conference: string | null;
+};
+
+export type StandingsSnippetGroup = {
+  header: string | null;
+  entries: StandingsSnippetEntry[];
+};
+
+export type StandingsSnippet = {
+  header: string | null;
+  fullViewLink: { text: string; href: string } | null;
+  groups: StandingsSnippetGroup[];
+};
+
+export type GamecastArticle = {
+  type: string | null;
+  headline: string;
+  href: string | null;
+};
+
+export type GamecastNewsItem = {
+  headline: string;
+  href: string;
+  type: string | null;
+};
+
+export type GamecastNews = {
+  article: GamecastArticle | null;
+  articles: GamecastNewsItem[];
+};
+
 export type GameDetailResponse = {
   source: "espn";
   demo: false;
@@ -256,6 +332,10 @@ export type GameDetailResponse = {
   leaders: LeaderLine[];
   playByPlayAvailable: boolean;
   coverage: CoverageNote;
+  teamStats: TeamBoxStats[];
+  playerBox: PlayerBoxscore;
+  standings: StandingsSnippet | null;
+  news: GamecastNews;
 };
 
 export type TeamSeasonStats = {

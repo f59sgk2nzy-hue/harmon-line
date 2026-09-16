@@ -4,6 +4,7 @@ import {
   DIVISION_GROUPS,
   conferenceLabel,
 } from "@/lib/conferences";
+import { parseGamecastDepth } from "@/lib/espn-gamecast";
 import {
   classifySubdivision,
   collectClassificationIds,
@@ -556,6 +557,8 @@ export async function getGameDetail(eventId: string): Promise<GameDetailResponse
     broadcast: game.broadcast || broadcasts[0] || null,
   };
 
+  const depth = parseGamecastDepth(data);
+
   return {
     source: "espn",
     demo: false,
@@ -566,6 +569,10 @@ export async function getGameDetail(eventId: string): Promise<GameDetailResponse
     leaders: parseLeaders(data.leaders),
     playByPlayAvailable,
     coverage: pbpCoverage(game, playByPlayAvailable),
+    teamStats: depth.teamStats,
+    playerBox: depth.playerBox,
+    standings: depth.standings,
+    news: depth.news,
   };
 }
 
