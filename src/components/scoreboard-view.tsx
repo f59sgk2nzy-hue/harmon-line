@@ -315,6 +315,13 @@ export function ScoreboardView({
                   date board
                 </span>
               </span>
+            ) : league === "mlb" ? (
+              <span className="chip-inverse chip-hit font-display text-[11px] tracking-[0.16em]">
+                MLB
+                <span className="ml-2 hidden font-mono text-[10px] tracking-normal text-white/60 sm:inline">
+                  date board
+                </span>
+              </span>
             ) : (
               <span className="chip-inverse chip-hit font-display text-[11px] tracking-[0.16em]">
                 DIV I
@@ -524,6 +531,8 @@ export function ScoreboardView({
                   ? "ESPN has no D1 men’s basketball games on this Eastern date. September slates are often empty out of season. Try another date — scores are never invented."
                   : league === "nba"
                     ? "ESPN has no NBA games on this Eastern date. Try another date — scores are never invented."
+                  : league === "mlb"
+                    ? "ESPN has no MLB games on this Eastern date. Try another date — scores are never invented."
                   : league === "nfl"
                     ? view === "week"
                       ? "ESPN has no NFL games for this week. Empty weeks stay empty — scores are never invented."

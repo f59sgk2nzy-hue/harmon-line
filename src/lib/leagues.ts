@@ -35,9 +35,6 @@ export type UnshippedLeaguePayload = {
   coverage: CoverageNote;
 };
 
-const STUB_DETAIL =
-  "No scoreboard UI in this build. This app never invents scores.";
-
 export const SPORT_LEAGUES: Record<LeagueId, SportLeague> = {
   cfb: {
     id: "cfb",
@@ -117,10 +114,11 @@ export const SPORT_LEAGUES: Record<LeagueId, SportLeague> = {
     logoNamespace: "mlb",
     detailModules: { primary: "atBats", footballSituation: false },
     rankings: false,
-    shipped: false,
+    shipped: true,
     coverage: {
-      headline: "MLB — not shipped",
-      detail: `Phase 0 stub. ESPN slug mlb is reserved for a later phase. ${STUB_DETAIL}`,
+      headline: "MLB — ESPN public scoreboard",
+      detail:
+        "MLB slate from ESPN’s unofficial public site API (baseball/mlb). Date nav uses dates=YYYYMMDD, not football week chips. Rankings 404 on this feed and are not shown. Deep Dive, odds, pickcenter, winprob, and ATS stay off this board. Extra innings and doubleheaders appear only when ESPN published them. Scores are never invented.",
     },
   },
 };

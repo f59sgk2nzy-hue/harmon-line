@@ -202,7 +202,7 @@ export function scoreboardGroups(
   division: DivisionId,
   subdivision?: SubdivisionId
 ): string[] {
-  if (league === "nfl" || league === "nba") return [];
+  if (league === "nfl" || league === "nba" || league === "mlb") return [];
   if (league === "mbb") return [MBB_D1_GROUP];
   if (division === "d1" && subdivision && subdivision !== "all") {
     return [subdivision === "fbs" ? "80" : "81"];
@@ -213,7 +213,7 @@ export function scoreboardGroups(
 function conferenceTable(league: LeagueId): Record<string, ConferenceOption> {
   if (league === "mbb") return MBB_CONFERENCE_NAMES;
   if (league === "nfl") return NFL_CONFERENCE_NAMES;
-  if (league === "nba") return {};
+  if (league === "nba" || league === "mlb") return {};
   return CONFERENCE_NAMES;
 }
 
@@ -230,6 +230,17 @@ export function coverageFor(
   league: LeagueId = DEFAULT_LEAGUE,
   meta?: { gameCount?: number; limit?: number }
 ): CoverageNote {
+  if (league === "mlb") {
+    const gameCount = meta?.gameCount ?? 0;
+    const empty =
+      gameCount === 0
+        ? " Empty dates are labeled empty — scores are never invented."
+        : "";
+    return {
+      headline: "MLB — ESPN public scoreboard",
+      detail: `Major League Baseball from ESPN’s unofficial baseball/mlb scoreboard (no college D1/D2/NAIA groups). Date nav uses dates=YYYYMMDD, not football week chips. Rankings 404 on this feed and are not shown. Extra innings and doubleheaders appear only when ESPN published them. Scores are never invented.${empty}`,
+    };
+  }
   if (league === "nba") {
     const gameCount = meta?.gameCount ?? 0;
     const empty =

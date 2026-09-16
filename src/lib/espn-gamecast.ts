@@ -106,6 +106,39 @@ function parseStatLine(raw: unknown): TeamBoxStatLine | null {
   };
 }
 
+const SKIP_NESTED_STAT_NAMES = new Set(["gamesPlayed", "teamGamesPlayed"]);
+
+function flattenStatistics(raw: unknown[]): TeamBoxStatLine[] {
+  const lines: TeamBoxStatLine[] = [];
+  for (const item of raw) {
+    const rec = asRecord(item);
+    if (!rec) continue;
+    const nested = asArray(rec.stats);
+    if (nested.length > 0 && !displayText(rec.displayValue)) {
+      const parent = displayText(rec.name) ?? "team";
+      const parentLabel = displayText(rec.displayName) ?? parent;
+      for (const child of nested) {
+        const childRec = asRecord(child);
+        if (!childRec) continue;
+        const childName = displayText(childRec.name);
+        if (!childName || SKIP_NESTED_STAT_NAMES.has(childName)) continue;
+        const displayValue = displayText(childRec.displayValue);
+        if (!displayValue) continue;
+        const abbr = displayText(childRec.abbreviation) ?? childName;
+        lines.push({
+          name: `${parent}.${childName}`,
+          label: `${abbr} · ${parentLabel}`,
+          displayValue,
+        });
+      }
+      continue;
+    }
+    const line = parseStatLine(item);
+    if (line) lines.push(line);
+  }
+  return lines;
+}
+
 export function parseTeamBoxStats(boxscore: unknown): TeamBoxStats[] {
   const teams: TeamBoxStats[] = [];
   for (const raw of asArray(asRecord(boxscore)?.teams)) {
@@ -114,9 +147,7 @@ export function parseTeamBoxStats(boxscore: unknown): TeamBoxStats[] {
     const team = asRecord(rec.team) ?? {};
     const teamId = str(team.id || rec.id);
     if (!teamId) continue;
-    const statistics = asArray(rec.statistics)
-      .map(parseStatLine)
-      .filter((row): row is TeamBoxStatLine => Boolean(row));
+    const statistics = flattenStatistics(asArray(rec.statistics));
     if (statistics.length === 0) continue;
     const homeAway = rec.homeAway === "home" || rec.homeAway === "away" ? rec.homeAway : null;
     if (!homeAway) continue;
@@ -145,7 +176,7 @@ function parsePlayerCategory(raw: unknown): PlayerBoxCategory | null {
   const names0 = displayText(asArray(rec.names)[0]);
   const nameFromNames = names0 && !labels.includes(names0) ? names0 : null;
   const name =
-    displayText(rec.name) ?? displayText(rec.text) ?? nameFromNames ?? "players";
+    displayText(rec.name) ?? displayText(rec.text) ?? nameFromNames ?? displayText(rec.type) ?? "players";
 
   const athletes: PlayerBoxAthlete[] = [];
   for (const row of asArray(rec.athletes)) {

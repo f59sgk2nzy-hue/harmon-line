@@ -114,5 +114,9 @@ describe("teamLogoUrl", () => {
       teamLogoUrl("15", "mlb"),
       "https://a.espncdn.com/i/teamlogos/mlb/500/15.png"
     );
+    assert.equal(
+      teamLogoUrl("15", "mlb", "NYY"),
+      "https://a.espncdn.com/i/teamlogos/mlb/500/nyy.png"
+    );
   });
 });

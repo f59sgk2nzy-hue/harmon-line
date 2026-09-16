@@ -24,6 +24,13 @@ function num(value: unknown): number | null {
   return null;
 }
 
+function halfInningLabel(period: Json | null): string | null {
+  const type = str(period?.type).toLowerCase();
+  if (type === "top") return "TOP";
+  if (type === "bottom") return "BOT";
+  return null;
+}
+
 export function parsePlay(raw: unknown): PlayByPlayPlay | null {
   const play = asRecord(raw);
   if (!play) return null;
@@ -39,7 +46,7 @@ export function parsePlay(raw: unknown): PlayByPlayPlay | null {
     id: str(play.id || play.sequenceNumber, crypto.randomUUID()),
     text,
     period: num(period?.number),
-    clock: str(clock?.displayValue) || null,
+    clock: str(clock?.displayValue) || halfInningLabel(period) || null,
     homeScore: num(play.homeScore),
     awayScore: num(play.awayScore),
     scoringPlay: Boolean(play.scoringPlay),
@@ -52,6 +59,53 @@ export function parsePlays(raw: unknown): PlayByPlayPlay[] {
   return asArray(raw)
     .map(parsePlay)
     .filter((play): play is PlayByPlayPlay => Boolean(play));
+}
+
+export type AtBatGroup = {
+  id: string;
+  plays: PlayByPlayPlay[];
+};
+
+function playFromAtBatRef(ref: unknown, rawPlays: unknown[]): PlayByPlayPlay | null {
+  const rec = asRecord(ref);
+  if (!rec) return parsePlay(ref);
+  const path = str(rec.$ref);
+  const match = path.match(/#\/plays\/(\d+)/);
+  if (match) return parsePlay(rawPlays[Number(match[1])]);
+  return parsePlay(ref);
+}
+
+/** ESPN baseball atBats is usually an id → $ref map into plays[]. Never invents missing at-bats. */
+export function parseAtBats(raw: unknown, rawPlays: unknown = []): AtBatGroup[] {
+  const playsList = asArray(rawPlays);
+  if (Array.isArray(raw)) {
+    const groups: AtBatGroup[] = [];
+    for (const item of raw) {
+      const rec = asRecord(item);
+      if (!rec) continue;
+      const nested = asArray(rec.plays)
+        .map((row) => playFromAtBatRef(row, playsList))
+        .filter((play): play is PlayByPlayPlay => Boolean(play));
+      if (nested.length === 0) {
+        const play = parsePlay(item);
+        if (play) nested.push(play);
+      }
+      if (nested.length === 0) continue;
+      groups.push({ id: str(rec.id, `atbat-${groups.length}`), plays: nested });
+    }
+    return groups;
+  }
+  const rec = asRecord(raw);
+  if (!rec) return [];
+  const groups: AtBatGroup[] = [];
+  for (const [id, refs] of Object.entries(rec)) {
+    const plays = asArray(refs)
+      .map((row) => playFromAtBatRef(row, playsList))
+      .filter((play): play is PlayByPlayPlay => Boolean(play));
+    if (plays.length === 0) continue;
+    groups.push({ id, plays });
+  }
+  return groups;
 }
 
 export function parseScoringPlay(raw: unknown): ScoringPlay | null {
