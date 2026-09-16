@@ -80,3 +80,12 @@ export function sportOracleHref(league: LeagueId, q?: string | null): string {
   const qs = params.toString();
   return qs ? `/oracle?${qs}` : "/oracle";
 }
+
+export function sportResearchHref(league: LeagueId, id?: string | null): string {
+  const params = new URLSearchParams();
+  if (league !== DEFAULT_LEAGUE) params.set("league", league);
+  const briefId = id?.trim();
+  if (briefId) params.set("id", briefId);
+  const qs = params.toString();
+  return qs ? `/research?${qs}` : "/research";
+}

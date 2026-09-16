@@ -1,0 +1,17 @@
+{
+  "kind": "postgame-xray",
+  "title": "SAMPLE — Post-Game Tactical X-Ray shape",
+  "publishedAt": "2026-09-01T13:00:00Z",
+  "league": "cfb",
+  "gameId": "sample-event",
+  "sample": true,
+  "evidence": [
+    "SAMPLE: a published final score would be copied here. This fixture is not a live writeup."
+  ],
+  "inference": [
+    "SAMPLE: inference stays a labeled restatement of published cells."
+  ],
+  "narrative": "SAMPLE simulation writeup of a published drive chart. Not live WPA.",
+  "simulation": true,
+  "sources": [{ "label": "SAMPLE fixture" }]
+}
