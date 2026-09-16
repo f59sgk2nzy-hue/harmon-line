@@ -3,7 +3,7 @@
 import { GamecastDepth } from "@/components/gamecast-depth";
 import { PlayByPlay } from "@/components/play-by-play";
 import { TeamLogo } from "@/components/team-logo";
-import { sportBoardHref } from "@/lib/board-url";
+import { sportBoardHref, sportOracleHref } from "@/lib/board-url";
 import { formatKickoff, formatPollClock } from "@/lib/dates";
 import { hasPeriodScores, periodLabel, periodSportFor, playPeriodLabel } from "@/lib/espn-parse";
 import { deepDiveHref } from "@/lib/espn-stats";
@@ -265,19 +265,31 @@ export function GameDetailView({
         </div>
       </section>
 
-      {showDeepDive ? (
-        <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
+        {showDeepDive ? (
           <Link
             href={deepDiveHref(game.id)}
             className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[11px] tracking-[0.18em] text-white no-underline"
           >
             DEEP DIVE / SIM
           </Link>
+        ) : null}
+        <Link
+          href={sportOracleHref(league, { gameId: game.id, q: "What's the score?" })}
+          className="inline-flex min-h-11 items-center rounded-sm border border-[#f3c14b]/40 px-3 font-display text-[11px] tracking-[0.18em] text-[#f3c14b] no-underline"
+        >
+          ASK ORACLE
+        </Link>
+        {showDeepDive ? (
           <p className="self-center font-mono text-[10px] text-white/40">
             Matchup stats, simulation range, prop feedback
           </p>
-        </div>
-      ) : null}
+        ) : (
+          <p className="self-center font-mono text-[10px] text-white/40">
+            Situational Q&A from this ESPN summary
+          </p>
+        )}
+      </div>
 
       {error ? (
         <p className="mt-3 border border-[#cc0000] bg-[#2a0000] px-3 py-2 font-mono text-xs text-[#ffb3b3]">

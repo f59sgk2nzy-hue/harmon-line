@@ -1,6 +1,6 @@
 import { EmptyState } from "@/components/empty-state";
 import { TeamLogo } from "@/components/team-logo";
-import { gameHref, sportBoardHref } from "@/lib/board-url";
+import { gameHref, sportBoardHref, sportOracleHref } from "@/lib/board-url";
 import { formatBoardDate, isoToEspnDate } from "@/lib/dates";
 import { deepDiveHref, teamDeepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
@@ -173,16 +173,24 @@ export function TeamPageView({
             </p>
           </div>
         </div>
-        {league === "cfb" ? (
-          <div className="border-t border-white/10 px-3 py-2 sm:px-4">
+        <div className="border-t border-white/10 px-3 py-2 sm:px-4">
+          <div className="flex flex-wrap gap-2">
+            {league === "cfb" ? (
+              <Link
+                href={teamDeepDiveHref(team.id)}
+                className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[10px] tracking-[0.16em] text-white no-underline"
+              >
+                DEEP DIVE / SIM
+              </Link>
+            ) : null}
             <Link
-              href={teamDeepDiveHref(team.id)}
-              className="inline-flex min-h-11 items-center rounded-sm bg-[#cc0000] px-3 font-display text-[10px] tracking-[0.16em] text-white no-underline"
+              href={sportOracleHref(league, { teamId: team.id, q: "What's the record and rank?" })}
+              className="inline-flex min-h-11 items-center rounded-sm border border-[#f3c14b]/40 px-3 font-display text-[10px] tracking-[0.16em] text-[#f3c14b] no-underline"
             >
-              DEEP DIVE / SIM
+              ASK ORACLE
             </Link>
           </div>
-        ) : null}
+        </div>
       </section>
 
       <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 sm:hidden">
@@ -212,6 +220,12 @@ export function TeamPageView({
             DEEP DIVE
           </Link>
         ) : null}
+        <Link
+          href={sportOracleHref(league, { teamId: team.id, q: "What's the record and rank?" })}
+          className="shrink-0 rounded-sm border border-white/20 px-2 py-1 font-display text-[10px] tracking-[0.16em] text-white/80 no-underline"
+        >
+          ORACLE
+        </Link>
       </nav>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">

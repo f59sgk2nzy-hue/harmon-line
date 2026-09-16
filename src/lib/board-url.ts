@@ -71,3 +71,19 @@ export function sportOpsHref(league: LeagueId, busy?: string | null): string {
   const query = params.toString();
   return query ? `/ops?${query}` : "/ops";
 }
+
+export function sportOracleHref(
+  league: LeagueId,
+  extras?: { gameId?: string | null; teamId?: string | null; q?: string | null }
+): string {
+  const params = new URLSearchParams();
+  if (league !== DEFAULT_LEAGUE) params.set("league", league);
+  const gameId = extras?.gameId?.trim();
+  const teamId = extras?.teamId?.trim();
+  const question = extras?.q?.trim();
+  if (gameId) params.set("gameId", gameId);
+  if (teamId) params.set("teamId", teamId);
+  if (question) params.set("q", question);
+  const query = params.toString();
+  return query ? `/oracle?${query}` : "/oracle";
+}
