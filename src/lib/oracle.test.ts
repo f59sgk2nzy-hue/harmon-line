@@ -291,6 +291,21 @@ describe("answerOracle", () => {
     assert.doesNotMatch(JSON.stringify(result), FORBIDDEN);
   });
 
+  it("does not treat ESPN pregame placeholder zeros as a published score", async () => {
+    const scheduled = game({
+      ...PRE_GAME,
+      away: { ...PRE_GAME.away, score: 0 },
+      home: { ...PRE_GAME.home, score: 0 },
+    });
+    const result = await answerOracle(
+      { q: "Alabama vs Georgia score" },
+      feeds({ scoreboard: board([scheduled]) })
+    );
+    const blob = result.evidence.join(" ");
+    assert.match(blob, /not published|not on this feed/i);
+    assert.doesNotMatch(blob, /\b0, .*0\b/);
+  });
+
   it("does not invent 0-0 when ESPN omitted scores on a scheduled game", async () => {
     const result = await answerOracle(
       { q: "Alabama vs Georgia score" },

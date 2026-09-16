@@ -324,7 +324,8 @@ function publishedScoreLine(game: GameSummary): string {
   const away = game.away.score;
   const home = game.home.score;
   const stamp = game.status.shortDetail || game.status.detail;
-  if (away != null && home != null) {
+  const prePlaceholder = game.status.state === "pre" && away === 0 && home === 0;
+  if (away != null && home != null && !prePlaceholder) {
     return `${game.away.shortName} ${away}, ${game.home.shortName} ${home} — ${stamp}`;
   }
   return `${game.away.shortName} at ${game.home.shortName} — ${stamp}. Scores are not published on this ESPN feed yet.`;
@@ -388,7 +389,7 @@ export function createDefaultOracleFeeds(): OracleFeeds {
         division: "d1",
         date,
         subdivision: "all",
-        view: spec.id === "nfl" ? "week" : "date",
+        view: spec.navMode === "week" ? "week" : "date",
       });
     },
     getGameDetail,
