@@ -115,17 +115,17 @@ Tap a school name on a scoreboard card or game page to open `/team/{espnId}`. Th
 
 ## Highlights / Reactions strip
 
-The **college football** home board shows a swipeable **HIGHLIGHTS / REACTIONS** row under the ESPN red header and above the game grid. It mixes game highlights / big plays with reaction videos for the current college football season. The MBB (`?league=mbb`), NFL (`?league=nfl`), NBA (`?league=nba`), and MLB (`?league=mlb`) boards do not show this strip.
+Every shipped home board (CFB default, plus `?league=mbb|nfl|nba|mlb`) shows a swipeable **HIGHLIGHTS / REACTIONS** row under the ESPN red header and above the game grid. The feed is keyed off the active `league` (header switcher or `?league=`). Switching sports SSR-renders that sport’s clips and the client refreshes `/api/highlights?league=`. Game, Rankings, and team pages do not show the strip.
 
-**Default source (no API key):** public YouTube channel Atom RSS — `https://www.youtube.com/feeds/videos.xml?channel_id=…` — from ESPN College Football, CFB ON FOX, Big Ten Network (highlights) plus Cover 3, Brandon Walker CFB, and Barstool Bench Mob (reactions). Titles that say “reacting” / “highlights” override the channel bucket. Thumbnails use `i.ytimg.com`. Cards open YouTube.
+**Default source (no API key):** public YouTube channel Atom RSS — `https://www.youtube.com/feeds/videos.xml?channel_id=…` — from sport-specific highlight and reaction channels (ESPN College Football / CFB ON FOX / Big Ten Network + Cover 3 for CFB; March Madness / Field of 68 for MBB; NFL / NFL Network + Pat McAfee / Pardon My Take for NFL; NBA / NBA on ESPN + House of Highlights for NBA; MLB / MLB Network + Talkin’ Baseball / Jomboy for MLB). Titles that say “reacting” / “highlights” override the channel bucket. Clips from another sport are dropped, not relabeled. Thumbnails use `i.ytimg.com`. Cards open YouTube.
 
-**Optional source:** if `YOUTUBE_API_KEY` is set, `/api/highlights` also searches the YouTube Data API (`college football highlights {year}`, `big plays`, `reaction`) and interleaves those results with RSS. The key is never required.
+**Optional source:** if `YOUTUBE_API_KEY` is set, `/api/highlights?league=` (default `cfb`) also searches the YouTube Data API with league-scoped queries (`college football highlights {year}`, `nba highlights {year}`, …) and interleaves those results with RSS. The key is never required. The payload is always `demo: false`.
 
-**Fallback:** if every live source is empty, the strip shows **SAMPLE**-labeled cards that link to YouTube search — not live scores, and never mixed into the ESPN scoreboard.
+**Empty:** if a league has no current-season clips, the strip shows a labeled empty (`{SPORT} HIGHLIGHTS NOT ON THIS FEED`). Video ids and titles are never invented, and CFB clips are never shown on NBA/NFL/MBB/MLB.
 
 **Mobile / PWA:** the strip is built for Add to Home Screen first — native horizontal touch swipe, snap scrolling, a peek of the next card, 44px play control, and no hover-only UI. Chevrons appear only on wider screens. The home viewport uses `viewport-fit=cover` so the red header and bottom line clear the notch / home indicator.
 
-**Performance:** the home page server-renders the strip from the same YouTube loader as `/api/highlights`, so thumbnails and titles paint in the HTML even if the browser never hydrates (for example when `next dev` HMR is blocked). The client still refreshes `/api/highlights` every 15 minutes when hydration works. The feed is cached ~2 minutes on the server and does not run inside the scoreboard poll. Thumbnails are `loading="lazy"`.
+**Performance:** the home page server-renders the strip from the same YouTube loader as `/api/highlights`, so thumbnails and titles paint in the HTML even if the browser never hydrates (for example when `next dev` HMR is blocked). The client still refreshes `/api/highlights?league=` every 15 minutes when hydration works. The feed is cached ~2 minutes on the server and does not run inside the scoreboard poll. Thumbnails are `loading="lazy"`.
 
 **Refresh:** the board and game pages refresh every **10 minutes** (600 seconds) from the public ESPN feed. Use the **REFRESH** control to pull immediately. The “last polled” clock is always **US/Eastern**.
 
@@ -164,7 +164,7 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 - Open an MLB game for inning linescores, TEAM STATS / player box, scoring, and a plays/at-bats PBP (or a clear empty state). Extra innings and doubleheaders appear only when ESPN published them.
 - Open **DEEP DIVE / SIM** on a CFB game or team page for matchup stats, a simulation range, and prop-feedback cards (CFB only — not on NFL, MBB, NBA, or MLB)
 - Tap a school or NFL club name on the board, a game, or a rankings row to open recent scores, the upcoming slate, and the roster
-- Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips (CFB home)
+- Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips (every home board; keyed off `league`)
 - Watch the bottom-line ticker for the full slate
 - Install the board on a phone home screen or pin it as a Windows app
 
