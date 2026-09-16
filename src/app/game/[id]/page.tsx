@@ -4,6 +4,7 @@ import { PageTransition } from "@/components/page-transition";
 import { formatBoardDate, todayEspnDate } from "@/lib/dates";
 import { getGameDetail } from "@/lib/espn";
 import { getLeague, parseLeagueParam } from "@/lib/leagues";
+import { emptyHighlightsBoard, loadHighlights } from "@/lib/youtube";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,16 @@ export default async function GamePage({
     initial = await getGameDetail(id, league);
   } catch (error) {
     initialError = error instanceof Error ? error.message : "Game unavailable";
+  }
+
+  let highlights = null;
+  try {
+    highlights = await loadHighlights({
+      league,
+      apiKey: process.env.YOUTUBE_API_KEY,
+    });
+  } catch {
+    highlights = emptyHighlightsBoard(league);
   }
 
   const dateLabel = initial?.game.date
@@ -51,6 +62,7 @@ export default async function GamePage({
           initial={initial}
           initialError={initialError}
           league={league}
+          initialHighlights={highlights}
         />
       </PageTransition>
     </>

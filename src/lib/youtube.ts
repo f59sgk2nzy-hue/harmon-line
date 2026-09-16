@@ -86,6 +86,24 @@ export function youtubeWatchUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
+/** Public YouTube results page — not a claimed clip id. */
+export function youtubeSearchUrl(query: string): string {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+}
+
+export function isYoutubeWatchUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") return parsed.pathname.length > 1;
+    if (host !== "youtube.com") return false;
+    if (parsed.pathname === "/watch") return Boolean(parsed.searchParams.get("v"));
+    return parsed.pathname.startsWith("/shorts/") || parsed.pathname.startsWith("/embed/");
+  } catch {
+    return false;
+  }
+}
+
 function easternYearMonth(now: Date): { year: number; month: number } {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
@@ -375,8 +393,7 @@ export function highlightsSourceNote(board: HighlightsResponse | null): string {
 }
 
 export function sampleHighlightVideos(seasonYear: number): HighlightVideo[] {
-  const search = (q: string) =>
-    `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+  const search = (q: string) => youtubeSearchUrl(q);
   return [
     {
       id: "sample-highlight-1",

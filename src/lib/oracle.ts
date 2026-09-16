@@ -575,7 +575,7 @@ export async function answerOracle(
       parsed.query,
       parsed.league,
       [
-        "Highlights live on the home-board YouTube strip, not in Stat Oracle. Video ids and clips are never invented here.",
+        "Highlights live on the home-board YouTube strip and as outbound CLIP links on game scoring plays. Video ids and clips are never invented here.",
       ],
       generatedAt,
       groundingEnabled

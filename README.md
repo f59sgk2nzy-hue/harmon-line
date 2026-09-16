@@ -125,7 +125,7 @@ Live named games still copy **the same public ESPN JSON** the board already uses
 | Gemini | Optional. Set `GOOGLE_GENERATIVE_AI_API_KEY` **or** `GOOGLE_API_KEY` **or** `GEMINI_API_KEY` in DELL `.env.local`. Uses Gemini `google_search` grounding (not CSE). |
 | Betting | ATS / spread / odds / pickcenter / winprob / Polymarket questions are **refused**, with the 21+ / 1-800-GAMBLER disclaimer — even when Gemini is configured. |
 | CFBD | Optional. Used only when `CFBD_API_KEY` is set, and only to fill blank ESPN season-stat cells. No invented CFBD numbers. |
-| Not | StatMuse SQL, Custom Search Engine, live agent-feed upgrades, Scrub-to-Film, Coach Cam, GM Sandbox, Momentum Wave, Debate Arena |
+| Not | StatMuse SQL, Custom Search Engine, live agent-feed upgrades, first-party ESPN film, Coach Cam, GM Sandbox, Momentum Wave, Debate Arena |
 
 Open [http://localhost:43173/oracle](http://localhost:43173/oracle). Try [http://localhost:43173/oracle?q=Who+won+the+1974+NBA+Finals%3F](http://localhost:43173/oracle?q=Who+won+the+1974+NBA+Finals%3F) — with a Gemini key you should get **Boston Celtics** plus grounded sources; without a key you get **NOT ON THIS FEED** (ESPN-slice only), not a demo champion.
 
@@ -140,7 +140,7 @@ Open [http://localhost:43173/oracle](http://localhost:43173/oracle). Try [http:/
 | API | `GET /api/research` and `GET /api/research?id=` → `{ demo: false, latestDeepLore, xrays, briefs, honesty, featuredXrayGraph?, xrayGraph? }` |
 | Honesty | Empty disk → **NO BRIEF ON THIS FEED YET**. Missing ESPN `winprobability` → **WIN PROBABILITY NOT ON THIS FEED**. Anomalies, WPA, odds, ATS, pickcenter, and scores are never invented. Labeled **SAMPLE** only when the file says so. |
 | Ingest | `RESEARCH_DIR` (optional) then repo `research/*.json|*.md`, plus DELL drop folder `public/research/`. Subfolders such as `research/examples/` are not auto-loaded. |
-| Not | Live lab filesystem on DELL, POST ingest, Scrub-to-Film, paid odds, Polymarket / PnL, invented WP |
+| Not | Live lab filesystem on DELL, POST ingest, paid odds, Polymarket / PnL, invented WP |
 
 Lab cron files (`deep-lore-*.md`, `postgame-xray-*.md`) must be copied onto this app’s disk. On DELL, drop them in `public/research/` (or set `RESEARCH_DIR`) and refresh. Schema and copy-paste SAMPLE fixtures: `research/README.md` and `research/examples/`.
 
@@ -187,6 +187,22 @@ Every shipped home board (CFB default, plus `?league=mbb|nfl|nba|mlb`) shows a s
 
 **Refresh:** the board and game pages refresh every **10 minutes** (600 seconds) from the public ESPN feed. Use the **REFRESH** control to pull immediately. The “last polled” clock is always **US/Eastern**.
 
+## Scrub-to-Film lite v0 (outbound YouTube)
+
+Game pages (`/game/{espnId}`, including `?league=mbb|nfl|nba|mlb`) add a **CLIP** chip on scoring plays, scoring play-by-play rows, and leaders. This is **not** a first-party video player and **does not** scrape ESPN DRM streams.
+
+| Tap | What happens |
+| --- | --- |
+| CLIP when the home-board YouTube feed already has a related video | Opens that clip on YouTube in a **new tab** (`watch?v=`). Title and URL are copied from `/api/highlights` — never invented. |
+| CLIP when nothing on the feed matches | Honest empty: **NO CLIP ON THIS FEED**, plus **SEARCH YOUTUBE** (a results URL built from published team names + play/leader text). |
+| `/api/highlights?league=&away=&home=&q=` | Same lookup as the chips. Home-strip calls (`league` only) are unchanged. Payload stays `demo: false`. |
+
+Matching is conservative (both teams in the title, or one team plus a distinctive play/player token). Sample cards and `espn.com/video/clip` hrefs are never treated as matches. Mobile/PWA CLIP targets are **≥44px**.
+
+**Dogfood:** Open the board → pick a **FINAL** with scoring plays → tap **CLIP** on a scoring row. Either a YouTube tab opens, or you get **NO CLIP ON THIS FEED**. Example path: `/game/{espnId}` after clicking a completed CFB/NFL/NBA/MLB/MBB card.
+
+**Out of scope:** Coach Cam, Momentum Wave beyond the existing X-Ray graph, paid clip APIs, guaranteed match.
+
 ## Add to Home Screen / pin to desktop
 
 The Harmon Line is a small PWA (dark ESPN theme, standalone display). After it is running in a browser:
@@ -216,8 +232,8 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 - Switch to **MLB** from the header chips (or `?league=mlb`) for a date-first MLB board
 - Filter by conference, live/upcoming/final, team search, and date
 - Open **Rankings** for CFB AP / Coaches / FCS / D2 / D3, or MBB AP / Coaches, and tap a school into its team page (NFL, NBA, and MLB have no rankings page)
-- Open a CFB or NFL game for the scorebug, quarter lines, scoring plays, and a drive-by-drive feed (or a clear “no PBP” state)
-- Open an MBB game for halves, TEAM STATS / player box, scoring, and a plays PBP (or a clear empty state)
+- Open a CFB or NFL game for the scorebug, quarter lines, scoring plays, and a drive-by-drive feed (or a clear “no PBP” state). Tap **CLIP** on a scoring play or leader for an outbound YouTube match, or **NO CLIP ON THIS FEED**.
+- Open an MBB game for halves, TEAM STATS / player box, scoring, and a plays PBP (or a clear empty state). Scoring / leader **CLIP** chips are the same outbound YouTube path.
 - Open an NBA game for quarters, TEAM STATS / player box, scoring, and a plays PBP (or a clear empty state)
 - Open an MLB game for inning linescores, TEAM STATS / player box, scoring, and a plays/at-bats PBP (or a clear empty state). Extra innings and doubleheaders appear only when ESPN published them.
 - Open **DEEP DIVE / SIM** on a CFB game or team page for matchup stats, a simulation range, and prop-feedback cards (CFB only — not on NFL, MBB, NBA, or MLB)
