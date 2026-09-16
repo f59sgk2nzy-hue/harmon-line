@@ -1,22 +1,70 @@
-import { DEFAULT_LEAGUE, getLeague, shippedLeagues } from "@/lib/leagues";
+import { sportBoardHref, sportRankingsHref } from "@/lib/board-url";
+import { DEFAULT_LEAGUE, LEAGUE_IDS, getLeague, shippedLeagues } from "@/lib/leagues";
 import type { LeagueId } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
-/** Dormant until a second league is shipped (Phase 1 MBB). CFB badge stays as-is. */
 export function SportSwitcher({
   current = DEFAULT_LEAGUE,
+  section = "board",
 }: {
   current?: LeagueId;
+  section?: "board" | "rankings" | "game" | "team";
 }) {
-  const league = getLeague(current);
   const shipped = shippedLeagues();
+  const hrefFor = (id: LeagueId) =>
+    section === "rankings" ? sportRankingsHref(id) : sportBoardHref(id);
+
+  if (shipped.length < 2) {
+    const league = getLeague(current);
+    return (
+      <span
+        className="hidden rounded-sm bg-black/30 px-1.5 py-0.5 font-mono text-[10px] tracking-[0.18em] text-white/90 ring-1 ring-white/15 sm:inline"
+        data-sport-switcher="dormant"
+        data-league={league.id}
+      >
+        {league.shortLabel}
+      </span>
+    );
+  }
+
+  const dormant = LEAGUE_IDS.map((id) => getLeague(id)).filter((league) => !league.shipped);
 
   return (
-    <span
-      className="hidden rounded-sm bg-black/30 px-1.5 py-0.5 font-mono text-[10px] tracking-[0.18em] text-white/90 ring-1 ring-white/15 sm:inline"
-      data-sport-switcher={shipped.length > 1 ? "ready" : "dormant"}
-      data-league={league.id}
+    <nav
+      aria-label="Sport"
+      data-sport-switcher="ready"
+      data-league={current}
+      className="flex items-center gap-1"
     >
-      {league.shortLabel}
-    </span>
+      {shipped.map((league) => {
+        const active = league.id === current;
+        return (
+          <Link
+            key={league.id}
+            href={hrefFor(league.id)}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "pressable inline-flex min-h-8 min-w-8 items-center justify-center rounded-sm px-1.5 font-mono text-[10px] tracking-[0.16em] no-underline sm:min-h-7",
+              active
+                ? "bg-white text-black"
+                : "bg-black/30 text-white/80 ring-1 ring-white/15"
+            )}
+          >
+            {league.shortLabel}
+          </Link>
+        );
+      })}
+      {dormant.map((league) => (
+        <span
+          key={league.id}
+          title={`${league.label} is not on The Harmon Line yet`}
+          aria-disabled="true"
+          className="hidden cursor-not-allowed rounded-sm px-1.5 py-0.5 font-mono text-[10px] tracking-[0.16em] text-white/25 sm:inline"
+        >
+          {league.shortLabel}
+        </span>
+      ))}
+    </nav>
   );
 }

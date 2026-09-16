@@ -1,9 +1,9 @@
 export type DivisionId = "d1" | "d2" | "naia";
 export type SubdivisionId = "all" | "fbs" | "fcs";
-export type Classification = "FBS" | "FCS" | "D2" | "D3" | "NAIA";
+export type Classification = "FBS" | "FCS" | "D1" | "D2" | "D3" | "NAIA";
 export type GameState = "pre" | "in" | "post";
 export type StatusFilter = "all" | "live" | "final" | "upcoming";
-/** Harmon Line sport instance. CFB is the only shipped board in Phase 0. */
+/** Harmon Line sport instance. CFB is default; MBB is the second shipped board. */
 export type LeagueId = "cfb" | "mbb" | "nba" | "nfl" | "mlb";
 
 export type TeamSide = {
@@ -190,6 +190,7 @@ export type TeamRosterPlayer = {
 export type TeamPageResponse = {
   source: "espn";
   demo: false;
+  league: LeagueId;
   generatedAt: string;
   team: TeamProfile;
   recent: TeamScheduleGame[];
@@ -240,6 +241,7 @@ export type RankingPoll = {
 export type RankingsResponse = {
   source: "espn";
   demo: false;
+  league: LeagueId;
   generatedAt: string;
   week: number | null;
   seasonYear: number | null;
@@ -333,6 +335,7 @@ export type GameDetailResponse = {
   game: GameSummary;
   scoringPlays: ScoringPlay[];
   drives: Drive[];
+  plays: PlayByPlayPlay[];
   leaders: LeaderLine[];
   playByPlayAvailable: boolean;
   coverage: CoverageNote;

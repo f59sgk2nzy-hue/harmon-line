@@ -1,4 +1,8 @@
-import type { Classification, ConferenceOption, DivisionId } from "./types";
+import { DEFAULT_LEAGUE } from "./leagues";
+import type { Classification, ConferenceOption, CoverageNote, DivisionId, LeagueId, SubdivisionId } from "./types";
+
+export const MBB_D1_GROUP = "50";
+export const MBB_SCOREBOARD_LIMIT = 400;
 
 /** ESPN college-football group IDs for the 2026 season. */
 export const DIVISION_GROUPS: Record<
@@ -108,15 +112,82 @@ export const CONFERENCE_SUBDIVISION: Record<string, Classification> = {
   "186": "NAIA",
 };
 
-export function conferenceLabel(id: string | null | undefined): string | null {
-  if (!id) return null;
-  return CONFERENCE_NAMES[id]?.name ?? `Conference ${id}`;
+export const MBB_CONFERENCE_NAMES: Record<string, ConferenceOption> = {
+  "1": { id: "1", name: "America East", abbreviation: "AE" },
+  "2": { id: "2", name: "ACC", abbreviation: "ACC" },
+  "3": { id: "3", name: "Atlantic 10", abbreviation: "A-10" },
+  "4": { id: "4", name: "Big East", abbreviation: "BE" },
+  "5": { id: "5", name: "Big Sky", abbreviation: "Big Sky" },
+  "6": { id: "6", name: "Big South", abbreviation: "Big South" },
+  "7": { id: "7", name: "Big Ten", abbreviation: "B1G" },
+  "8": { id: "8", name: "Big 12", abbreviation: "Big 12" },
+  "9": { id: "9", name: "Big West", abbreviation: "Big West" },
+  "10": { id: "10", name: "CAA", abbreviation: "CAA" },
+  "11": { id: "11", name: "Conference USA", abbreviation: "CUSA" },
+  "12": { id: "12", name: "Ivy League", abbreviation: "Ivy" },
+  "13": { id: "13", name: "MAAC", abbreviation: "MAAC" },
+  "14": { id: "14", name: "MAC", abbreviation: "MAC" },
+  "16": { id: "16", name: "MEAC", abbreviation: "MEAC" },
+  "18": { id: "18", name: "Missouri Valley", abbreviation: "MVC" },
+  "19": { id: "19", name: "Northeast", abbreviation: "NEC" },
+  "20": { id: "20", name: "Ohio Valley", abbreviation: "OVC" },
+  "22": { id: "22", name: "Patriot League", abbreviation: "Patriot" },
+  "23": { id: "23", name: "SEC", abbreviation: "SEC" },
+  "24": { id: "24", name: "Southern", abbreviation: "SoCon" },
+  "25": { id: "25", name: "Southland", abbreviation: "SLC" },
+  "26": { id: "26", name: "SWAC", abbreviation: "SWAC" },
+  "27": { id: "27", name: "Sun Belt", abbreviation: "SBC" },
+  "29": { id: "29", name: "West Coast", abbreviation: "WCC" },
+  "30": { id: "30", name: "United Athletic", abbreviation: "UAC" },
+  "44": { id: "44", name: "Mountain West", abbreviation: "MW" },
+  "45": { id: "45", name: "Horizon", abbreviation: "Horizon" },
+  "46": { id: "46", name: "Atlantic Sun", abbreviation: "ASUN" },
+  "49": { id: "49", name: "Summit League", abbreviation: "Summit" },
+  "62": { id: "62", name: "American", abbreviation: "AAC" },
+};
+
+export function scoreboardGroups(
+  league: LeagueId,
+  division: DivisionId,
+  subdivision?: SubdivisionId
+): string[] {
+  if (league === "mbb") return [MBB_D1_GROUP];
+  if (division === "d1" && subdivision && subdivision !== "all") {
+    return [subdivision === "fbs" ? "80" : "81"];
+  }
+  return DIVISION_GROUPS[division].groups;
 }
 
-export function coverageFor(division: DivisionId): {
-  headline: string;
-  detail: string;
-} {
+export function conferenceLabel(
+  id: string | null | undefined,
+  league: LeagueId = DEFAULT_LEAGUE
+): string | null {
+  if (!id) return null;
+  const table = league === "mbb" ? MBB_CONFERENCE_NAMES : CONFERENCE_NAMES;
+  return table[id]?.name ?? `Conference ${id}`;
+}
+
+export function coverageFor(
+  division: DivisionId,
+  league: LeagueId = DEFAULT_LEAGUE,
+  meta?: { gameCount?: number; limit?: number }
+): CoverageNote {
+  if (league === "mbb") {
+    const gameCount = meta?.gameCount ?? 0;
+    const limit = meta?.limit ?? MBB_SCOREBOARD_LIMIT;
+    const truncated =
+      gameCount >= limit
+        ? " This response hit the ESPN event limit; the published slate may be truncated."
+        : "";
+    const empty =
+      gameCount === 0
+        ? " September slates are often empty out of season."
+        : "";
+    return {
+      headline: "Division I men’s basketball — ESPN public scoreboard",
+      detail: `NCAA D1 (ESPN group 50) from ESPN’s unofficial public site API. Date nav uses dates=YYYYMMDD, not football week chips. D2/NAIA basketball is not on this board. Scores are never invented.${empty}${truncated}`,
+    };
+  }
   if (division === "d1") {
     return {
       headline: "Division I — ESPN public scoreboard",

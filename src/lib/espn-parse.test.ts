@@ -39,6 +39,11 @@ describe("classifySubdivision", () => {
     assert.equal(classifySubdivision(["23"]), null);
   });
 
+  it("does not treat NCAAM league id 41 as a subdivision", () => {
+    assert.equal(classifySubdivision(["41"]), null);
+    assert.equal(classifySubdivision(["50", "41"]), "D1");
+  });
+
   it("classifies Alabama/Kentucky from the SEC group, not league 23", () => {
     const header = {
       league: { id: "23" },

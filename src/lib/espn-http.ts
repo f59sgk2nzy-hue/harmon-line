@@ -43,7 +43,7 @@ export async function espnGet(
         headers: {
           Accept: "application/json",
           "User-Agent":
-            "HarmonLine/1.0 (college football scoreboard; +https://localhost)",
+            "HarmonLine/1.0 (live scoreboard; +https://localhost)",
         },
         cache: "no-store",
       });

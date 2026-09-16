@@ -1,30 +1,46 @@
 "use client";
 
-import type { Drive, GameSummary } from "@/lib/types";
-import { useEffect, useRef } from "react";
-
-function periodLabel(period: number | null): string {
-  if (!period) return "";
-  if (period <= 4) return `Q${period}`;
-  return period === 5 ? "OT" : `${period - 4}OT`;
-}
+import type { Drive, GameSummary, PlayByPlayPlay } from "@/lib/types";
+import { playPeriodLabel } from "@/lib/espn-parse";
+import { useEffect, useMemo, useRef } from "react";
 
 export function PlayByPlay({
   drives,
+  plays = [],
   game,
   available,
   note,
+  mode = "drives",
 }: {
   drives: Drive[];
+  plays?: PlayByPlayPlay[];
   game: GameSummary;
   available: boolean;
   note: string;
+  mode?: "drives" | "plays";
 }) {
   const endRef = useRef<HTMLDivElement>(null);
+  const sport = mode === "plays" ? "basketball" : "football";
+  const playCount =
+    mode === "plays" ? plays.length : drives.reduce((sum, drive) => sum + drive.plays.length, 0);
+
+  const byPeriod = useMemo(() => {
+    if (mode !== "plays") return [];
+    const groups: Array<{ period: number | null; plays: PlayByPlayPlay[] }> = [];
+    for (const play of plays) {
+      const last = groups[groups.length - 1];
+      if (last && last.period === play.period) {
+        last.plays.push(play);
+      } else {
+        groups.push({ period: play.period, plays: [play] });
+      }
+    }
+    return groups;
+  }, [mode, plays]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [drives]);
+  }, [drives, plays]);
 
   if (!available) {
     return (
@@ -50,53 +66,80 @@ export function PlayByPlay({
         <h2 className="font-display text-sm tracking-[0.2em] text-[#f3c14b]">
           PLAY-BY-PLAY
         </h2>
-        <p className="font-mono text-[10px] text-white/40">
-          {drives.reduce((sum, drive) => sum + drive.plays.length, 0)} PLAYS
-        </p>
+        <p className="font-mono text-[10px] text-white/40">{playCount} PLAYS</p>
       </div>
       <div className="max-h-[70vh] overflow-y-auto">
-        {drives.map((drive) => (
-          <section key={drive.id} className="border-b border-white/8">
-            <header className="sticky top-0 flex items-center justify-between gap-2 bg-[#1a1a1a] px-3 py-1.5">
-              <p className="font-display text-[11px] tracking-[0.14em] text-white">
-                {(drive.teamName || "DRIVE").toUpperCase()}
-                {drive.result ? `  ·  ${drive.result.toUpperCase()}` : ""}
-              </p>
-              <p className="font-mono text-[10px] text-white/45">
-                {drive.description}
-                {drive.yards != null ? `  ·  ${drive.yards} yds` : ""}
-              </p>
-            </header>
-            <ol className="divide-y divide-white/5">
-              {drive.plays.map((play) => (
-                <li
-                  key={play.id}
-                  className={`flex gap-3 px-3 py-2 ${
-                    play.scoringPlay ? "bg-[#2a1200]" : ""
-                  }`}
-                >
-                  <div className="w-14 shrink-0 font-mono text-[10px] leading-4 text-white/40">
-                    <div>{periodLabel(play.period)}</div>
-                    <div>{play.clock ?? ""}</div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-mono text-[12px] leading-5 text-white/85">
-                      {play.text}
-                    </p>
-                    {play.scoringPlay ? (
-                      <p className="mt-1 font-display text-[11px] tracking-[0.12em] text-[#f3c14b]">
-                        {game.away.abbreviation} {play.awayScore}  {"  "}
-                        {game.home.abbreviation} {play.homeScore}
-                      </p>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </section>
-        ))}
+        {mode === "plays"
+          ? byPeriod.map((group) => (
+              <section key={`period-${group.period ?? "na"}`} className="border-b border-white/8">
+                <header className="sticky top-0 bg-[#1a1a1a] px-3 py-1.5">
+                  <p className="font-display text-[11px] tracking-[0.14em] text-white">
+                    {playPeriodLabel(group.period, sport) || "PLAYS"}
+                  </p>
+                </header>
+                <ol className="divide-y divide-white/5">
+                  {group.plays.map((play) => (
+                    <PlayRow
+                      key={play.id}
+                      play={play}
+                      game={game}
+                      sport={sport}
+                    />
+                  ))}
+                </ol>
+              </section>
+            ))
+          : drives.map((drive) => (
+              <section key={drive.id} className="border-b border-white/8">
+                <header className="sticky top-0 flex items-center justify-between gap-2 bg-[#1a1a1a] px-3 py-1.5">
+                  <p className="font-display text-[11px] tracking-[0.14em] text-white">
+                    {(drive.teamName || "DRIVE").toUpperCase()}
+                    {drive.result ? `  ·  ${drive.result.toUpperCase()}` : ""}
+                  </p>
+                  <p className="font-mono text-[10px] text-white/45">
+                    {drive.description}
+                    {drive.yards != null ? `  ·  ${drive.yards} yds` : ""}
+                  </p>
+                </header>
+                <ol className="divide-y divide-white/5">
+                  {drive.plays.map((play) => (
+                    <PlayRow key={play.id} play={play} game={game} sport={sport} />
+                  ))}
+                </ol>
+              </section>
+            ))}
         <div ref={endRef} />
       </div>
     </div>
+  );
+}
+
+function PlayRow({
+  play,
+  game,
+  sport,
+}: {
+  play: PlayByPlayPlay;
+  game: GameSummary;
+  sport: "football" | "basketball";
+}) {
+  return (
+    <li
+      className={`flex gap-3 px-3 py-2 ${play.scoringPlay ? "bg-[#2a1200]" : ""}`}
+    >
+      <div className="w-14 shrink-0 font-mono text-[10px] leading-4 text-white/40">
+        <div>{playPeriodLabel(play.period, sport)}</div>
+        <div>{play.clock ?? ""}</div>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-mono text-[12px] leading-5 text-white/85">{play.text}</p>
+        {play.scoringPlay ? (
+          <p className="mt-1 font-display text-[11px] tracking-[0.12em] text-[#f3c14b]">
+            {game.away.abbreviation} {play.awayScore}  {"  "}
+            {game.home.abbreviation} {play.homeScore}
+          </p>
+        ) : null}
+      </div>
+    </li>
   );
 }

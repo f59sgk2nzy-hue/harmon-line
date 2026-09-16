@@ -2,7 +2,8 @@ import { BoardHeader } from "@/components/header";
 import { PageTransition } from "@/components/page-transition";
 import { RankingsView } from "@/components/rankings-view";
 import { formatBoardDate, todayEspnDate } from "@/lib/dates";
-import { POLL_TABS, getRankings, parsePollParam } from "@/lib/espn-rankings";
+import { getRankings, parsePollParam, pollTabsFor } from "@/lib/espn-rankings";
+import { parseLeagueParam } from "@/lib/leagues";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -19,8 +20,9 @@ export async function generateMetadata({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const params = await searchParams;
-  const poll = parsePollParam(firstString(params.poll));
-  const name = POLL_TABS.find((tab) => tab.id === poll)?.name ?? "Rankings";
+  const league = parseLeagueParam(firstString(params.league));
+  const poll = parsePollParam(firstString(params.poll), league);
+  const name = pollTabsFor(league).find((tab) => tab.id === poll)?.name ?? "Rankings";
   return { title: `${name} — The Harmon Line` };
 }
 
@@ -30,11 +32,12 @@ export default async function RankingsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const poll = parsePollParam(firstString(params.poll));
+  const league = parseLeagueParam(firstString(params.league));
+  const poll = parsePollParam(firstString(params.poll), league);
   let data = null;
   let error: string | null = null;
   try {
-    data = await getRankings(poll);
+    data = await getRankings(poll, league);
   } catch (err) {
     error = err instanceof Error ? err.message : "Rankings unavailable";
   }
@@ -45,9 +48,14 @@ export default async function RankingsPage({
 
   return (
     <>
-      <BoardHeader dateLabel={dateLabel} week={data?.week} section="rankings" />
+      <BoardHeader
+        dateLabel={dateLabel}
+        week={data?.week}
+        section="rankings"
+        league={league}
+      />
       <PageTransition>
-        <RankingsView key={poll} initial={data} initialError={error} poll={poll} />
+        <RankingsView key={`${league}-${poll}`} initial={data} initialError={error} poll={poll} league={league} />
       </PageTransition>
     </>
   );

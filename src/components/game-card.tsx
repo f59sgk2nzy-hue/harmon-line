@@ -1,10 +1,12 @@
 "use client";
 
 import { TeamLogo } from "@/components/team-logo";
+import { gameHref } from "@/lib/board-url";
 import { formatKickoff } from "@/lib/dates";
 import { deepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
-import type { GameSummary, TeamSide } from "@/lib/types";
+import { DEFAULT_LEAGUE } from "@/lib/leagues";
+import type { GameSummary, LeagueId, TeamSide } from "@/lib/types";
 import Link from "next/link";
 import { ViewTransition } from "react";
 
@@ -12,17 +14,19 @@ function TeamRow({
   team,
   possess,
   emphasize,
-  gameHref,
+  gameHref: scoreHref,
+  league,
 }: {
   team: TeamSide;
   possess: boolean;
   emphasize: boolean;
   gameHref: string;
+  league: LeagueId;
 }) {
   return (
     <div className="grid grid-cols-[1fr_auto] items-center gap-2">
       <Link
-        href={teamHref(team.id)}
+        href={teamHref(team.id, league)}
         transitionTypes={["nav-forward"]}
         className="pressable tap-row grid min-h-12 min-w-0 grid-cols-[28px_1fr] items-center gap-2 px-1 no-underline sm:grid-cols-[34px_1fr]"
       >
@@ -57,7 +61,7 @@ function TeamRow({
         </div>
       </Link>
       <Link
-        href={gameHref}
+        href={scoreHref}
         transitionTypes={["nav-forward"]}
         className={`pressable tap-row inline-flex min-h-12 min-w-14 items-center justify-end px-2 text-right font-display text-[30px] leading-none tracking-tight no-underline sm:text-[36px] ${
           emphasize ? "text-white" : "text-white/50"
@@ -69,21 +73,28 @@ function TeamRow({
   );
 }
 
-export function GameCard({ game }: { game: GameSummary }) {
+export function GameCard({
+  game,
+  league = DEFAULT_LEAGUE,
+}: {
+  game: GameSummary;
+  league?: LeagueId;
+}) {
   const live = game.status.state === "in";
   const final = game.status.state === "post";
-  const awayHasBall = game.situation?.possessionTeamId === game.away.id;
-  const homeHasBall = game.situation?.possessionTeamId === game.home.id;
+  const football = league === "cfb";
+  const awayHasBall = football && game.situation?.possessionTeamId === game.away.id;
+  const homeHasBall = football && game.situation?.possessionTeamId === game.home.id;
   const awayLead =
     game.away.score != null && game.home.score != null && game.away.score > game.home.score;
   const homeLead =
     game.away.score != null && game.home.score != null && game.home.score > game.away.score;
-  const gameHref = `/game/${game.id}`;
+  const href = gameHref(game.id, league);
 
   return (
     <article className={`score-cell outline-none ${live ? "is-live" : ""}`}>
       <Link
-        href={gameHref}
+        href={href}
         transitionTypes={["nav-forward"]}
         className="pressable flex min-h-10 items-center justify-between gap-2 border-b border-white/8 px-3 py-1.5 no-underline"
       >
@@ -114,39 +125,43 @@ export function GameCard({ game }: { game: GameSummary }) {
           team={game.away}
           possess={Boolean(live && awayHasBall)}
           emphasize={!final || awayLead || (!awayLead && !homeLead)}
-          gameHref={gameHref}
+          gameHref={href}
+          league={league}
         />
         <TeamRow
           team={game.home}
           possess={Boolean(live && homeHasBall)}
           emphasize={!final || homeLead || (!awayLead && !homeLead)}
-          gameHref={gameHref}
+          gameHref={href}
+          league={league}
         />
       </div>
 
       <div className="flex items-start justify-between gap-2 border-t border-white/8 px-3 py-2">
         <Link
-          href={gameHref}
+          href={href}
           transitionTypes={["nav-forward"]}
           className="pressable min-w-0 flex-1 truncate font-mono text-[10px] leading-relaxed text-white/55 no-underline"
         >
-          {live && game.situation?.downDistanceText
+          {football && live && game.situation?.downDistanceText
             ? `${game.situation.downDistanceText}${
                 game.situation.isRedZone ? "  ·  RED ZONE" : ""
               }`
-            : live && game.situation?.lastPlay
+            : football && live && game.situation?.lastPlay
               ? game.situation.lastPlay
               : [game.venue, game.broadcast].filter(Boolean).join("  · ") || "Tap for game detail"}
         </Link>
         <div className="flex shrink-0 items-center gap-2">
+          {football ? (
+            <Link
+              href={deepDiveHref(game.id)}
+              className="inline-flex min-h-11 items-center font-display text-[10px] tracking-[0.16em] text-[#f3c14b] no-underline"
+            >
+              SIM
+            </Link>
+          ) : null}
           <Link
-            href={deepDiveHref(game.id)}
-            className="inline-flex min-h-11 items-center font-display text-[10px] tracking-[0.16em] text-[#f3c14b] no-underline"
-          >
-            SIM
-          </Link>
-          <Link
-            href={gameHref}
+            href={href}
             className="inline-flex min-h-8 items-center font-display text-[10px] tracking-[0.16em] text-white/35 no-underline"
           >
             {game.playByPlayAvailable ? "PBP" : "SCORES"}

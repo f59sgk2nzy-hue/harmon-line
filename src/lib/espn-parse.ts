@@ -5,16 +5,19 @@ type Json = Record<string, unknown>;
 
 /** ESPN sport-league id for NCAA football — not a subdivision group. */
 export const ESPN_NCAAF_LEAGUE_ID = "23";
+/** ESPN sport-league id for NCAA men’s basketball — not a D1 group. */
+export const ESPN_NCAAM_LEAGUE_ID = "41";
 
 export const GROUP_CLASSIFICATION: Record<string, Classification> = {
   "80": "FBS",
   "81": "FCS",
+  "50": "D1",
   "57": "D2",
   "58": "D3",
   "186": "NAIA",
 };
 
-const CLASS_PRIORITY: Classification[] = ["NAIA", "D2", "D3", "FCS", "FBS"];
+const CLASS_PRIORITY: Classification[] = ["NAIA", "D2", "D3", "FCS", "FBS", "D1"];
 
 function asRecord(value: unknown): Json | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -107,7 +110,7 @@ export function classifySubdivision(
   for (const raw of ids) {
     if (raw == null || raw === "") continue;
     const id = String(raw);
-    if (id === ESPN_NCAAF_LEAGUE_ID) continue;
+    if (id === ESPN_NCAAF_LEAGUE_ID || id === ESPN_NCAAM_LEAGUE_ID) continue;
     const fromGroup = GROUP_CLASSIFICATION[id];
     if (fromGroup) found.add(fromGroup);
     const fromConference = CONFERENCE_SUBDIVISION[id];
@@ -133,7 +136,29 @@ export function hasPeriodScores(lines: Array<number | null> | undefined): boolea
   return Boolean(lines?.some((value) => value != null));
 }
 
-export function periodLabel(index: number): string {
+export function periodLabel(
+  index: number,
+  sport: "football" | "basketball" = "football"
+): string {
+  if (sport === "basketball") {
+    if (index === 0) return "1H";
+    if (index === 1) return "2H";
+    return index === 2 ? "OT" : `${index - 1}OT`;
+  }
   if (index < 4) return `Q${index + 1}`;
   return index === 4 ? "OT" : `${index - 3}OT`;
+}
+
+export function playPeriodLabel(
+  period: number | null,
+  sport: "football" | "basketball" = "football"
+): string {
+  if (!period) return "";
+  if (sport === "basketball") {
+    if (period === 1) return "1H";
+    if (period === 2) return "2H";
+    return period === 3 ? "OT" : `${period - 2}OT`;
+  }
+  if (period <= 4) return `Q${period}`;
+  return period === 5 ? "OT" : `${period - 4}OT`;
 }

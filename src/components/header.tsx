@@ -1,34 +1,49 @@
 import { cn } from "@/lib/utils";
+import { sportBoardHref, sportRankingsHref } from "@/lib/board-url";
 import { SportSwitcher } from "@/components/sport-switcher";
+import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
+import type { LeagueId } from "@/lib/types";
 import Link from "next/link";
 
 const NAV = [
-  { href: "/", id: "board", label: "SCOREBOARD" },
-  { href: "/rankings", id: "rankings", label: "RANKINGS" },
+  { id: "board", label: "SCOREBOARD" },
+  { id: "rankings", label: "RANKINGS" },
 ] as const;
 
 export function BoardHeader({
   dateLabel,
   week,
   section = "board",
+  league = DEFAULT_LEAGUE,
 }: {
   dateLabel: string;
   week?: number | null;
   section?: "board" | "rankings";
+  league?: LeagueId;
 }) {
+  const spec = getLeague(league);
+  const boardHref = sportBoardHref(league);
+  const rankingsHref = sportRankingsHref(league);
+  const kicker =
+    section === "rankings"
+      ? `${spec.label.toUpperCase()} RANKINGS`
+      : `${spec.label.toUpperCase()} SCOREBOARD`;
+
   return (
     <header className="border-b border-white/10" style={{ viewTransitionName: "site-header" }}>
       <div className="espn-red-bar flex items-center justify-between gap-3 px-3 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-5">
-        <Link
-          href="/"
-          transitionTypes={["nav-back"]}
-          className="pressable flex items-center gap-2.5 no-underline"
-        >
-          <span className="font-display text-lg leading-none tracking-[0.14em] text-white sm:text-2xl">
-            THE HARMON LINE
-          </span>
-          <SportSwitcher current="cfb" />
-        </Link>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Link
+            href={boardHref}
+            transitionTypes={["nav-back"]}
+            className="pressable min-w-0 no-underline"
+          >
+            <span className="font-display text-lg leading-none tracking-[0.14em] text-white sm:text-2xl">
+              THE HARMON LINE
+            </span>
+          </Link>
+          <SportSwitcher current={league} section={section} />
+        </div>
         <p className="text-right font-display text-[11px] tracking-[0.16em] text-white/90 sm:text-sm">
           {dateLabel.toUpperCase()}
         </p>
@@ -40,7 +55,7 @@ export function BoardHeader({
             {NAV.map((item) => (
               <Link
                 key={item.id}
-                href={item.href}
+                href={item.id === "rankings" ? rankingsHref : boardHref}
                 transitionTypes={item.id === "rankings" ? ["nav-forward"] : ["nav-back"]}
                 aria-current={section === item.id ? "page" : undefined}
                 className={cn(
@@ -58,7 +73,7 @@ export function BoardHeader({
               section === "rankings" && "hidden sm:block"
             )}
           >
-            {section === "rankings" ? "COLLEGE FOOTBALL RANKINGS" : "COLLEGE FOOTBALL SCOREBOARD"}
+            {kicker}
             {week ? `  ·  WEEK ${week}` : ""}
           </p>
         </div>

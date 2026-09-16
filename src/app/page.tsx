@@ -6,6 +6,7 @@ import { parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, parseDateParam } from "@/lib/dates";
 import { getScoreboard, parseDivision, parseSubdivision } from "@/lib/espn";
 import { parseSeasonYear, parseWeekParam } from "@/lib/espn-weeks";
+import { getLeague, parseLeagueParam } from "@/lib/leagues";
 import { loadHighlights, sampleHighlightsBoard } from "@/lib/youtube";
 
 export const dynamic = "force-dynamic";
@@ -22,13 +23,15 @@ export default async function Home({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
+  const league = parseLeagueParam(firstString(params.league));
+  const spec = getLeague(league);
   const date = parseDateParam(firstString(params.date));
-  const division = parseDivision(firstString(params.division));
-  const subdivision = parseSubdivision(firstString(params.subdivision));
+  const division = league === "mbb" ? "d1" : parseDivision(firstString(params.division));
+  const subdivision = league === "mbb" ? "all" : parseSubdivision(firstString(params.subdivision));
   const conference = firstString(params.conference) ?? "all";
   const status = parseStatusFilter(firstString(params.status));
   const query = firstString(params.q) ?? "";
-  const week = parseWeekParam(firstString(params.week));
+  const week = spec.navMode === "week" ? parseWeekParam(firstString(params.week)) : null;
   const year = parseSeasonYear(firstString(params.year), date);
   const view = week ? "week" : "date";
 
@@ -36,6 +39,7 @@ export default async function Home({
   let initialError: string | null = null;
   try {
     initial = await getScoreboard({
+      league,
       division,
       date,
       subdivision,
@@ -49,20 +53,28 @@ export default async function Home({
 
   let highlights = null;
   let highlightsError: string | null = null;
-  try {
-    highlights = await loadHighlights({ apiKey: process.env.YOUTUBE_API_KEY });
-  } catch (error) {
-    highlightsError = error instanceof Error ? error.message : "Highlights unavailable";
-    highlights = sampleHighlightsBoard();
+  if (league === "cfb") {
+    try {
+      highlights = await loadHighlights({ apiKey: process.env.YOUTUBE_API_KEY });
+    } catch (error) {
+      highlightsError = error instanceof Error ? error.message : "Highlights unavailable";
+      highlights = sampleHighlightsBoard();
+    }
   }
 
   return (
     <>
-      <BoardHeader dateLabel={formatBoardDate(date)} week={initial?.week ?? week} />
+      <BoardHeader
+        dateLabel={formatBoardDate(date)}
+        week={initial?.week ?? week}
+        league={league}
+      />
       <PageTransition>
-        <HighlightsStrip initial={highlights} initialError={highlightsError} />
+        {league === "cfb" ? (
+          <HighlightsStrip initial={highlights} initialError={highlightsError} />
+        ) : null}
         <ScoreboardView
-          key={`${division}-${date}-${subdivision}-${view}-${week ?? ""}`}
+          key={`${league}-${division}-${date}-${subdivision}-${view}-${week ?? ""}`}
           initial={initial}
           initialError={initialError}
           date={date}
@@ -74,6 +86,7 @@ export default async function Home({
           week={week}
           year={year}
           view={view}
+          league={league}
         />
       </PageTransition>
     </>

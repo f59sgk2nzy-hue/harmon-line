@@ -2,11 +2,12 @@ import { conferenceLabel } from "@/lib/conferences";
 import { espnGet } from "@/lib/espn-http";
 import { classifySubdivision, collectClassificationIds } from "@/lib/espn-parse";
 import { teamLogoUrl } from "@/lib/espn-path";
-import { DEFAULT_LEAGUE } from "@/lib/leagues";
+import { DEFAULT_LEAGUE, assertLeagueShipped } from "@/lib/leagues";
 import type {
   Classification,
   CoverageNote,
   GameState,
+  LeagueId,
   TeamPageResponse,
   TeamProfile,
   TeamRosterPlayer,
@@ -60,7 +61,10 @@ function competitorScore(raw: Json | null): number | null {
   return num(score);
 }
 
-export function parseTeamProfile(payload: unknown): TeamProfile {
+export function parseTeamProfile(
+  payload: unknown,
+  league: LeagueId = DEFAULT_LEAGUE
+): TeamProfile {
   const root = asRecord(payload) ?? {};
   const team = asRecord(root.team) ?? root;
   const id = str(team.id);
@@ -75,7 +79,7 @@ export function parseTeamProfile(payload: unknown): TeamProfile {
   const groups = asRecord(team.groups);
   const conferenceId = str(team.conferenceId) || str(groups?.id) || null;
   const ids = collectClassificationIds(team, groups);
-  const subdivision = classifySubdivision(ids);
+  const subdivision = league === "mbb" ? "D1" : classifySubdivision(ids);
 
   return {
     id,
@@ -84,17 +88,21 @@ export function parseTeamProfile(payload: unknown): TeamProfile {
     abbreviation: str(team.abbreviation, "UNK").toUpperCase(),
     color: hexColor(team.color),
     altColor: hexColor(team.alternateColor),
-    logo: teamLogoUrl(id, DEFAULT_LEAGUE),
+    logo: teamLogoUrl(id, league),
     record: overall ? str(overall.summary) || null : str(team.recordSummary) || null,
     standing: str(team.standingSummary) || null,
     conferenceId,
-    conferenceName: conferenceLabel(conferenceId),
+    conferenceName: conferenceLabel(conferenceId, league),
     rank: rankValue && rankValue > 0 && rankValue <= 25 ? rankValue : null,
     subdivision,
   };
 }
 
-export function parseScheduleEvents(raw: unknown, teamId: string): TeamScheduleGame[] {
+export function parseScheduleEvents(
+  raw: unknown,
+  teamId: string,
+  league: LeagueId = DEFAULT_LEAGUE
+): TeamScheduleGame[] {
   const games: TeamScheduleGame[] = [];
   for (const event of asArray(raw)) {
     const row = asRecord(event);
@@ -141,7 +149,7 @@ export function parseScheduleEvents(raw: unknown, teamId: string): TeamScheduleG
         id: oppId,
         name: str(oppTeam.displayName || oppTeam.name, "Opponent"),
         abbreviation: str(oppTeam.abbreviation, "OPP").toUpperCase(),
-        logo: teamLogoUrl(oppId || "0", DEFAULT_LEAGUE),
+        logo: teamLogoUrl(oppId || "0", league),
       },
       teamScore,
       opponentScore,
@@ -220,11 +228,18 @@ export function parseRosterAthletes(payload: unknown): {
   return { players, coach: coach || null };
 }
 
-function scheduleCoverage(games: TeamScheduleGame[], subdivision: Classification | null): CoverageNote {
+function scheduleCoverage(
+  games: TeamScheduleGame[],
+  subdivision: Classification | null,
+  league: LeagueId = DEFAULT_LEAGUE
+): CoverageNote {
   if (games.length > 0) {
     return {
       headline: "Schedule from ESPN public team feed",
-      detail: "Recent results and upcoming games come from ESPN’s unofficial college-football team schedule.",
+      detail:
+        league === "mbb"
+          ? "Recent results and upcoming games come from ESPN’s unofficial men’s college basketball team schedule."
+          : "Recent results and upcoming games come from ESPN’s unofficial college-football team schedule.",
     };
   }
   if (subdivision === "NAIA") {
@@ -279,18 +294,21 @@ export function assembleTeamPage({
   games,
   players,
   coach,
+  league = DEFAULT_LEAGUE,
   now = new Date(),
 }: {
   team: TeamProfile;
   games: TeamScheduleGame[];
   players: TeamRosterPlayer[];
   coach: string | null;
+  league?: LeagueId;
   now?: Date;
 }): TeamPageResponse {
   const { recent, upcoming } = splitSchedule(games);
   return {
     source: "espn",
     demo: false,
+    league,
     generatedAt: now.toISOString(),
     team,
     recent,
@@ -298,21 +316,25 @@ export function assembleTeamPage({
     roster: players,
     coach,
     coverage: {
-      schedule: scheduleCoverage(games, team.subdivision),
+      schedule: scheduleCoverage(games, team.subdivision, league),
       roster: rosterCoverage(players, team.subdivision),
     },
   };
 }
 
-export async function getTeamPage(teamId: string): Promise<TeamPageResponse> {
+export async function getTeamPage(
+  teamId: string,
+  leagueParam?: LeagueId | string | null
+): Promise<TeamPageResponse> {
   if (!/^\d+$/.test(teamId)) {
     throw new Error("Invalid team id");
   }
 
+  const league = assertLeagueShipped(leagueParam);
   const [profileSettled, scheduleSettled, rosterSettled] = await Promise.allSettled([
-    espnGet(`/teams/${teamId}`),
-    espnGet(`/teams/${teamId}/schedule`),
-    espnGet(`/teams/${teamId}/roster`),
+    espnGet(`/teams/${teamId}`, league.id),
+    espnGet(`/teams/${teamId}/schedule`, league.id),
+    espnGet(`/teams/${teamId}/roster`, league.id),
   ]);
 
   if (profileSettled.status === "rejected") {
@@ -321,11 +343,15 @@ export async function getTeamPage(teamId: string): Promise<TeamPageResponse> {
       : new Error("Team not found on ESPN");
   }
 
-  const team = parseTeamProfile(profileSettled.value);
+  const team = parseTeamProfile(profileSettled.value, league.id);
   const schedulePayload =
     scheduleSettled.status === "fulfilled" ? scheduleSettled.value : null;
   const rosterPayload = rosterSettled.status === "fulfilled" ? rosterSettled.value : null;
-  const games = parseScheduleEvents(schedulePayload ? schedulePayload.events : [], team.id);
+  const games = parseScheduleEvents(
+    schedulePayload ? schedulePayload.events : [],
+    team.id,
+    league.id
+  );
   const roster = rosterPayload
     ? parseRosterAthletes(rosterPayload)
     : { players: [], coach: null };
@@ -335,9 +361,11 @@ export async function getTeamPage(teamId: string): Promise<TeamPageResponse> {
     games,
     players: roster.players,
     coach: roster.coach,
+    league: league.id,
   });
 }
 
-export function teamHref(teamId: string): string {
-  return `/team/${encodeURIComponent(teamId)}`;
+export function teamHref(teamId: string, league: LeagueId = DEFAULT_LEAGUE): string {
+  const path = `/team/${encodeURIComponent(teamId)}`;
+  return league === DEFAULT_LEAGUE ? path : `${path}?league=${league}`;
 }

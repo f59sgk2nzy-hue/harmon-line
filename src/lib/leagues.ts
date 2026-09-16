@@ -66,10 +66,11 @@ export const SPORT_LEAGUES: Record<LeagueId, SportLeague> = {
     logoNamespace: "ncaa",
     detailModules: { primary: "plays", footballSituation: false },
     rankings: true,
-    shipped: false,
+    shipped: true,
     coverage: {
-      headline: "Men’s college basketball — not shipped",
-      detail: `Phase 0 stub. ESPN slug mens-college-basketball is reserved for Phase 1. ${STUB_DETAIL}`,
+      headline: "Men’s college basketball — ESPN public scoreboard",
+      detail:
+        "NCAA Division I from ESPN group 50 (mens-college-basketball). Date nav uses ESPN dates=YYYYMMDD, not football week chips. September slates are often empty out of season. D2/NAIA basketball is not on this board. Scores are never invented.",
     },
   },
   nba: {

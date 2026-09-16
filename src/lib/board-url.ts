@@ -1,4 +1,5 @@
-import type { DivisionId, StatusFilter, SubdivisionId } from "@/lib/types";
+import { DEFAULT_LEAGUE } from "@/lib/leagues";
+import type { DivisionId, LeagueId, StatusFilter, SubdivisionId } from "@/lib/types";
 
 export function boardHref(options: {
   division: DivisionId;
@@ -9,6 +10,7 @@ export function boardHref(options: {
   q?: string;
   week?: number | null;
   year?: number | null;
+  league?: LeagueId;
 }): string {
   const params = new URLSearchParams();
   params.set("division", options.division);
@@ -30,7 +32,15 @@ export function boardHref(options: {
   }
   const query = options.q?.trim();
   if (query) params.set("q", query);
+  if (options.league && options.league !== DEFAULT_LEAGUE) {
+    params.set("league", options.league);
+  }
   return `/?${params.toString()}`;
+}
+
+export function gameHref(gameId: string, league: LeagueId = DEFAULT_LEAGUE): string {
+  const path = `/game/${encodeURIComponent(gameId)}`;
+  return league === DEFAULT_LEAGUE ? path : `${path}?league=${league}`;
 }
 
 export function parseStatusFilter(value: string | null | undefined): StatusFilter {
@@ -38,4 +48,12 @@ export function parseStatusFilter(value: string | null | undefined): StatusFilte
     return value;
   }
   return "all";
+}
+
+export function sportBoardHref(league: LeagueId): string {
+  return league === DEFAULT_LEAGUE ? "/" : `/?league=${league}`;
+}
+
+export function sportRankingsHref(league: LeagueId): string {
+  return league === DEFAULT_LEAGUE ? "/rankings" : `/rankings?league=${league}`;
 }
