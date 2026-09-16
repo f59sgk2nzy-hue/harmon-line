@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { SportSwitcher } from "@/components/sport-switcher";
 import Link from "next/link";
 
 const NAV = [
@@ -26,9 +27,7 @@ export function BoardHeader({
           <span className="font-display text-lg leading-none tracking-[0.14em] text-white sm:text-2xl">
             THE HARMON LINE
           </span>
-          <span className="hidden rounded-sm bg-black/30 px-1.5 py-0.5 font-mono text-[10px] tracking-[0.18em] text-white/90 ring-1 ring-white/15 sm:inline">
-            CFB
-          </span>
+          <SportSwitcher current="cfb" />
         </Link>
         <p className="text-right font-display text-[11px] tracking-[0.16em] text-white/90 sm:text-sm">
           {dateLabel.toUpperCase()}

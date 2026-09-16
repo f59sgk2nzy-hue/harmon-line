@@ -1,5 +1,8 @@
 import { conferenceLabel } from "@/lib/conferences";
+import { espnGet } from "@/lib/espn-http";
 import { classifySubdivision, collectClassificationIds } from "@/lib/espn-parse";
+import { teamLogoUrl } from "@/lib/espn-path";
+import { DEFAULT_LEAGUE } from "@/lib/leagues";
 import type {
   Classification,
   CoverageNote,
@@ -10,14 +13,6 @@ import type {
   TeamScheduleGame,
 } from "@/lib/types";
 
-const ESPN_WEB =
-  process.env.ESPN_WEB_BASE ??
-  "https://site.web.api.espn.com/apis/site/v2/sports/football/college-football";
-const ESPN_SITE =
-  process.env.ESPN_SITE_BASE ??
-  "https://site.api.espn.com/apis/site/v2/sports/football/college-football";
-
-const FETCH_TIMEOUT_MS = 12_000;
 const RECENT_LIMIT = 8;
 const UPCOMING_LIMIT = 10;
 
@@ -41,10 +36,6 @@ function num(value: unknown): number | null {
     return Number(value);
   }
   return null;
-}
-
-function teamLogo(teamId: string): string {
-  return `https://a.espncdn.com/i/teamlogos/ncaa/500/${teamId}.png`;
 }
 
 function hexColor(value: unknown): string | null {
@@ -93,7 +84,7 @@ export function parseTeamProfile(payload: unknown): TeamProfile {
     abbreviation: str(team.abbreviation, "UNK").toUpperCase(),
     color: hexColor(team.color),
     altColor: hexColor(team.alternateColor),
-    logo: teamLogo(id),
+    logo: teamLogoUrl(id, DEFAULT_LEAGUE),
     record: overall ? str(overall.summary) || null : str(team.recordSummary) || null,
     standing: str(team.standingSummary) || null,
     conferenceId,
@@ -150,7 +141,7 @@ export function parseScheduleEvents(raw: unknown, teamId: string): TeamScheduleG
         id: oppId,
         name: str(oppTeam.displayName || oppTeam.name, "Opponent"),
         abbreviation: str(oppTeam.abbreviation, "OPP").toUpperCase(),
-        logo: teamLogo(oppId || "0"),
+        logo: teamLogoUrl(oppId || "0", DEFAULT_LEAGUE),
       },
       teamScore,
       opponentScore,
@@ -311,40 +302,6 @@ export function assembleTeamPage({
       roster: rosterCoverage(players, team.subdivision),
     },
   };
-}
-
-async function espnGet(path: string): Promise<Json> {
-  const bases = [ESPN_WEB, ESPN_SITE];
-  let lastError: Error | null = null;
-  for (const base of bases) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    try {
-      const response = await fetch(`${base}${path}`, {
-        signal: controller.signal,
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "HarmonLine/1.0 (college football scoreboard; +https://localhost)",
-        },
-        cache: "no-store",
-      });
-      if (!response.ok) {
-        lastError = new Error(`ESPN ${response.status} from ${base}`);
-        continue;
-      }
-      const data = asRecord(await response.json());
-      if (!data) {
-        lastError = new Error("ESPN returned a non-object payload");
-        continue;
-      }
-      return data;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-  throw lastError ?? new Error("Unable to reach ESPN public APIs");
 }
 
 export async function getTeamPage(teamId: string): Promise<TeamPageResponse> {

@@ -32,8 +32,8 @@ None required. Copy `.env.example` only if you want to point at a different ESPN
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `ESPN_WEB_BASE` | no | Primary public host (defaults to `site.web.api.espn.com` … `/college-football`) |
-| `ESPN_SITE_BASE` | no | Fallback host (`site.api.espn.com` — some networks block it) |
+| `ESPN_WEB_BASE` | no | Primary public **host** (defaults to `https://site.web.api.espn.com`). Sport/league is appended from the registry. |
+| `ESPN_SITE_BASE` | no | Fallback **host** (`https://site.api.espn.com`). |
 | `YOUTUBE_API_KEY` | no | Optional YouTube Data API v3 key. Highlights work without it via public channel RSS. |
 
 ## Data sources and coverage
@@ -57,7 +57,7 @@ None required. Copy `.env.example` only if you want to point at a different ESPN
 
 **Source:** ESPN’s unofficial public rankings JSON — the same hosts as the scoreboard, no API key:
 
-`GET {ESPN_WEB_BASE|ESPN_SITE_BASE}/rankings`
+`GET {ESPN_WEB_BASE|ESPN_SITE_BASE}/apis/site/v2/sports/football/college-football/rankings`
 
 Example: `https://site.web.api.espn.com/apis/site/v2/sports/football/college-football/rankings` (fallback `site.api.espn.com`).
 
@@ -149,3 +149,18 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 ## Stack
 
 Next.js (App Router) + TypeScript + Tailwind CSS + shadcn/ui. Server routes proxy ESPN so the browser stays same-origin.
+
+## Phase 0 — sport-agnostic ESPN registry (foundation)
+
+This build is still **college football only** in the UI. Phase 0 lands the `SportLeague` registry and parameterized ESPN paths so men’s college basketball can be the next board (Phase 1) without rewriting the fetch layer.
+
+| Piece | Status |
+| --- | --- |
+| CFB scoreboard, week strip, Rankings, Gamecast, Deep Dive, team pages, highlights SSR, PWA | Unchanged |
+| Registry (`cfb` shipped; `mbb` / `nba` / `nfl` / `mlb` stubs) | In |
+| Host-only `ESPN_WEB_BASE` / `ESPN_SITE_BASE` + `sports/{sport}/{league}` | In |
+| `/api/scoreboard?league=` and game detail `league` (default `cfb`) | In — existing CFB clients omit the param |
+| Sport switcher | Dormant — CFB badge only; no other-sport UI |
+| MBB / NBA / NFL / MLB scoreboards | Out of scope until a later phase |
+
+Stub leagues return `501` with `demo: false` and coverage notes. Scores are never invented.

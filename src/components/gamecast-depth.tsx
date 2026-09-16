@@ -2,6 +2,7 @@
 
 import { TeamLogo } from "@/components/team-logo";
 import { pairTeamStatRows } from "@/lib/espn-gamecast";
+import { teamLogoUrl } from "@/lib/espn-path";
 import { teamHref } from "@/lib/espn-team";
 import type {
   GamecastNews,
@@ -145,7 +146,7 @@ function PlayerBoxTeamBlock({ team }: { team: PlayerBoxTeam }) {
           href={teamHref(team.teamId)}
           className="pressable tap-row inline-flex min-h-11 min-w-0 items-center gap-2 no-underline"
         >
-          <TeamLogo src={`https://a.espncdn.com/i/teamlogos/ncaa/500/${team.teamId}.png`} alt="" abbreviation={team.abbreviation} size={28} />
+          <TeamLogo src={teamLogoUrl(team.teamId)} alt="" abbreviation={team.abbreviation} size={28} />
           <span className="font-display text-sm tracking-[0.14em] text-white">
             {team.abbreviation}
           </span>
