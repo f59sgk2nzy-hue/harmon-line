@@ -14,9 +14,9 @@ describe("unshipped league fetch gate", () => {
         error.payload.league === "nba"
     );
     await assert.rejects(
-      () => getGameDetail("401858213", "nfl"),
+      () => getGameDetail("401858213", "mlb"),
       (error: unknown) =>
-        error instanceof LeagueNotShippedError && error.payload.league === "nfl"
+        error instanceof LeagueNotShippedError && error.payload.league === "mlb"
     );
   });
 });

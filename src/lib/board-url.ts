@@ -10,6 +10,7 @@ export function boardHref(options: {
   q?: string;
   week?: number | null;
   year?: number | null;
+  seasonType?: number | null;
   league?: LeagueId;
 }): string {
   const params = new URLSearchParams();
@@ -19,6 +20,9 @@ export function boardHref(options: {
     params.set("week", String(options.week));
     if (options.year && options.year > 0) {
       params.set("year", String(options.year));
+    }
+    if (options.league === "nfl" && options.seasonType && options.seasonType > 0) {
+      params.set("seasontype", String(options.seasonType));
     }
   }
   if (options.division === "d1" && options.subdivision && options.subdivision !== "all") {

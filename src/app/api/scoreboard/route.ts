@@ -1,6 +1,6 @@
 import { isEspnDate, todayEspnDate } from "@/lib/dates";
 import { getScoreboard, parseDivision, parseSubdivision } from "@/lib/espn";
-import { parseSeasonYear, parseWeekParam } from "@/lib/espn-weeks";
+import { parseSeasonType, parseSeasonYear, parseWeekParam } from "@/lib/espn-weeks";
 import { isLeagueNotShippedError, parseLeagueParam } from "@/lib/leagues";
 import { NextResponse } from "next/server";
 
@@ -15,7 +15,16 @@ export async function GET(request: Request) {
   const date = isEspnDate(dateParam) ? dateParam : todayEspnDate();
   const week = parseWeekParam(url.searchParams.get("week"));
   const year = parseSeasonYear(url.searchParams.get("year"), date);
-  const view = week ? "week" : "date";
+  const seasonType = parseSeasonType(url.searchParams.get("seasontype"), league);
+  const viewRaw = url.searchParams.get("view");
+  const view =
+    viewRaw === "week" || viewRaw === "date"
+      ? viewRaw
+      : week
+        ? "week"
+        : league === "nfl"
+          ? "week"
+          : "date";
 
   try {
     const board = await getScoreboard({
@@ -25,6 +34,7 @@ export async function GET(request: Request) {
       subdivision,
       week: view === "week" ? week : null,
       year: view === "week" ? year : null,
+      seasonType: league === "nfl" && view === "week" ? seasonType : null,
       view,
     });
     return NextResponse.json(board, {

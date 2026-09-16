@@ -1,6 +1,6 @@
 import { espnGet } from "@/lib/espn-http";
 import { teamLogoUrl } from "@/lib/espn-path";
-import { DEFAULT_LEAGUE, assertLeagueShipped } from "@/lib/leagues";
+import { DEFAULT_LEAGUE, assertLeagueShipped, getLeague } from "@/lib/leagues";
 import type {
   CoverageNote,
   LeagueId,
@@ -37,6 +37,7 @@ export const MBB_POLL_TABS: ReadonlyArray<{
 ];
 
 export function pollTabsFor(league: LeagueId = DEFAULT_LEAGUE) {
+  if (!getLeague(league).rankings) return [];
   return league === "mbb" ? MBB_POLL_TABS : POLL_TABS;
 }
 
@@ -191,6 +192,13 @@ export function parseRankingsPayload(
 }
 
 function coverageFor(polls: RankingPoll[], league: LeagueId = DEFAULT_LEAGUE): CoverageNote {
+  if (!getLeague(league).rankings) {
+    return {
+      headline: "No ESPN rankings for this league",
+      detail:
+        "ESPN’s public /rankings JSON 404s for the NFL. This page does not fabricate polls or poll points.",
+    };
+  }
   const live = polls.filter((poll) => poll.ranks.length > 0).map((poll) => poll.shortName);
   const sport = league === "mbb" ? "men’s college basketball" : "college-football";
   return {
@@ -241,6 +249,9 @@ export async function getRankings(
   leagueParam?: LeagueId | string | null
 ): Promise<RankingsResponse> {
   const league = assertLeagueShipped(leagueParam);
+  if (!league.rankings) {
+    return assembleRankingsPage({ payload: {}, poll, league: league.id });
+  }
   const payload = await espnGet("/rankings", league.id);
   return assembleRankingsPage({ payload, poll, league: league.id });
 }

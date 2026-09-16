@@ -7,11 +7,15 @@ import { useEffect, useRef } from "react";
 export function WeekStrip({
   weeks,
   selectedWeek,
+  selectedSeasonType,
   hrefFor,
+  label = "College football week",
 }: {
   weeks: ScoreboardWeek[];
   selectedWeek: number | null;
+  selectedSeasonType?: number | null;
   hrefFor: (week: ScoreboardWeek) => string;
+  label?: string;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
@@ -29,14 +33,22 @@ export function WeekStrip({
         ref={scrollerRef}
         className="week-scroller flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5"
         role="listbox"
-        aria-label="College football week"
+        aria-label={label}
         aria-orientation="horizontal"
       >
         {weeks.map((week) => {
-          const active = selectedWeek === week.number;
+          const active =
+            selectedWeek === week.number &&
+            (selectedSeasonType == null || week.seasonType === selectedSeasonType);
+          const chip =
+            week.seasonType === 2
+              ? `WK ${week.number}`
+              : week.seasonType === 1
+                ? week.label.replace(/^Preseason\s+/i, "PRE ")
+                : week.label;
           return (
             <div
-              key={week.number}
+              key={`${week.seasonType}-${week.number}`}
               data-week-active={active ? "true" : "false"}
               className="shrink-0"
             >
@@ -46,7 +58,7 @@ export function WeekStrip({
                 tone="red"
                 className="week-chip font-display text-[11px] tracking-[0.14em]"
               >
-                WK {week.number}
+                {chip}
                 {week.detail ? (
                   <span className="ml-1.5 hidden font-mono text-[10px] tracking-normal opacity-80 sm:inline">
                     {week.detail}

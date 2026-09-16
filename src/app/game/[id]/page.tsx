@@ -3,7 +3,7 @@ import { GameDetailView } from "@/components/game-detail";
 import { PageTransition } from "@/components/page-transition";
 import { formatBoardDate, todayEspnDate } from "@/lib/dates";
 import { getGameDetail } from "@/lib/espn";
-import { parseLeagueParam } from "@/lib/leagues";
+import { getLeague, parseLeagueParam } from "@/lib/leagues";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,7 @@ export default async function GamePage({
   const league = parseLeagueParam(
     typeof query.league === "string" ? query.league : Array.isArray(query.league) ? query.league[0] : null
   );
+  const spec = getLeague(league);
   let initial = null;
   let initialError: string | null = null;
   try {
@@ -41,7 +42,7 @@ export default async function GamePage({
     <>
       <BoardHeader
         dateLabel={dateLabel}
-        week={league === "cfb" ? initial?.game.week : null}
+        week={spec.navMode === "week" ? initial?.game.week : null}
         league={league}
       />
       <PageTransition>

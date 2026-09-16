@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WeekStrip } from "@/components/week-strip";
 import { boardHref, parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, formatPollClock, shiftEspnDate } from "@/lib/dates";
+import { weekByNumber } from "@/lib/espn-weeks";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type {
@@ -77,6 +78,7 @@ export function ScoreboardView({
   year,
   view,
   league = DEFAULT_LEAGUE,
+  seasonType = null,
 }: {
   initial: ScoreboardResponse | null;
   initialError?: string | null;
@@ -90,6 +92,7 @@ export function ScoreboardView({
   year: number | null;
   view: ScoreboardView;
   league?: LeagueId;
+  seasonType?: number | null;
 }) {
   const spec = getLeague(league);
   const dateOnly = spec.navMode === "date";
@@ -118,10 +121,12 @@ export function ScoreboardView({
         division,
         date,
         subdivision,
+        view,
       });
       if (view === "week" && week) {
         params.set("week", String(week));
         if (year) params.set("year", String(year));
+        if (league === "nfl" && seasonType) params.set("seasontype", String(seasonType));
       }
       if (league !== DEFAULT_LEAGUE) params.set("league", league);
       const response = await fetch(`/api/scoreboard?${params}`, { cache: "no-store" });
@@ -135,7 +140,7 @@ export function ScoreboardView({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Scoreboard request failed");
     }
-    }, [date, division, subdivision, view, week, year, league]);
+    }, [date, division, subdivision, view, week, year, league, seasonType]);
 
   useLivePoll(refresh, { intervalMs: BOARD_REFRESH_MS });
 
@@ -153,6 +158,7 @@ export function ScoreboardView({
     q?: string;
     week?: number | null;
     year?: number | null;
+    seasonType?: number | null;
     view?: ScoreboardView;
   }) => {
     const nextDate = next.date ?? date;
@@ -162,6 +168,8 @@ export function ScoreboardView({
       nextWeek != null
         ? (next.year ?? year ?? Number(nextDate.slice(0, 4)))
         : null;
+    const nextSeasonType =
+      nextWeek != null ? (next.seasonType ?? seasonType ?? board?.seasonType ?? 2) : null;
     return boardHref({
       division: next.division ?? division,
       date: nextDate,
@@ -171,6 +179,7 @@ export function ScoreboardView({
       q: next.q ?? localQuery,
       week: dateOnly ? null : nextWeek,
       year: dateOnly ? null : nextYear,
+      seasonType: dateOnly ? null : nextSeasonType,
       league,
     });
   };
@@ -178,12 +187,15 @@ export function ScoreboardView({
   const weeks = board?.weeks ?? [];
   const seasonYear = board?.seasonYear ?? year ?? Number(date.slice(0, 4));
   const selectedWeek = (view === "week" ? week : null) ?? board?.week ?? week;
+  const selectedSeasonType =
+    (view === "week" ? seasonType : null) ?? board?.seasonType ?? seasonType;
 
   const weekHref = (entry: ScoreboardWeek) =>
     hrefFor({
       date: entry.startEspnDate,
       week: entry.number,
       year: seasonYear,
+      seasonType: entry.seasonType,
       view: "week",
     });
 
@@ -275,6 +287,27 @@ export function ScoreboardView({
                   </div>
                 )}
               </>
+            ) : league === "nfl" ? (
+              <div className="flex items-center gap-1">
+                {(
+                  [
+                    ["all", "ALL 32"],
+                    ["8", "AFC"],
+                    ["7", "NFC"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <FilterChip
+                    key={id}
+                    href={hrefFor({ conference: id })}
+                    active={localConference === id}
+                    tone={id === "all" ? "inverse" : "red"}
+                    className="font-mono text-[10px] tracking-[0.14em]"
+                    onSelect={() => applyClientFilter({ conference: id })}
+                  >
+                    {label}
+                  </FilterChip>
+                ))}
+              </div>
             ) : (
               <span className="chip-inverse chip-hit font-display text-[11px] tracking-[0.16em]">
                 DIV I
@@ -286,7 +319,13 @@ export function ScoreboardView({
           </div>
 
           {dateOnly ? null : (
-            <WeekStrip weeks={weeks} selectedWeek={selectedWeek} hrefFor={weekHref} />
+            <WeekStrip
+              weeks={weeks}
+              selectedWeek={selectedWeek}
+              selectedSeasonType={selectedSeasonType}
+              hrefFor={weekHref}
+              label={league === "nfl" ? "NFL week" : "College football week"}
+            />
           )}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -351,6 +390,9 @@ export function ScoreboardView({
               ) : null}
               {view === "week" && week ? <input type="hidden" name="week" value={week} /> : null}
               {view === "week" && year ? <input type="hidden" name="year" value={year} /> : null}
+              {league === "nfl" && view === "week" && seasonType ? (
+                <input type="hidden" name="seasontype" value={seasonType} />
+              ) : null}
               {subdivision !== "all" ? (
                 <input type="hidden" name="subdivision" value={subdivision} />
               ) : null}
@@ -381,7 +423,7 @@ export function ScoreboardView({
             </form>
           </div>
 
-          {(board?.conferences.length ?? 0) > 0 ? (
+          {(board?.conferences.length ?? 0) > 0 && league !== "nfl" ? (
             <div className="flex gap-1 overflow-x-auto pb-0.5">
               <FilterChip
                 href={hrefFor({ conference: "all" })}
@@ -473,6 +515,10 @@ export function ScoreboardView({
               board.games.length === 0
                 ? league === "mbb"
                   ? "ESPN has no D1 men’s basketball games on this Eastern date. September slates are often empty out of season. Try another date — scores are never invented."
+                  : league === "nfl"
+                    ? view === "week"
+                      ? "ESPN has no NFL games for this week. Empty weeks stay empty — scores are never invented."
+                      : "ESPN has no NFL games on this Eastern date. Open a week from the strip for the published slate — scores are never invented."
                   : division === "naia"
                   ? "ESPN’s NAIA group is quiet for this date. Many NAIA-only games never appear here. Try another Saturday or check D1/D2."
                   : view === "week"
@@ -491,7 +537,8 @@ export function ScoreboardView({
                       year: seasonYear,
                       view: "week",
                       date:
-                        weeks.find((entry) => entry.number === selectedWeek)?.startEspnDate ?? date,
+                        weekByNumber(weeks, selectedWeek, selectedSeasonType)?.startEspnDate ?? date,
+                      seasonType: selectedSeasonType,
                     })}
                     className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
                   >
@@ -503,8 +550,9 @@ export function ScoreboardView({
                       week: selectedWeek - 1,
                       year: seasonYear,
                       view: "week",
+                      seasonType: selectedSeasonType,
                       date:
-                        weeks.find((entry) => entry.number === selectedWeek - 1)?.startEspnDate ??
+                        weekByNumber(weeks, selectedWeek - 1, selectedSeasonType)?.startEspnDate ??
                         shiftEspnDate(date, -7),
                     })}
                     className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
