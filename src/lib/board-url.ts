@@ -62,3 +62,12 @@ export function sportBoardHref(league: LeagueId): string {
 export function sportRankingsHref(league: LeagueId): string {
   return league === DEFAULT_LEAGUE ? "/rankings" : `/rankings?league=${league}`;
 }
+
+export function sportOpsHref(league: LeagueId, busy?: string | null): string {
+  const params = new URLSearchParams();
+  if (league !== DEFAULT_LEAGUE) params.set("league", league);
+  const overlay = busy?.trim();
+  if (overlay) params.set("busy", overlay);
+  const query = params.toString();
+  return query ? `/ops?${query}` : "/ops";
+}

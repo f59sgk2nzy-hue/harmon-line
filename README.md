@@ -88,6 +88,22 @@ Each row shows ESPN’s current rank, logo, school, record, and a trend arrow **
 
 The header **RANKINGS** nav is on CFB and MBB pages. NFL, NBA, and MLB hide it — ESPN’s public rankings JSON 404s, and this app does not invent polls. On a phone the poll tabs stick under the header (44px targets, horizontal scroll if needed).
 
+## Ops / agent graph
+
+`/ops` is a hub-and-spoke **agent map on the board** (not a separate product). Header **OPS** sits next to SCOREBOARD / RANKINGS. The sport switcher still jumps CFB / MBB / NFL / NBA / MLB boards.
+
+| Piece | v0 |
+| --- | --- |
+| Hub | **Chief Keef** — orchestrator mark. Subtle radar pulse when any active node is busy. |
+| Spokes | **The Board** (live scoreboard), **CFB Edge** (retired / skip), **Lab** (skip). Idle dim, busy bright. |
+| Edges | Thin hub↔spoke lines. Particle / dash pulse only when that spoke is busy. |
+| Feed | Static roster. **Live agent-status is not connected.** `/api/ops` returns the same payload (`demo: false`, `liveFeed: false`). |
+| Dogfood | `?busy=board`, `?busy=hub`, or `?busy=all` (and chips on the page) light nodes without claiming a live feed. Retired/skip spokes stay dim. |
+
+No PnL, Polymarket, Monte Carlo dollars, win probability, or paid-odds chrome. Scores stay on the scoreboard.
+
+Open [http://localhost:43173/ops](http://localhost:43173/ops). Try [http://localhost:43173/ops?busy=board](http://localhost:43173/ops?busy=board) to see The Board bright with edge traffic.
+
 ## Week / schedule nav
 
 The home board is still Eastern-date based by default (`?date=YYYYMMDD`), but a swipeable **WEEK** chip strip lets you jump the way ESPN’s scoreboard URL does: `/_/week/N/year/YYYY/seasontype/2`.
@@ -165,6 +181,7 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 - Open **DEEP DIVE / SIM** on a CFB game or team page for matchup stats, a simulation range, and prop-feedback cards (CFB only — not on NFL, MBB, NBA, or MLB)
 - Tap a school or NFL club name on the board, a game, or a rankings row to open recent scores, the upcoming slate, and the roster
 - Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips (every home board; keyed off `league`)
+- Open **OPS** for the hub-and-spoke agent map (static roster; live status feed is not connected)
 - Watch the bottom-line ticker for the full slate
 - Install the board on a phone home screen or pin it as a Windows app
 
