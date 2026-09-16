@@ -1,5 +1,7 @@
 import { EmptyState } from "@/components/empty-state";
+import { XrayGraph } from "@/components/xray-graph";
 import { sportBoardHref, sportResearchHref } from "@/lib/board-url";
+import type { WinProbSeries } from "@/lib/espn-winprob";
 import { getLeague } from "@/lib/leagues";
 import type { ResearchBrief, ResearchFeed } from "@/lib/research";
 import type { LeagueId } from "@/lib/types";
@@ -87,9 +89,26 @@ function BriefCard({ brief, league }: { brief: ResearchBrief; league: LeagueId }
   );
 }
 
-function BriefDetail({ brief }: { brief: ResearchBrief }) {
+function BriefDetail({
+  brief,
+  league,
+  xrayGraph,
+}: {
+  brief: ResearchBrief;
+  league: LeagueId;
+  xrayGraph: WinProbSeries | null;
+}) {
   return (
     <div className="flex flex-col gap-4">
+      {brief.kind === "postgame-xray" && xrayGraph ? (
+        <XrayGraph
+          key={brief.id}
+          series={xrayGraph}
+          variant="detail"
+          league={league}
+          briefId={brief.id}
+        />
+      ) : null}
       <div className="border border-white/10 bg-[#111] px-3 py-3 sm:px-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="font-display text-[10px] tracking-[0.2em] text-[#ff3b3b]">
@@ -158,11 +177,15 @@ export function ResearchView({
   feed,
   selected,
   requestedId = null,
+  xrayGraph = null,
+  featuredXrayGraph = null,
 }: {
   league: LeagueId;
   feed: ResearchFeed;
   selected: ResearchBrief | null;
   requestedId?: string | null;
+  xrayGraph?: WinProbSeries | null;
+  featuredXrayGraph?: WinProbSeries | null;
 }) {
   const spec = getLeague(league);
   const olderLore = feed.briefs.filter(
@@ -183,7 +206,7 @@ export function ResearchView({
           {selected || missingRequested ? "RESEARCH" : "BOARD"}
         </Link>
         <p className="font-mono text-[10px] tracking-[0.14em] text-white/40">
-          {spec.shortLabel}  ·  DEEP LORE + X-RAY V0  ·  DISK FEED  ·  DEMO FALSE
+          {spec.shortLabel}  ·  DEEP LORE + X-RAY GRAPH V0  ·  DISK FEED  ·  DEMO FALSE
         </p>
       </div>
 
@@ -197,7 +220,8 @@ export function ResearchView({
         Read-only Deep Lore briefs and Post-Game Tactical X-Rays written by Board
         routines. Drop JSON or markdown into <span className="font-mono">public/research/</span>{" "}
         on this machine, or set <span className="font-mono">RESEARCH_DIR</span>. Model copy
-        wears a SIMULATION badge. Scores, WPA, and odds are never invented.
+        wears a SIMULATION badge. X-Ray graphs copy ESPN’s published winprobability
+        series only — scores, WPA, and odds are never invented.
       </p>
 
       <div className="mt-4 border border-white/10 bg-[#111] px-3 py-3 sm:px-4">
@@ -229,7 +253,7 @@ export function ResearchView({
         </div>
       ) : selected ? (
         <div className="mt-6">
-          <BriefDetail brief={selected} />
+          <BriefDetail brief={selected} league={league} xrayGraph={xrayGraph} />
         </div>
       ) : empty ? (
         <div className="mt-6">
@@ -267,6 +291,17 @@ export function ResearchView({
             <p className="mb-2 font-display text-[11px] tracking-[0.22em] text-[#f3c14b]">
               POST-GAME X-RAY
             </p>
+            {featuredXrayGraph && feed.xrays[0] ? (
+              <div className="mb-3">
+                <XrayGraph
+                  key={`featured-${feed.xrays[0].id}`}
+                  series={featuredXrayGraph}
+                  variant="featured"
+                  league={league}
+                  briefId={feed.xrays[0].id}
+                />
+              </div>
+            ) : null}
             {feed.xrays.length === 0 ? (
               <EmptyState
                 kicker="X-RAY"

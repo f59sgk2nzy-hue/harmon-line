@@ -32,7 +32,7 @@ Subfolders such as `research/examples/` are **not** scanned. Live empty is hones
 
 `kind` is `deep-lore` or `postgame-xray`. Markdown from Board routines is also accepted when the filename starts with `deep-lore-` or `postgame-xray-` and uses `## Evidence`, `## Inference`, and `## Narrative` headings.
 
-Odds, pickcenter, winprob, Polymarket, PnL, and WPA fields are ignored. `demo` on the API is always `false`.
+Odds, pickcenter, betting `winprob`, Polymarket, PnL, and WPA fields **on the brief file** are ignored. Post-Game X-Ray detail (and the featured list strip) may attach `xrayGraph` / `featuredXrayGraph` from ESPN summary `winprobability` for a digit `gameId` + league. If ESPN omitted that series the graph is **WIN PROBABILITY NOT ON THIS FEED** — never invented. Chrome: Evidence (ESPN WP series), not odds/ATS/pickcenter. `demo` on the API is always `false`.
 
 ## SAMPLE fixtures
 

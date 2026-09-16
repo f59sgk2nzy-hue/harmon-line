@@ -126,11 +126,12 @@ Open [http://localhost:43173/oracle](http://localhost:43173/oracle). Try [http:/
 
 | Piece | v0 |
 | --- | --- |
-| List | Latest Deep Lore brief + recent X-Rays from disk. Open a row for Evidence vs Inference. Model narrative wears a **SIMULATION** badge. |
-| API | `GET /api/research` and `GET /api/research?id=` → `{ demo: false, latestDeepLore, xrays, briefs, honesty }` |
-| Honesty | Empty disk → **NO BRIEF ON THIS FEED YET**. Anomalies, WPA, odds, and scores are never invented. Labeled **SAMPLE** only when the file says so. |
+| List | Latest Deep Lore brief + recent X-Rays from disk. Open a row for Evidence vs Inference. Model narrative wears a **SIMULATION** badge. Latest X-Ray can show a featured WP graph strip. |
+| Detail | Post-Game X-Ray pages render an interactive ESPN win-probability timeline (hover/touch scrub, tipping-point labels from PBP). Evidence / Inference / Narrative panels stay. |
+| API | `GET /api/research` and `GET /api/research?id=` → `{ demo: false, latestDeepLore, xrays, briefs, honesty, featuredXrayGraph?, xrayGraph? }` |
+| Honesty | Empty disk → **NO BRIEF ON THIS FEED YET**. Missing ESPN `winprobability` → **WIN PROBABILITY NOT ON THIS FEED**. Anomalies, WPA, odds, ATS, pickcenter, and scores are never invented. Labeled **SAMPLE** only when the file says so. |
 | Ingest | `RESEARCH_DIR` (optional) then repo `research/*.json|*.md`, plus DELL drop folder `public/research/`. Subfolders such as `research/examples/` are not auto-loaded. |
-| Not | Live lab filesystem on DELL, POST ingest, Scrub-to-Film, odds / winprob / Polymarket / PnL |
+| Not | Live lab filesystem on DELL, POST ingest, Scrub-to-Film, paid odds, Polymarket / PnL, invented WP |
 
 Lab cron files (`deep-lore-*.md`, `postgame-xray-*.md`) must be copied onto this app’s disk. On DELL, drop them in `public/research/` (or set `RESEARCH_DIR`) and refresh. Schema and copy-paste SAMPLE fixtures: `research/README.md` and `research/examples/`.
 
@@ -215,7 +216,7 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 - Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips (every home board; keyed off `league`)
 - Open **OPS** for the hub-and-spoke agent map (static roster; live status feed is not connected)
 - Ask **Stat Oracle** (`/oracle`) a named-game or named-team question and get Evidence vs Inference from public ESPN JSON
-- Open **RESEARCH** (`/research`) for read-only Deep Lore briefs and Post-Game X-Rays staged on disk (honest empty when none)
+- Open **RESEARCH** (`/research`) for read-only Deep Lore briefs and Post-Game X-Rays staged on disk (honest empty when none). An X-Ray with `league` + ESPN `gameId` shows the interactive WP graph when ESPN published `winprobability`; otherwise **WIN PROBABILITY NOT ON THIS FEED**.
 - Watch the bottom-line ticker for the full slate
 - Install the board on a phone home screen or pin it as a Windows app
 
