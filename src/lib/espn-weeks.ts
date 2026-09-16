@@ -3,6 +3,8 @@ import type { LeagueId } from "@/lib/types";
 
 export const REGULAR_SEASON_TYPE = 2;
 export const MAX_REGULAR_WEEK = 20;
+/** NFL v0: pre / regular / post only. Off-season entries are never invented into the strip. */
+export const NFL_CALENDAR_SEASON_TYPES = [1, 2, 3] as const;
 
 export type ScoreboardViewMode = "date" | "week";
 
@@ -142,6 +144,34 @@ export function weekForEspnDate(
       return instant >= start && instant <= end;
     }) ?? null
   );
+}
+
+export function weekByNumber<T extends { number: number; seasonType: number }>(
+  weeks: T[],
+  number: number | null | undefined,
+  seasonType?: number | null
+): T | null {
+  if (!number) return null;
+  if (seasonType != null) {
+    return weeks.find((week) => week.number === number && week.seasonType === seasonType) ?? null;
+  }
+  return weeks.find((week) => week.number === number) ?? null;
+}
+
+export function fallbackBoardWeek(options: {
+  navMode: "week" | "date";
+  view: "week" | "date";
+  weekParam: number | null;
+  mappedWeek: number | null;
+  payloadWeek: number | null;
+  payloadSeasonType: number | null;
+  leagueId: LeagueId;
+}): number | null {
+  if (options.navMode === "date") return null;
+  if (options.view === "week" && options.weekParam) return options.weekParam;
+  if (options.mappedWeek) return options.mappedWeek;
+  if (options.leagueId === "nfl") return options.payloadWeek;
+  return options.payloadSeasonType === REGULAR_SEASON_TYPE ? options.payloadWeek : null;
 }
 
 export function espnScoreboardPath(options: {

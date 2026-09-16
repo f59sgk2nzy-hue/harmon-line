@@ -11,9 +11,11 @@ import { assembleRankingsPage, pollTabsFor } from "./espn-rankings";
 import { parseTeamProfile, teamHref } from "./espn-team";
 import {
   espnScoreboardPath,
+  fallbackBoardWeek,
   parseCalendarWeeks,
   parseRegularSeasonWeeks,
   parseSeasonType,
+  weekByNumber,
   weekForEspnDate,
 } from "./espn-weeks";
 import { teamLogoUrl } from "./espn-path";
@@ -157,6 +159,32 @@ describe("NFL week calendar", () => {
     );
   });
 
+  it("does not invent off-season chips when asked for pre/regular/post only", () => {
+    const withOff = {
+      leagues: [
+        {
+          calendar: [
+            ...NFL_CALENDAR.leagues[0].calendar,
+            {
+              label: "Off Season",
+              value: "4",
+              entries: [
+                {
+                  label: "Hall of Fame",
+                  value: "1",
+                  startDate: "2027-02-16T08:00Z",
+                  endDate: "2027-08-01T06:59Z",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const weeks = parseCalendarWeeks(withOff, [1, 2, 3]);
+    assert.equal(weeks.some((week) => week.seasonType === 4), false);
+  });
+
   it("keeps CFB regular-season parsing from inventing bowl weeks", () => {
     const weeks = parseRegularSeasonWeeks(NFL_CALENDAR);
     assert.deepEqual(
@@ -172,6 +200,44 @@ describe("NFL week calendar", () => {
     assert.equal(weekForEspnDate("20260916", weeks)?.seasonType, 2);
     assert.equal(weekForEspnDate("20270115", weeks)?.label, "Wild Card");
     assert.equal(weekForEspnDate("20260701", weeks), null);
+  });
+
+  it("does not treat preseason week 1 as regular week 1 when looking up a chip", () => {
+    const weeks = parseCalendarWeeks(NFL_CALENDAR, [1, 2, 3]);
+    assert.equal(weekByNumber(weeks, 1, 2)?.label, "Week 1");
+    assert.equal(weekByNumber(weeks, 1, 1)?.label, "Hall of Fame Weekend");
+  });
+});
+
+describe("fallbackBoardWeek", () => {
+  it("keeps CFB from lighting Week 1 on a bowl date when ESPN sent payload week 1", () => {
+    assert.equal(
+      fallbackBoardWeek({
+        navMode: "week",
+        view: "date",
+        weekParam: null,
+        mappedWeek: null,
+        payloadWeek: 1,
+        payloadSeasonType: 3,
+        leagueId: "cfb",
+      }),
+      null
+    );
+  });
+
+  it("still uses ESPN's current NFL week when the date is not mapped yet", () => {
+    assert.equal(
+      fallbackBoardWeek({
+        navMode: "week",
+        view: "week",
+        weekParam: null,
+        mappedWeek: null,
+        payloadWeek: 2,
+        payloadSeasonType: 2,
+        leagueId: "nfl",
+      }),
+      2
+    );
   });
 });
 
@@ -267,8 +333,8 @@ describe("NFL hrefs", () => {
 describe("NFL logos", () => {
   it("uses the nfl/500 CDN namespace with abbreviations, not ncaa", () => {
     assert.equal(
-      teamLogoUrl("6", "nfl", "DAL"),
-      "https://a.espncdn.com/i/teamlogos/nfl/500/dal.png"
+      teamLogoUrl("2", "nfl", "SEA"),
+      "https://a.espncdn.com/i/teamlogos/nfl/500/sea.png"
     );
     assert.equal(
       teamLogoUrl("333", "cfb"),

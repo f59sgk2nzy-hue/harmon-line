@@ -149,7 +149,7 @@ function PlayerBoxTeamBlock({ team, league }: { team: PlayerBoxTeam; league: Lea
           className="pressable tap-row inline-flex min-h-11 min-w-0 items-center gap-2 no-underline"
         >
           <TeamLogo
-            src={teamLogoUrl(team.teamId, league)}
+            src={teamLogoUrl(team.teamId, league, team.abbreviation)}
             alt=""
             abbreviation={team.abbreviation}
             size={28}

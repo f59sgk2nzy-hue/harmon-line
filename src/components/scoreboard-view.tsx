@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { WeekStrip } from "@/components/week-strip";
 import { boardHref, parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, formatPollClock, shiftEspnDate } from "@/lib/dates";
+import { weekByNumber } from "@/lib/espn-weeks";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type {
@@ -536,7 +537,8 @@ export function ScoreboardView({
                       year: seasonYear,
                       view: "week",
                       date:
-                        weeks.find((entry) => entry.number === selectedWeek)?.startEspnDate ?? date,
+                        weekByNumber(weeks, selectedWeek, selectedSeasonType)?.startEspnDate ?? date,
+                      seasonType: selectedSeasonType,
                     })}
                     className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"
                   >
@@ -548,8 +550,9 @@ export function ScoreboardView({
                       week: selectedWeek - 1,
                       year: seasonYear,
                       view: "week",
+                      seasonType: selectedSeasonType,
                       date:
-                        weeks.find((entry) => entry.number === selectedWeek - 1)?.startEspnDate ??
+                        weekByNumber(weeks, selectedWeek - 1, selectedSeasonType)?.startEspnDate ??
                         shiftEspnDate(date, -7),
                     })}
                     className="pressable inline-block font-display text-xs tracking-[0.16em] text-[#f3c14b]"

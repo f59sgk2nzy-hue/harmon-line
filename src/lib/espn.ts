@@ -20,10 +20,12 @@ import {
 import { parseLeaders, parsePlay, parsePlays, parseScoringPlays } from "@/lib/espn-plays";
 import {
   espnScoreboardPath,
+  fallbackBoardWeek,
   parseCalendarWeeks,
   parseRegularSeasonWeeks,
   parseSeasonYear,
   weekForEspnDate,
+  NFL_CALENDAR_SEASON_TYPES,
 } from "@/lib/espn-weeks";
 import { DEFAULT_LEAGUE, assertLeagueShipped, getLeague } from "@/lib/leagues";
 import type {
@@ -340,7 +342,7 @@ export async function getScoreboard(options: {
   const parsedWeeks =
     league.navMode === "week"
       ? league.id === "nfl"
-        ? parseCalendarWeeks(calendarSource)
+        ? parseCalendarWeeks(calendarSource, [...NFL_CALENDAR_SEASON_TYPES])
         : parseRegularSeasonWeeks(calendarSource)
       : [];
   const weeks: ScoreboardWeek[] = parsedWeeks.map((entry) => ({
@@ -351,12 +353,15 @@ export async function getScoreboard(options: {
     seasonType: entry.seasonType,
   }));
   const mapped = weekForEspnDate(date, parsedWeeks);
-  const week =
-    league.navMode === "date"
-      ? null
-      : view === "week" && weekParam
-        ? weekParam
-        : (mapped?.number ?? payloadWeek);
+  const week = fallbackBoardWeek({
+    navMode: league.navMode,
+    view,
+    weekParam: weekParam ?? null,
+    mappedWeek: mapped?.number ?? null,
+    payloadWeek,
+    payloadSeasonType: seasonType,
+    leagueId: league.id,
+  });
   seasonYear = seasonYear ?? parseSeasonYear(null, date);
   if (league.id === "nfl" && view === "week") {
     seasonType = options.seasonType ?? mapped?.seasonType ?? seasonType;
