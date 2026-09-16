@@ -104,6 +104,21 @@ No PnL, Polymarket, Monte Carlo dollars, win probability, or paid-odds chrome. S
 
 Open [http://localhost:43173/ops](http://localhost:43173/ops). Try [http://localhost:43173/ops?busy=board](http://localhost:43173/ops?busy=board) to see The Board bright with edge traffic.
 
+## Stat Oracle lite v0
+
+`/oracle` is a small natural-language Q&A surface over **the same public ESPN JSON** the board already uses (scoreboard / summary / rankings / team). Header **ORACLE** sits next to SCOREBOARD / RANKINGS / OPS. The sport switcher stays on `/oracle?league=` so CFB / MBB / NFL / NBA / MLB questions hit that league’s slice.
+
+| Piece | v0 |
+| --- | --- |
+| Ask | Plain-language question about a **named** game, team, or league (`Ohio State vs Texas score`, `Where is Alabama ranked?`, `Lakers vs Celtics`) |
+| API | `GET /api/oracle?q=` and `POST /api/oracle` `{ q, league }` → `{ demo: false, evidence[], inference[], answerMarkdown, sources[] }` |
+| Honesty | **Evidence** = published ESPN cells. **Inference** = labeled restatement. Missing scores / leaders / ranks stay empty — never invented, never 0-0 placeholders, never percentiles or video. |
+| Betting | ATS / spread / odds / pickcenter / winprob / Polymarket questions are **refused**, with the 21+ / 1-800-GAMBLER disclaimer. |
+| CFBD | Optional. Used only when `CFBD_API_KEY` is set, and only to fill blank ESPN season-stat cells. No invented CFBD numbers. |
+| Not | StatMuse SQL, live agent-feed upgrades, Scrub-to-Film, Coach Cam, GM Sandbox, Momentum Wave, Debate Arena |
+
+Open [http://localhost:43173/oracle](http://localhost:43173/oracle). Try [http://localhost:43173/oracle?q=Ohio+State+vs+Texas+score](http://localhost:43173/oracle?q=Ohio+State+vs+Texas+score) — if that matchup is not on today’s ESPN slice you get **NOT ON THIS FEED**, not a demo score.
+
 ## Week / schedule nav
 
 The home board is still Eastern-date based by default (`?date=YYYYMMDD`), but a swipeable **WEEK** chip strip lets you jump the way ESPN’s scoreboard URL does: `/_/week/N/year/YYYY/seasontype/2`.
@@ -182,6 +197,7 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 - Tap a school or NFL club name on the board, a game, or a rankings row to open recent scores, the upcoming slate, and the roster
 - Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips (every home board; keyed off `league`)
 - Open **OPS** for the hub-and-spoke agent map (static roster; live status feed is not connected)
+- Ask **Stat Oracle** (`/oracle`) a named-game or named-team question and get Evidence vs Inference from public ESPN JSON
 - Watch the bottom-line ticker for the full slate
 - Install the board on a phone home screen or pin it as a Windows app
 

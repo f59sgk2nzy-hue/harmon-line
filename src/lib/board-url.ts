@@ -71,3 +71,12 @@ export function sportOpsHref(league: LeagueId, busy?: string | null): string {
   const query = params.toString();
   return query ? `/ops?${query}` : "/ops";
 }
+
+export function sportOracleHref(league: LeagueId, q?: string | null): string {
+  const params = new URLSearchParams();
+  if (league !== DEFAULT_LEAGUE) params.set("league", league);
+  const query = q?.trim();
+  if (query) params.set("q", query);
+  const qs = params.toString();
+  return qs ? `/oracle?${qs}` : "/oracle";
+}
