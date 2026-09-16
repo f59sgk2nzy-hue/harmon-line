@@ -225,6 +225,30 @@ describe("MBB player box without a category name", () => {
     assert.equal(box.teams[0]?.categories[0]?.athletes[0]?.name, "Tarris Reed Jr.");
     assert.deepEqual(box.teams[0]?.categories[0]?.labels, ["MIN", "PTS", "FG"]);
   });
+
+  it("does not treat a column label as the category name when ESPN reused names for MIN/PTS", () => {
+    const box = parsePlayerBoxscore({
+      players: [
+        {
+          team: { id: "41", displayName: "UConn Huskies", abbreviation: "CONN" },
+          statistics: [
+            {
+              labels: ["MIN", "PTS", "FG"],
+              names: ["MIN", "PTS", "FG"],
+              athletes: [
+                {
+                  athlete: { id: "1", displayName: "Tarris Reed Jr." },
+                  stats: ["32", "21", "8-10"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    assert.equal(box.teams[0]?.categories[0]?.name, "players");
+    assert.deepEqual(box.teams[0]?.categories[0]?.labels, ["MIN", "PTS", "FG"]);
+  });
 });
 
 describe("MBB rankings tabs", () => {
