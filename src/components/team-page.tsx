@@ -133,7 +133,9 @@ export function TeamPageView({
           BOARD
         </Link>
         <p className="font-mono text-[10px] tracking-[0.14em] text-white/40">
-          {team.subdivision ?? (league === "mbb" ? "MBB" : league === "nfl" ? "NFL" : "CFB")}  ·  ESPN TEAM FEED
+          {team.subdivision ??
+            (league === "mbb" ? "MBB" : league === "nfl" ? "NFL" : league === "nba" ? "NBA" : "CFB")}{" "}
+          ·  ESPN TEAM FEED
         </p>
       </div>
 

@@ -5,7 +5,7 @@ import { PlayByPlay } from "@/components/play-by-play";
 import { TeamLogo } from "@/components/team-logo";
 import { sportBoardHref } from "@/lib/board-url";
 import { formatKickoff, formatPollClock } from "@/lib/dates";
-import { hasPeriodScores, periodLabel, playPeriodLabel } from "@/lib/espn-parse";
+import { hasPeriodScores, periodLabel, periodSportFor, playPeriodLabel } from "@/lib/espn-parse";
 import { deepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
@@ -105,7 +105,7 @@ export function GameDetailView({
   const spec = getLeague(league);
   const football = spec.detailModules.footballSituation;
   const showDeepDive = league === "cfb";
-  const periodSport = spec.sport === "basketball" ? "basketball" : "football";
+  const periodSport = periodSportFor(league);
 
   const refresh = useCallback(async () => {
     try {
@@ -290,6 +290,7 @@ export function GameDetailView({
           available={playByPlayAvailable}
           note={coverage.detail}
           mode={pbpMode}
+          periodSport={periodSport}
         />
 
         <aside className="space-y-4">

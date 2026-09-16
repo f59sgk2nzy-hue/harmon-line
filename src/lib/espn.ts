@@ -225,6 +225,7 @@ function resolveSubdivision(
     if (unique.length === 1 && unique[0] === "7") return "NFC";
     return "NFL";
   }
+  if (league === "nba") return "NBA";
   if (league === "mbb") return "D1";
   const extra = Array.isArray(groupIds) ? groupIds : [groupIds];
   return (
@@ -252,7 +253,9 @@ function collectConferences(games: GameSummary[], league: LeagueId = DEFAULT_LEA
       ? MBB_CONFERENCE_NAMES
       : league === "nfl"
         ? NFL_CONFERENCE_NAMES
-        : CONFERENCE_NAMES;
+        : league === "nba"
+          ? {}
+          : CONFERENCE_NAMES;
   const map = new Map<string, ConferenceOption>();
   for (const game of games) {
     for (const team of [game.away, game.home]) {
@@ -281,7 +284,7 @@ export async function getScoreboard(options: {
   league?: LeagueId | string | null;
 }): Promise<ScoreboardResponse> {
   const league = assertLeagueShipped(options.league);
-  const division: DivisionId = league.id === "mbb" || league.id === "nfl" ? "d1" : options.division;
+  const division: DivisionId = league.id === "cfb" ? options.division : "d1";
   const { date } = options;
   const view: ScoreboardView =
     league.navMode === "date"
@@ -434,9 +437,16 @@ function pbpCoverage(
     return {
       headline: "Play-by-play from ESPN summary",
       detail:
-        league === "mbb"
+        getLeague(league).detailModules.primary === "plays"
           ? "Live plays are polling the public ESPN summary endpoint."
           : "Live drive chart and plays are polling the public ESPN summary endpoint.",
+    };
+  }
+  if (league === "nba") {
+    return {
+      headline: "Play-by-play not published",
+      detail:
+        "ESPN has not released a play-by-play feed for this NBA game. Scoring updates still come from the live scoreboard. No sample plays are shown.",
     };
   }
   if (league === "mbb") {

@@ -4,6 +4,18 @@ import type { LeagueId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
+const HEADER_ORDER: Record<LeagueId, number> = {
+  cfb: 0,
+  mbb: 1,
+  nfl: 2,
+  nba: 3,
+  mlb: 4,
+};
+
+function byHeaderOrder<T extends { id: LeagueId }>(a: T, b: T) {
+  return HEADER_ORDER[a.id] - HEADER_ORDER[b.id];
+}
+
 export function SportSwitcher({
   current = DEFAULT_LEAGUE,
   section = "board",
@@ -11,7 +23,7 @@ export function SportSwitcher({
   current?: LeagueId;
   section?: "board" | "rankings" | "game" | "team";
 }) {
-  const shipped = shippedLeagues();
+  const shipped = shippedLeagues().slice().sort(byHeaderOrder);
   const hrefFor = (id: LeagueId) => {
     if (section === "rankings" && !getLeague(id).rankings) return sportBoardHref(id);
     return section === "rankings" ? sportRankingsHref(id) : sportBoardHref(id);
@@ -30,7 +42,9 @@ export function SportSwitcher({
     );
   }
 
-  const dormant = LEAGUE_IDS.map((id) => getLeague(id)).filter((league) => !league.shipped);
+  const dormant = LEAGUE_IDS.map((id) => getLeague(id))
+    .filter((league) => !league.shipped)
+    .sort(byHeaderOrder);
 
   return (
     <nav
