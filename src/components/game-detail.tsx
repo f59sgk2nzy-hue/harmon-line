@@ -1,5 +1,6 @@
 "use client";
 
+import { ClipOutbound } from "@/components/clip-outbound";
 import { GamecastDepth } from "@/components/gamecast-depth";
 import { PlayByPlay } from "@/components/play-by-play";
 import { TeamLogo } from "@/components/team-logo";
@@ -9,10 +10,16 @@ import { hasPeriodScores, periodLabel, periodSportFor, playPeriodLabel } from "@
 import { deepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
 import { oracleHrefForGame } from "@/lib/oracle";
+import { clipLookupForGame } from "@/lib/scrub-film";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type { GameDetailResponse, LeagueId, TeamSide } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
+import {
+  HIGHLIGHTS_REFRESH_MS,
+  type HighlightVideo,
+  type HighlightsResponse,
+} from "@/lib/youtube";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { ViewTransition } from "react";
@@ -94,14 +101,19 @@ export function GameDetailView({
   initial,
   initialError,
   league = DEFAULT_LEAGUE,
+  initialHighlights = null,
 }: {
   gameId: string;
   initial: GameDetailResponse | null;
   initialError?: string | null;
   league?: LeagueId;
+  initialHighlights?: HighlightsResponse | null;
 }) {
   const [detail, setDetail] = useState(initial);
   const [error, setError] = useState(initialError ?? null);
+  const [highlightVideos, setHighlightVideos] = useState<HighlightVideo[]>(
+    initialHighlights?.videos ?? []
+  );
 
   const spec = getLeague(league);
   const football = spec.detailModules.footballSituation;
@@ -121,8 +133,25 @@ export function GameDetailView({
     }
   }, [gameId, league]);
 
+  const refreshHighlights = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/highlights?league=${encodeURIComponent(league)}`, {
+        cache: "no-store",
+      });
+      const payload = (await response.json()) as HighlightsResponse;
+      if (!response.ok) return;
+      setHighlightVideos(payload.videos ?? []);
+    } catch {
+      // Keep last good YouTube list. Empty stays empty — never invent clips.
+    }
+  }, [league]);
+
   const live = detail?.game.status.state === "in";
   useLivePoll(refresh, { intervalMs: BOARD_REFRESH_MS });
+  useLivePoll(refreshHighlights, {
+    intervalMs: HIGHLIGHTS_REFRESH_MS,
+    runOnMount: !initialHighlights,
+  });
 
   if (!detail) {
     return (
@@ -168,6 +197,14 @@ export function GameDetailView({
     : 0;
   const stamp = formatPollClock(detail.generatedAt);
   const pbpMode = spec.detailModules.primary === "drives" ? "drives" : "plays";
+  const clipFor = (playText?: string | null, leader?: { name: string; category: string } | null) =>
+    clipLookupForGame(highlightVideos, {
+      league,
+      away: game.away,
+      home: game.home,
+      playText,
+      leader,
+    });
 
   return (
     <div className="page-enter mx-auto w-full max-w-5xl px-3 py-4 pb-16 sm:px-5">
@@ -303,6 +340,7 @@ export function GameDetailView({
           note={coverage.detail}
           mode={pbpMode}
           periodSport={periodSport}
+          clipForPlay={(play) => clipFor(play.text)}
         />
 
         <aside className="space-y-4">
@@ -310,6 +348,10 @@ export function GameDetailView({
             <h2 className="border-b border-white/10 px-3 py-2 font-display text-xs tracking-[0.18em] text-[#f3c14b]">
               SCORING
             </h2>
+            <p className="border-b border-white/8 px-3 py-1.5 font-mono text-[10px] leading-relaxed text-white/40">
+              CLIP opens YouTube in a new tab when the highlights feed matches this play. Otherwise{" "}
+              <span className="text-white/70">NO CLIP ON THIS FEED</span>. Never ESPN film.
+            </p>
             {scoringPlays.length === 0 ? (
               <p className="px-3 py-4 font-mono text-[11px] text-white/45">
                 No scoring plays published yet.
@@ -327,6 +369,9 @@ export function GameDetailView({
                       {game.away.abbreviation} {play.awayScore} · {game.home.abbreviation}{" "}
                       {play.homeScore}
                     </p>
+                    <div className="mt-2">
+                      <ClipOutbound clip={clipFor(play.text)} />
+                    </div>
                   </li>
                 ))}
               </ol>
@@ -350,6 +395,11 @@ export function GameDetailView({
                     </p>
                     <p className="font-mono text-xs text-white">{line.name}</p>
                     <p className="font-mono text-[11px] text-white/50">{line.displayValue}</p>
+                    <div className="mt-2">
+                      <ClipOutbound
+                        clip={clipFor(null, { name: line.name, category: line.category })}
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>

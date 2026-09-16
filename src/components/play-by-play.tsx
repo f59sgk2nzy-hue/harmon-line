@@ -1,5 +1,7 @@
 "use client";
 
+import { ClipOutbound } from "@/components/clip-outbound";
+import type { ClipLookup } from "@/lib/scrub-film";
 import type { Drive, GameSummary, PlayByPlayPlay } from "@/lib/types";
 import { playPeriodLabel, type PeriodSport } from "@/lib/espn-parse";
 import { useEffect, useMemo, useRef } from "react";
@@ -12,6 +14,7 @@ export function PlayByPlay({
   note,
   mode = "drives",
   periodSport,
+  clipForPlay,
 }: {
   drives: Drive[];
   plays?: PlayByPlayPlay[];
@@ -20,6 +23,7 @@ export function PlayByPlay({
   note: string;
   mode?: "drives" | "plays";
   periodSport?: PeriodSport;
+  clipForPlay?: (play: PlayByPlayPlay) => ClipLookup;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const sport = periodSport ?? (mode === "plays" ? "basketball" : "football");
@@ -86,6 +90,7 @@ export function PlayByPlay({
                       play={play}
                       game={game}
                       sport={sport}
+                      clip={play.scoringPlay ? clipForPlay?.(play) : undefined}
                     />
                   ))}
                 </ol>
@@ -105,7 +110,13 @@ export function PlayByPlay({
                 </header>
                 <ol className="divide-y divide-white/5">
                   {drive.plays.map((play) => (
-                    <PlayRow key={play.id} play={play} game={game} sport={sport} />
+                    <PlayRow
+                      key={play.id}
+                      play={play}
+                      game={game}
+                      sport={sport}
+                      clip={play.scoringPlay ? clipForPlay?.(play) : undefined}
+                    />
                   ))}
                 </ol>
               </section>
@@ -120,10 +131,12 @@ function PlayRow({
   play,
   game,
   sport,
+  clip,
 }: {
   play: PlayByPlayPlay;
   game: GameSummary;
   sport: PeriodSport;
+  clip?: ClipLookup;
 }) {
   return (
     <li
@@ -136,10 +149,13 @@ function PlayRow({
       <div className="min-w-0 flex-1">
         <p className="font-mono text-[12px] leading-5 text-white/85">{play.text}</p>
         {play.scoringPlay ? (
-          <p className="mt-1 font-display text-[11px] tracking-[0.12em] text-[#f3c14b]">
-            {game.away.abbreviation} {play.awayScore}  {"  "}
-            {game.home.abbreviation} {play.homeScore}
-          </p>
+          <div className="mt-1 space-y-2">
+            <p className="font-display text-[11px] tracking-[0.12em] text-[#f3c14b]">
+              {game.away.abbreviation} {play.awayScore}  {"  "}
+              {game.home.abbreviation} {play.homeScore}
+            </p>
+            {clip ? <ClipOutbound clip={clip} /> : null}
+          </div>
         ) : null}
       </div>
     </li>

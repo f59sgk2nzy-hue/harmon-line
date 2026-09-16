@@ -12,6 +12,8 @@ import {
   sampleHighlightVideos,
   sampleHighlightsBoard,
   youtubeThumbnailUrl,
+  youtubeSearchUrl,
+  isYoutubeWatchUrl,
 } from "./youtube";
 
 const SAMPLE_ATOM = `<?xml version="1.0" encoding="UTF-8"?>
@@ -285,5 +287,17 @@ describe("highlightsSourceNote", () => {
       highlightsSourceNote(sampleHighlightsBoard(new Date("2026-09-13T18:00:00.000Z"))),
       "SAMPLE CARDS  ·  LIVE YOUTUBE FEED UNAVAILABLE  ·  NOT LIVE SCORES"
     );
+  });
+});
+
+describe("youtubeSearchUrl / isYoutubeWatchUrl", () => {
+  it("builds a results URL and accepts only YouTube watch links", () => {
+    assert.equal(
+      youtubeSearchUrl("Ohio State vs Texas"),
+      "https://www.youtube.com/results?search_query=Ohio%20State%20vs%20Texas"
+    );
+    assert.equal(isYoutubeWatchUrl("https://www.youtube.com/watch?v=abcOSUTEX"), true);
+    assert.equal(isYoutubeWatchUrl("https://www.espn.com/video/clip/_/id/49953740/clip"), false);
+    assert.equal(isYoutubeWatchUrl("https://www.youtube.com/results?search_query=ohio+state"), false);
   });
 });
