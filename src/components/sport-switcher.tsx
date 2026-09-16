@@ -21,7 +21,7 @@ export function SportSwitcher({
   section = "board",
 }: {
   current?: LeagueId;
-  section?: "board" | "rankings" | "game" | "team";
+  section?: "board" | "rankings" | "game" | "team" | "ops";
 }) {
   const shipped = shippedLeagues().slice().sort(byHeaderOrder);
   const hrefFor = (id: LeagueId) => {

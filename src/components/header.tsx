@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { sportBoardHref, sportRankingsHref } from "@/lib/board-url";
+import { sportBoardHref, sportOpsHref, sportRankingsHref } from "@/lib/board-url";
 import { SportSwitcher } from "@/components/sport-switcher";
 import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type { LeagueId } from "@/lib/types";
@@ -8,6 +8,7 @@ import Link from "next/link";
 const NAV = [
   { id: "board", label: "SCOREBOARD" },
   { id: "rankings", label: "RANKINGS" },
+  { id: "ops", label: "OPS" },
 ] as const;
 
 export function BoardHeader({
@@ -18,16 +19,24 @@ export function BoardHeader({
 }: {
   dateLabel: string;
   week?: number | null;
-  section?: "board" | "rankings";
+  section?: "board" | "rankings" | "ops";
   league?: LeagueId;
 }) {
   const spec = getLeague(league);
   const boardHref = sportBoardHref(league);
   const rankingsHref = sportRankingsHref(league);
+  const opsHref = sportOpsHref(league);
   const kicker =
     section === "rankings"
       ? `${spec.label.toUpperCase()} RANKINGS`
-      : `${spec.label.toUpperCase()} SCOREBOARD`;
+      : section === "ops"
+        ? "AGENT GRAPH"
+        : `${spec.label.toUpperCase()} SCOREBOARD`;
+  const hrefFor = (id: (typeof NAV)[number]["id"]) => {
+    if (id === "rankings") return rankingsHref;
+    if (id === "ops") return opsHref;
+    return boardHref;
+  };
 
   return (
     <header className="border-b border-white/10" style={{ viewTransitionName: "site-header" }}>
@@ -55,8 +64,8 @@ export function BoardHeader({
             {(spec.rankings ? NAV : NAV.filter((item) => item.id !== "rankings")).map((item) => (
               <Link
                 key={item.id}
-                href={item.id === "rankings" ? rankingsHref : boardHref}
-                transitionTypes={item.id === "rankings" ? ["nav-forward"] : ["nav-back"]}
+                href={hrefFor(item.id)}
+                transitionTypes={item.id === "board" ? ["nav-back"] : ["nav-forward"]}
                 aria-current={section === item.id ? "page" : undefined}
                 className={cn(
                   "pressable chip-hit chip-hit-lg no-underline",
@@ -70,7 +79,7 @@ export function BoardHeader({
           <p
             className={cn(
               "font-display text-[11px] tracking-[0.22em] text-[#f3c14b] sm:text-xs",
-              section === "rankings" && "hidden sm:block"
+              (section === "rankings" || section === "ops") && "hidden sm:block"
             )}
           >
             {kicker}
