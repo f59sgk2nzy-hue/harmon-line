@@ -416,6 +416,22 @@ describe("answerOracle", () => {
     assert.doesNotMatch(JSON.stringify(out), FORBIDDEN);
   });
 
+  it("uses published poll ranks for a comparison when the summary omitted curatedRank", () => {
+    const unranked: GameSummary = {
+      ...GAME,
+      home: { ...GAME.home, rank: null },
+      away: { ...GAME.away, rank: null },
+    };
+    const out = payloadOf("Who is better on paper?", {
+      ...emptyOracleData(),
+      game: unranked,
+      rankings: POLL,
+    });
+    assert.equal(out.empty, false);
+    assert.ok(out.evidence.some((row) => /#1/.test(row.text) && /Texas/i.test(row.text)));
+    assert.ok(out.inference.some((row) => row.badge === "INFERENCE" && /Texas/i.test(row.text)));
+  });
+
   it("adds the 1-800-GAMBLER disclaimer for betting-adjacent questions and still refuses odds", () => {
     const out = payloadOf("Should I bet the spread and take Texas ATS?", {
       ...emptyOracleData(),

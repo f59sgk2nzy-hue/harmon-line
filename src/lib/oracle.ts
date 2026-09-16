@@ -180,6 +180,15 @@ function scoreLine(game: GameSummary): string | null {
   return `${game.away.shortName} ${game.away.score}–${game.home.score} ${game.home.shortName} · ${game.status.shortDetail}`;
 }
 
+function pollRankFor(poll: RankingPoll | null, teamId: string): RankingRow | null {
+  if (!poll) return null;
+  return poll.ranks.find((row) => row.team.id === teamId) ?? null;
+}
+
+function sideRank(side: TeamSide, poll: RankingPoll | null): number | null {
+  return side.rank ?? pollRankFor(poll, side.id)?.rank ?? null;
+}
+
 function publishedWinner(game: GameSummary): TeamSide | null {
   if (game.home.winner) return game.home;
   if (game.away.winner) return game.away;
@@ -413,10 +422,17 @@ export function answerOracle(input: {
   }
 
   if (wants(parsed.intents, "comparison") && game) {
-    if (game.home.rank != null || game.away.rank != null) {
+    const awayPoll = pollRankFor(rankings, game.away.id);
+    const homePoll = pollRankFor(rankings, game.home.id);
+    const awayRank = sideRank(game.away, rankings);
+    const homeRank = sideRank(game.home, rankings);
+    if (awayRank != null || homeRank != null) {
+      const awayLabel = awayRank != null ? `#${awayRank}` : "unranked on this poll";
+      const homeLabel = homeRank != null ? `#${homeRank}` : "unranked on this poll";
+      const source = awayPoll || homePoll ? rankings?.shortName ?? "Poll" : "ESPN curated";
       pushObserved(
         evidence,
-        `ESPN curated ranks: ${game.away.shortName} ${game.away.rank != null ? `#${game.away.rank}` : "unranked"} · ${game.home.shortName} ${game.home.rank != null ? `#${game.home.rank}` : "unranked"}`,
+        `${source} ranks: ${game.away.shortName} ${awayLabel} · ${game.home.shortName} ${homeLabel}`,
         "rank"
       );
     }
@@ -433,9 +449,12 @@ export function answerOracle(input: {
     if (input.data.homeStats?.pointsPerGame != null) {
       pushObserved(evidence, `${game.home.shortName} ESPN PPG ${input.data.homeStats.pointsPerGame}`, "stats");
     }
-    const rankedSides = [game.away, game.home].filter((side) => side.rank != null);
+    const rankedSides = [
+      { side: game.away, rank: awayRank },
+      { side: game.home, rank: homeRank },
+    ].filter((row) => row.rank != null);
     rankedSides.sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
-    const ahead = rankedSides[0];
+    const ahead = rankedSides[0]?.side;
     if (ahead) {
       inference.push({
         kind: "model",
