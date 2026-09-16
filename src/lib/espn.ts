@@ -17,7 +17,7 @@ import {
   divisionFromClassification,
   parseLinescores,
 } from "@/lib/espn-parse";
-import { parseLeaders, parsePlay, parsePlays, parseScoringPlays } from "@/lib/espn-plays";
+import { parseAtBats, parseLeaders, parsePlay, parsePlays, parseScoringPlays } from "@/lib/espn-plays";
 import {
   espnScoreboardPath,
   fallbackBoardWeek,
@@ -226,6 +226,7 @@ function resolveSubdivision(
     return "NFL";
   }
   if (league === "nba") return "NBA";
+  if (league === "mlb") return "MLB";
   if (league === "mbb") return "D1";
   const extra = Array.isArray(groupIds) ? groupIds : [groupIds];
   return (
@@ -253,7 +254,7 @@ function collectConferences(games: GameSummary[], league: LeagueId = DEFAULT_LEA
       ? MBB_CONFERENCE_NAMES
       : league === "nfl"
         ? NFL_CONFERENCE_NAMES
-        : league === "nba"
+        : league === "nba" || league === "mlb"
           ? {}
           : CONFERENCE_NAMES;
   const map = new Map<string, ConferenceOption>();
@@ -428,18 +429,33 @@ function gameFromHeader(
   return parseEvent(wrapped, division, ids, league);
 }
 
+function usesPlayFeed(league: LeagueId): boolean {
+  const primary = getLeague(league).detailModules.primary;
+  return primary === "plays" || primary === "atBats";
+}
+
 function pbpCoverage(
   game: GameSummary,
   hasFeed: boolean,
   league: LeagueId
 ): CoverageNote {
   if (hasFeed || game.playByPlayAvailable) {
+    const primary = getLeague(league).detailModules.primary;
     return {
       headline: "Play-by-play from ESPN summary",
       detail:
-        getLeague(league).detailModules.primary === "plays"
-          ? "Live plays are polling the public ESPN summary endpoint."
-          : "Live drive chart and plays are polling the public ESPN summary endpoint.",
+        primary === "atBats"
+          ? "Live plays and at-bats are polling the public ESPN summary endpoint."
+          : primary === "plays"
+            ? "Live plays are polling the public ESPN summary endpoint."
+            : "Live drive chart and plays are polling the public ESPN summary endpoint.",
+    };
+  }
+  if (league === "mlb") {
+    return {
+      headline: "Play-by-play not published",
+      detail:
+        "ESPN has not released a play-by-play or at-bat feed for this MLB game. Scoring updates still come from the live scoreboard. No sample plays are shown.",
     };
   }
   if (league === "nba") {
@@ -514,14 +530,15 @@ export async function getGameDetail(
           return [...previous, current].filter((row): row is Drive => Boolean(row));
         })()
       : [];
-  const plays =
-    league.detailModules.primary === "plays" ? parsePlays(data.plays) : [];
+  const playsFromList = usesPlayFeed(league.id) ? parsePlays(data.plays) : [];
+  const atBatGroups =
+    league.detailModules.primary === "atBats" ? parseAtBats(data.atBats, data.plays) : [];
+  const plays = playsFromList.length > 0 ? playsFromList : atBatGroups.flatMap((group) => group.plays);
   const scoringPlays = parseScoringPlays(data);
 
-  const playByPlayAvailable =
-    league.detailModules.primary === "plays"
-      ? plays.length > 0
-      : drives.some((drive) => drive.plays.length > 0);
+  const playByPlayAvailable = usesPlayFeed(league.id)
+    ? plays.length > 0
+    : drives.some((drive) => drive.plays.length > 0);
   const gameInfo = asRecord(data.gameInfo);
   const infoVenue = asRecord(gameInfo?.venue);
   const infoAddress = asRecord(infoVenue?.address);

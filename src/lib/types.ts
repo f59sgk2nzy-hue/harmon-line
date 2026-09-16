@@ -10,10 +10,11 @@ export type Classification =
   | "NFL"
   | "AFC"
   | "NFC"
-  | "NBA";
+  | "NBA"
+  | "MLB";
 export type GameState = "pre" | "in" | "post";
 export type StatusFilter = "all" | "live" | "final" | "upcoming";
-/** Harmon Line sport instance. CFB is default; MBB, NFL, and NBA ship via the sport switcher. */
+/** Harmon Line sport instance. CFB is default; MBB, NFL, NBA, and MLB ship via the sport switcher. */
 export type LeagueId = "cfb" | "mbb" | "nba" | "nfl" | "mlb";
 
 export type TeamSide = {

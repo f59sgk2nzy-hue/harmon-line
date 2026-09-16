@@ -4,7 +4,7 @@ import { gameHref, sportBoardHref } from "@/lib/board-url";
 import { formatBoardDate, isoToEspnDate } from "@/lib/dates";
 import { deepDiveHref, teamDeepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
-import { DEFAULT_LEAGUE } from "@/lib/leagues";
+import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type { LeagueId, TeamPageResponse, TeamScheduleGame } from "@/lib/types";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -133,8 +133,7 @@ export function TeamPageView({
           BOARD
         </Link>
         <p className="font-mono text-[10px] tracking-[0.14em] text-white/40">
-          {team.subdivision ??
-            (league === "mbb" ? "MBB" : league === "nfl" ? "NFL" : league === "nba" ? "NBA" : "CFB")}{" "}
+          {team.subdivision ?? getLeague(league).shortLabel}{" "}
           ·  ESPN TEAM FEED
         </p>
       </div>

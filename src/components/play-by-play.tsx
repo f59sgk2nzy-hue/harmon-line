@@ -1,7 +1,7 @@
 "use client";
 
 import type { Drive, GameSummary, PlayByPlayPlay } from "@/lib/types";
-import { playPeriodLabel } from "@/lib/espn-parse";
+import { playPeriodLabel, type PeriodSport } from "@/lib/espn-parse";
 import { useEffect, useMemo, useRef } from "react";
 
 export function PlayByPlay({
@@ -19,7 +19,7 @@ export function PlayByPlay({
   available: boolean;
   note: string;
   mode?: "drives" | "plays";
-  periodSport?: "football" | "basketball";
+  periodSport?: PeriodSport;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const sport = periodSport ?? (mode === "plays" ? "basketball" : "football");
@@ -123,7 +123,7 @@ function PlayRow({
 }: {
   play: PlayByPlayPlay;
   game: GameSummary;
-  sport: "football" | "basketball";
+  sport: PeriodSport;
 }) {
   return (
     <li

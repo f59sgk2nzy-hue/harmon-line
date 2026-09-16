@@ -3,7 +3,6 @@ import { describe, it } from "node:test";
 import {
   DEFAULT_LEAGUE,
   LEAGUE_IDS,
-  LeagueNotShippedError,
   SPORT_LEAGUES,
   assertLeagueShipped,
   getLeague,
@@ -12,17 +11,17 @@ import {
 } from "./leagues";
 
 describe("SportLeague registry", () => {
-  it("registers cfb plus shipped mbb/nfl/nba and an mlb stub", () => {
+  it("registers cfb plus shipped mbb/nfl/nba/mlb", () => {
     assert.deepEqual([...LEAGUE_IDS], ["cfb", "mbb", "nba", "nfl", "mlb"]);
     assert.equal(DEFAULT_LEAGUE, "cfb");
     assert.equal(SPORT_LEAGUES.cfb.shipped, true);
     assert.equal(SPORT_LEAGUES.mbb.shipped, true);
     assert.equal(SPORT_LEAGUES.nba.shipped, true);
     assert.equal(SPORT_LEAGUES.nfl.shipped, true);
-    assert.equal(SPORT_LEAGUES.mlb.shipped, false);
+    assert.equal(SPORT_LEAGUES.mlb.shipped, true);
     assert.deepEqual(
       shippedLeagues().map((league) => league.id),
-      ["cfb", "mbb", "nba", "nfl"]
+      ["cfb", "mbb", "nba", "nfl", "mlb"]
     );
   });
 
@@ -75,7 +74,7 @@ describe("SportLeague registry", () => {
     assert.doesNotMatch(nba.coverage.detail, /no scoreboard/i);
   });
 
-  it("stubs remaining leagues with ESPN slugs, logo namespaces, and detail modules", () => {
+  it("ships NFL with ESPN football/nfl, week nav, nfl logos, drives, and no rankings", () => {
     const nfl = getLeague("nfl");
     assert.equal(nfl.sport, "football");
     assert.equal(nfl.league, "nfl");
@@ -88,7 +87,9 @@ describe("SportLeague registry", () => {
     assert.equal(nfl.shortLabel, "NFL");
     assert.doesNotMatch(nfl.coverage.headline, /not shipped/i);
     assert.match(nfl.coverage.detail, /never invent/i);
+  });
 
+  it("ships MLB with ESPN baseball/mlb, date nav, mlb logos, atBats, and no rankings", () => {
     const mlb = getLeague("mlb");
     assert.equal(mlb.sport, "baseball");
     assert.equal(mlb.league, "mlb");
@@ -97,13 +98,13 @@ describe("SportLeague registry", () => {
     assert.equal(mlb.detailModules.primary, "atBats");
     assert.equal(mlb.detailModules.footballSituation, false);
     assert.equal(mlb.rankings, false);
-  });
-
-  it("keeps remaining stub coverage honest — no invented scores, not shipped yet", () => {
-    const league = getLeague("mlb");
-    assert.match(league.coverage.headline, /not shipped/i);
-    assert.match(league.coverage.detail, /never invent/i);
-    assert.match(league.coverage.detail, /no scoreboard/i);
+    assert.equal(mlb.shipped, true);
+    assert.equal(mlb.shortLabel, "MLB");
+    assert.match(mlb.coverage.headline, /mlb/i);
+    assert.doesNotMatch(mlb.coverage.headline, /not shipped/i);
+    assert.match(mlb.coverage.detail, /never invent/i);
+    assert.match(mlb.coverage.detail, /date/i);
+    assert.doesNotMatch(mlb.coverage.detail, /no scoreboard/i);
   });
 });
 
@@ -126,22 +127,12 @@ describe("parseLeagueParam", () => {
 });
 
 describe("assertLeagueShipped", () => {
-  it("allows CFB, MBB, NFL, and NBA and rejects remaining stubs without fabricating a board", () => {
+  it("allows every registered league including MLB and does not 501 a stub board", () => {
     assert.equal(assertLeagueShipped("cfb").id, "cfb");
     assert.equal(assertLeagueShipped("mbb").id, "mbb");
     assert.equal(assertLeagueShipped("nfl").id, "nfl");
     assert.equal(assertLeagueShipped("nba").id, "nba");
-    try {
-      assertLeagueShipped("mlb");
-      assert.fail("expected stub league to throw");
-    } catch (error) {
-      assert.equal(error instanceof LeagueNotShippedError, true);
-      const shipped = error as LeagueNotShippedError;
-      assert.equal(shipped.league.id, "mlb");
-      assert.equal(shipped.status, 501);
-      assert.equal(shipped.payload.demo, false);
-      assert.equal(shipped.payload.source, "espn");
-      assert.equal(shipped.payload.league, "mlb");
-    }
+    assert.equal(assertLeagueShipped("mlb").id, "mlb");
+    assert.equal(assertLeagueShipped("mlb").shipped, true);
   });
 });

@@ -160,12 +160,13 @@ export function GameDetailView({
   const homeHasBall = football && game.situation?.possessionTeamId === game.home.id;
   const showQuarters =
     hasPeriodScores(game.away.linescores) || hasPeriodScores(game.home.linescores);
-  const minPeriods = periodSport === "basketball" ? 2 : 4;
+  const minPeriods =
+    periodSport === "basketball" ? 2 : periodSport === "baseball" ? 0 : 4;
   const maxQ = showQuarters
     ? Math.max(minPeriods, game.away.linescores.length, game.home.linescores.length)
     : 0;
   const stamp = formatPollClock(detail.generatedAt);
-  const pbpMode = spec.detailModules.primary === "plays" ? "plays" : "drives";
+  const pbpMode = spec.detailModules.primary === "drives" ? "drives" : "plays";
 
   return (
     <div className="page-enter mx-auto w-full max-w-5xl px-3 py-4 pb-16 sm:px-5">
@@ -245,7 +246,9 @@ export function GameDetailView({
           {showQuarters ? (
             <div className="border border-white/10 bg-black/40">
               <div className="grid grid-cols-3 gap-2 px-2 py-1 font-display text-[10px] tracking-[0.12em] text-white/40">
-                <span>{periodSport === "basketball" ? "PER" : "QTR"}</span>
+                <span>
+                  {periodSport === "basketball" ? "PER" : periodSport === "baseball" ? "INN" : "QTR"}
+                </span>
                 <span className="text-center">{game.away.abbreviation}</span>
                 <span className="text-center">{game.home.abbreviation}</span>
               </div>

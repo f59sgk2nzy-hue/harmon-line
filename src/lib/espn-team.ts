@@ -90,9 +90,11 @@ export function parseTeamProfile(
           : "NFL"
       : league === "nba"
         ? "NBA"
-        : league === "mbb"
-          ? "D1"
-          : classifySubdivision(ids);
+        : league === "mlb"
+          ? "MLB"
+          : league === "mbb"
+            ? "D1"
+            : classifySubdivision(ids);
 
   return {
     id,
@@ -256,6 +258,8 @@ function scheduleCoverage(
             ? "Recent results and upcoming games come from ESPN’s unofficial NFL team schedule."
             : league === "nba"
               ? "Recent results and upcoming games come from ESPN’s unofficial NBA team schedule."
+              : league === "mlb"
+                ? "Recent results and upcoming games come from ESPN’s unofficial MLB team schedule."
               : "Recent results and upcoming games come from ESPN’s unofficial college-football team schedule.",
     };
   }

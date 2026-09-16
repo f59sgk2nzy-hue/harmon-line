@@ -54,7 +54,7 @@ function pushId(ids: string[], value: unknown) {
 export function parseLinescores(value: unknown): Array<number | null> {
   const rows = asArray(value);
   if (rows.length === 0) return [];
-  return rows.slice(0, 8).map((row) => {
+  return rows.map((row) => {
     if (typeof row === "number" && Number.isFinite(row)) return row;
     const rec = asRecord(row);
     if (!rec) {
@@ -136,15 +136,17 @@ export function hasPeriodScores(lines: Array<number | null> | undefined): boolea
   return Boolean(lines?.some((value) => value != null));
 }
 
-/** MBB uses halves; NBA/NFL/CFB use quarter clocks. Never invent periods. */
-export function periodSportFor(league: LeagueId): "football" | "basketball" {
-  return league === "mbb" ? "basketball" : "football";
+export type PeriodSport = "football" | "basketball" | "baseball";
+
+/** MBB uses halves; NBA/NFL/CFB use quarter clocks; MLB uses innings. Never invent periods. */
+export function periodSportFor(league: LeagueId): PeriodSport {
+  if (league === "mbb") return "basketball";
+  if (league === "mlb") return "baseball";
+  return "football";
 }
 
-export function periodLabel(
-  index: number,
-  sport: "football" | "basketball" = "football"
-): string {
+export function periodLabel(index: number, sport: PeriodSport = "football"): string {
+  if (sport === "baseball") return String(index + 1);
   if (sport === "basketball") {
     if (index === 0) return "1H";
     if (index === 1) return "2H";
@@ -154,11 +156,9 @@ export function periodLabel(
   return index === 4 ? "OT" : `${index - 3}OT`;
 }
 
-export function playPeriodLabel(
-  period: number | null,
-  sport: "football" | "basketball" = "football"
-): string {
+export function playPeriodLabel(period: number | null, sport: PeriodSport = "football"): string {
   if (!period) return "";
+  if (sport === "baseball") return String(period);
   if (sport === "basketball") {
     if (period === 1) return "1H";
     if (period === 2) return "2H";
