@@ -11,6 +11,8 @@ import { formatBoardDate, formatPollClock, shiftEspnDate } from "@/lib/dates";
 import { weekByNumber } from "@/lib/espn-weeks";
 import { BOARD_REFRESH_MS, useLivePoll } from "@/lib/hooks";
 import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
+import { gameHasFavorite, prioritizeFavoriteGames } from "@/lib/favorites";
+import { useFavorites } from "@/lib/use-favorites";
 import type {
   DivisionId,
   LeagueId,
@@ -96,6 +98,7 @@ export function ScoreboardView({
 }) {
   const spec = getLeague(league);
   const dateOnly = spec.navMode === "date";
+  const { keys: favoriteKeys } = useFavorites();
   const [board, setBoard] = useState<ScoreboardResponse | null>(initial);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [updatedAt, setUpdatedAt] = useState(initial?.generatedAt ?? null);
@@ -144,9 +147,13 @@ export function ScoreboardView({
 
   useLivePoll(refresh, { intervalMs: BOARD_REFRESH_MS });
 
-  const games = useMemo(
-    () => filterGames(board, localConference, localStatus, localQuery),
-    [board, localConference, localStatus, localQuery]
+  const games = useMemo(() => {
+    const filtered = filterGames(board, localConference, localStatus, localQuery);
+    return prioritizeFavoriteGames(filtered, league, favoriteKeys);
+  }, [board, localConference, localStatus, localQuery, league, favoriteKeys]);
+  const followedOnBoard = useMemo(
+    () => games.filter((game) => gameHasFavorite(game, league, favoriteKeys)).length,
+    [games, league, favoriteKeys]
   );
 
   const hrefFor = (next: {
@@ -471,6 +478,7 @@ export function ScoreboardView({
               </span>
               <span className="hidden sm:inline">
                 {board ? `${games.length} shown / ${board.games.length} on board` : "Loading"}
+                {followedOnBoard > 0 ? "  ·  FOLLOWED FIRST" : ""}
                 {localConference !== "all" || localStatus !== "all" || localQuery.trim()
                   ? "  ·  FILTERED"
                   : ""}
@@ -605,7 +613,7 @@ export function ScoreboardView({
         </div>
       </main>
 
-      <BottomLine games={games} />
+      <BottomLine games={games} league={league} favoriteKeys={favoriteKeys} />
     </div>
   );
 }

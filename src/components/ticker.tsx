@@ -1,6 +1,8 @@
 "use client";
 
-import type { GameSummary } from "@/lib/types";
+import { gameHasFavorite } from "@/lib/favorites";
+import { DEFAULT_LEAGUE } from "@/lib/leagues";
+import type { GameSummary, LeagueId } from "@/lib/types";
 
 function tickerText(game: GameSummary): string {
   const away = `${game.away.rank ? `#${game.away.rank} ` : ""}${game.away.abbreviation}`;
@@ -13,9 +15,18 @@ function tickerText(game: GameSummary): string {
   return `${away} ${awayScore}  ${home} ${homeScore}  ${game.status.shortDetail}`;
 }
 
-export function BottomLine({ games }: { games: GameSummary[] }) {
+export function BottomLine({
+  games,
+  league = DEFAULT_LEAGUE,
+  favoriteKeys,
+}: {
+  games: GameSummary[];
+  league?: LeagueId;
+  favoriteKeys?: Set<string>;
+}) {
   const items = games.length > 0 ? games : [];
   const loop = items.length > 0 ? [...items, ...items] : [];
+  const keys = favoriteKeys ?? new Set<string>();
 
   return (
     <div
@@ -37,6 +48,11 @@ export function BottomLine({ games }: { games: GameSummary[] }) {
                 key={`${game.id}-${index}`}
                 className="inline-flex items-center gap-3 font-mono text-[11px] tracking-wide text-white sm:text-xs"
               >
+                {gameHasFavorite(game, league, keys) ? (
+                  <span className="font-display text-[10px] tracking-[0.16em] text-[#f3c14b]">
+                    ★
+                  </span>
+                ) : null}
                 {game.status.state === "in" && (
                   <span className="live-pill px-1.5 font-display text-[10px] tracking-[0.16em]">
                     <span className="live-dot" />

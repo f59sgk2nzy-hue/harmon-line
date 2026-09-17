@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import {
   sportBoardHref,
+  sportFavoritesHref,
   sportOpsHref,
   sportOracleHref,
   sportRankingsHref,
@@ -12,10 +13,23 @@ import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type { LeagueId } from "@/lib/types";
 import Link from "next/link";
 
+type HeaderSection = "board" | "rankings" | "standings" | "favorites" | "ops" | "oracle" | "research";
+
+function sectionKicker(section: HeaderSection, specLabel: string): string {
+  if (section === "rankings") return `${specLabel.toUpperCase()} RANKINGS`;
+  if (section === "standings") return `${specLabel.toUpperCase()} STANDINGS`;
+  if (section === "favorites") return "FOLLOWED TEAMS";
+  if (section === "ops") return "AGENT GRAPH";
+  if (section === "oracle") return "STAT ORACLE";
+  if (section === "research") return "DEEP LORE";
+  return `${specLabel.toUpperCase()} SCOREBOARD`;
+}
+
 const NAV = [
   { id: "board", label: "SCOREBOARD" },
   { id: "rankings", label: "RANKINGS" },
   { id: "standings", label: "STANDINGS" },
+  { id: "favorites", label: "FAVORITES" },
   { id: "oracle", label: "ORACLE" },
   { id: "research", label: "RESEARCH" },
   { id: "ops", label: "OPS" },
@@ -29,7 +43,7 @@ export function BoardHeader({
 }: {
   dateLabel: string;
   week?: number | null;
-  section?: "board" | "rankings" | "standings" | "ops" | "oracle" | "research";
+  section?: HeaderSection;
   league?: LeagueId;
 }) {
   const spec = getLeague(league);
@@ -39,21 +53,12 @@ export function BoardHeader({
   const opsHref = sportOpsHref(league);
   const oracleHref = sportOracleHref(league);
   const researchHref = sportResearchHref(league);
-  const kicker =
-    section === "rankings"
-      ? `${spec.label.toUpperCase()} RANKINGS`
-      : section === "standings"
-        ? `${spec.label.toUpperCase()} STANDINGS`
-        : section === "ops"
-        ? "AGENT GRAPH"
-        : section === "oracle"
-          ? "STAT ORACLE"
-          : section === "research"
-            ? "DEEP LORE"
-            : `${spec.label.toUpperCase()} SCOREBOARD`;
+  const favoritesHref = sportFavoritesHref(league);
+  const kicker = sectionKicker(section, spec.label);
   const hrefFor = (id: (typeof NAV)[number]["id"]) => {
     if (id === "rankings") return rankingsHref;
     if (id === "standings") return standingsHref;
+    if (id === "favorites") return favoritesHref;
     if (id === "ops") return opsHref;
     if (id === "oracle") return oracleHref;
     if (id === "research") return researchHref;
@@ -110,6 +115,7 @@ export function BoardHeader({
               "font-display text-[11px] tracking-[0.22em] text-[#f3c14b] sm:text-xs",
               (section === "rankings" ||
                 section === "standings" ||
+                section === "favorites" ||
                 section === "ops" ||
                 section === "oracle" ||
                 section === "research") &&

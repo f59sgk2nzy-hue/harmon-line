@@ -1,11 +1,14 @@
 "use client";
 
+import { FavoritePinButton } from "@/components/favorite-pin-button";
 import { TeamLogo } from "@/components/team-logo";
 import { gameHref } from "@/lib/board-url";
 import { formatKickoff } from "@/lib/dates";
 import { deepDiveHref } from "@/lib/espn-stats";
 import { teamHref } from "@/lib/espn-team";
+import { gameHasFavorite } from "@/lib/favorites";
 import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
+import { useFavorites } from "@/lib/use-favorites";
 import type { GameSummary, LeagueId, TeamSide } from "@/lib/types";
 import Link from "next/link";
 import { ViewTransition } from "react";
@@ -24,7 +27,8 @@ function TeamRow({
   league: LeagueId;
 }) {
   return (
-    <div className="grid grid-cols-[1fr_auto] items-center gap-2">
+    <div className="grid grid-cols-[auto_1fr_auto] items-center gap-1 sm:gap-2">
+      <FavoritePinButton league={league} team={team} />
       <Link
         href={teamHref(team.id, league)}
         transitionTypes={["nav-forward"]}
@@ -81,6 +85,8 @@ export function GameCard({
   league?: LeagueId;
 }) {
   const spec = getLeague(league);
+  const { keys } = useFavorites();
+  const followed = gameHasFavorite(game, league, keys);
   const live = game.status.state === "in";
   const final = game.status.state === "post";
   const football = spec.detailModules.footballSituation;
@@ -94,7 +100,11 @@ export function GameCard({
   const href = gameHref(game.id, league);
 
   return (
-    <article className={`score-cell outline-none ${live ? "is-live" : ""}`}>
+    <article
+      className={`score-cell outline-none ${live ? "is-live" : ""} ${
+        followed ? "ring-1 ring-[#f3c14b]/35" : ""
+      }`}
+    >
       <Link
         href={href}
         transitionTypes={["nav-forward"]}

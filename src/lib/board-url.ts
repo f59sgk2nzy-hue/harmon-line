@@ -101,3 +101,7 @@ export function sportResearchHref(league: LeagueId, id?: string | null): string 
   const qs = params.toString();
   return qs ? `/research?${qs}` : "/research";
 }
+
+export function sportFavoritesHref(league: LeagueId): string {
+  return league === DEFAULT_LEAGUE ? "/favorites" : `/favorites?league=${league}`;
+}
