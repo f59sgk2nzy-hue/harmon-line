@@ -6,6 +6,10 @@ import { parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, parseDateParam } from "@/lib/dates";
 import { getScoreboard, parseDivision, parseSubdivision } from "@/lib/espn";
 import { parseSeasonType, parseSeasonYear, parseWeekParam } from "@/lib/espn-weeks";
+import {
+  homeHighlightsQuery,
+  shouldRenderHomeHighlightsStrip,
+} from "@/lib/highlights-home";
 import { getLeague, parseLeagueParam } from "@/lib/leagues";
 import { emptyHighlightsBoard, loadHighlights } from "@/lib/youtube";
 
@@ -38,10 +42,15 @@ export default async function Home({
   const view =
     league === "nfl" ? (week || !dateParam ? "week" : "date") : week ? "week" : "date";
 
-  let initial = null;
-  let initialError: string | null = null;
-  try {
-    initial = await getScoreboard({
+  const highlightsRequest = homeHighlightsQuery({
+    league,
+    date,
+    week,
+    games: [],
+  });
+
+  const [scoreboardResult, highlightsResult] = await Promise.allSettled([
+    getScoreboard({
       league,
       division,
       date,
@@ -50,22 +59,36 @@ export default async function Home({
       year: view === "week" ? year : null,
       seasonType: league === "nfl" && view === "week" ? seasonType : null,
       view,
-    });
-  } catch (error) {
-    initialError = error instanceof Error ? error.message : "Scoreboard unavailable";
-  }
-
-  let highlights = null;
-  let highlightsError: string | null = null;
-  try {
-    highlights = await loadHighlights({
-      league,
+    }),
+    loadHighlights({
+      league: highlightsRequest.league,
       apiKey: process.env.YOUTUBE_API_KEY,
-    });
-  } catch (error) {
-    highlightsError = error instanceof Error ? error.message : "Highlights unavailable";
-    highlights = emptyHighlightsBoard(league);
-  }
+    }),
+  ]);
+
+  const initial = scoreboardResult.status === "fulfilled" ? scoreboardResult.value : null;
+  const initialError =
+    scoreboardResult.status === "rejected"
+      ? scoreboardResult.reason instanceof Error
+        ? scoreboardResult.reason.message
+        : "Scoreboard unavailable"
+      : null;
+
+  const highlights =
+    highlightsResult.status === "fulfilled"
+      ? highlightsResult.value
+      : emptyHighlightsBoard(highlightsRequest.league);
+  const highlightsError =
+    highlightsResult.status === "rejected"
+      ? highlightsResult.reason instanceof Error
+        ? highlightsResult.reason.message
+        : "Highlights unavailable"
+      : null;
+
+  const showHighlights = shouldRenderHomeHighlightsStrip({
+    league,
+    gameCount: initial?.games.length ?? 0,
+  });
 
   return (
     <>
@@ -75,12 +98,14 @@ export default async function Home({
         league={league}
       />
       <PageTransition>
-        <HighlightsStrip
-          key={league}
-          league={league}
-          initial={highlights}
-          initialError={highlightsError}
-        />
+        {showHighlights ? (
+          <HighlightsStrip
+            key={league}
+            league={league}
+            initial={highlights}
+            initialError={highlightsError}
+          />
+        ) : null}
         <ScoreboardView
           key={`${league}-${division}-${date}-${subdivision}-${view}-${week ?? ""}-${seasonType}`}
           initial={initial}

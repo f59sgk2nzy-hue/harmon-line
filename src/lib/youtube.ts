@@ -30,6 +30,7 @@ export type HighlightsResponse = {
 };
 
 export const HIGHLIGHTS_REFRESH_MS = 15 * 60 * 1000;
+export const HIGHLIGHTS_EMPTY_HEADLINE = "NO CLIPS ON THIS FEED";
 
 const RSS_TIMEOUT_MS = 8_000;
 const API_TIMEOUT_MS = 8_000;
@@ -382,7 +383,7 @@ export function sampleHighlightsBoard(now = new Date()): HighlightsResponse {
 export function highlightsSourceNote(board: HighlightsResponse | null): string {
   if (!board) return "LOADING YOUTUBE FEED";
   if (board.source === "empty" || board.videos.length === 0) {
-    return "NO CLIPS ON THIS FEED  ·  NEVER INVENTED";
+    return `${HIGHLIGHTS_EMPTY_HEADLINE}  ·  NEVER INVENTED`;
   }
   if (board.sample) {
     return "SAMPLE CARDS  ·  LIVE YOUTUBE FEED UNAVAILABLE  ·  NOT LIVE SCORES";

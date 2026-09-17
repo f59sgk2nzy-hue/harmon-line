@@ -1,4 +1,4 @@
-import { parseLeagueParam } from "@/lib/leagues";
+import { homeHighlightsQuery } from "@/lib/highlights-home";
 import { clipQueryFromSearchParams, withClipLookup } from "@/lib/scrub-film";
 import { emptyHighlightsBoard, loadHighlights } from "@/lib/youtube";
 import { NextResponse } from "next/server";
@@ -7,7 +7,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const league = parseLeagueParam(url.searchParams.get("league"));
+  const league = homeHighlightsQuery({
+    league: url.searchParams.get("league"),
+    date: url.searchParams.get("date"),
+    week: url.searchParams.get("week") ? Number(url.searchParams.get("week")) : null,
+  }).league;
   const now = new Date();
   try {
     const board = await loadHighlights({
