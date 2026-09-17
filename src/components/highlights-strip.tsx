@@ -1,6 +1,11 @@
 "use client";
 
-import { EmptyState } from "@/components/empty-state";
+import {
+  HIGHLIGHTS_EMPTY_HEADLINE,
+  highlightsClientPollOnMount,
+  highlightsStripMode,
+  homeHighlightsApiPath,
+} from "@/lib/highlights-home";
 import { useLivePoll } from "@/lib/hooks";
 import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
 import type { LeagueId } from "@/lib/types";
@@ -30,7 +35,7 @@ export function HighlightsStrip({
 
   const load = useCallback(async () => {
     try {
-      const response = await fetch(`/api/highlights?league=${encodeURIComponent(league)}`, {
+      const response = await fetch(homeHighlightsApiPath(league), {
         cache: "no-store",
       });
       const payload = (await response.json()) as HighlightsResponse & { error?: string };
@@ -45,7 +50,10 @@ export function HighlightsStrip({
     }
   }, [league]);
 
-  useLivePoll(load, { intervalMs: HIGHLIGHTS_REFRESH_MS, runOnMount: !initial });
+  useLivePoll(load, {
+    intervalMs: HIGHLIGHTS_REFRESH_MS,
+    runOnMount: highlightsClientPollOnMount(initial),
+  });
 
   const scrollByCard = (direction: -1 | 1) => {
     const el = scrollerRef.current;
@@ -83,7 +91,7 @@ export function HighlightsStrip({
 
   const videos = board?.videos ?? [];
   const seasonYear = board?.seasonYear;
-  const loadedEmpty = board !== null && videos.length === 0;
+  const mode = highlightsStripMode(board);
 
   return (
     <section
@@ -105,7 +113,9 @@ export function HighlightsStrip({
               ) : null}
             </div>
             <p className="mt-1 font-mono text-[10px] tracking-[0.12em] text-white/45">
-              <span className="sm:hidden">SWIPE — NEXT CLIP PEEKS</span>
+              <span className="sm:hidden">
+                {mode === "empty-chrome" ? HIGHLIGHTS_EMPTY_HEADLINE : "SWIPE — NEXT CLIP PEEKS"}
+              </span>
               <span className="hidden sm:inline">
                 {highlightsSourceNote(board)}
                 {error ? `  ·  ${error}` : ""}
@@ -134,86 +144,96 @@ export function HighlightsStrip({
           ) : null}
         </div>
 
-        {loadedEmpty ? (
-          <div className="px-3 pb-3 sm:px-5 sm:pb-4">
-            <EmptyState
-              kicker="YOUTUBE RSS"
-              headline={`${spec.shortLabel} HIGHLIGHTS NOT ON THIS FEED`}
-              detail={`No current-season ${spec.label} clips arrived from YouTube. Empty stays empty — videos are never invented or copied from another sport.`}
-              className="py-5 sm:py-8"
-            />
-          </div>
-        ) : (
-          <div
-            ref={scrollerRef}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-            className="highlights-scroller flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-3 pb-2 scroll-pl-3 scroll-pr-8 sm:px-5 sm:pb-3 sm:scroll-pl-5 sm:scroll-pr-5"
-          >
-            {videos.length === 0
-              ? Array.from({ length: 4 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="highlight-card h-[210px] shrink-0 animate-pulse snap-start border border-white/10 bg-[#161616]"
-                  />
-                ))
-              : videos.map((video) => (
-                  <a
-                    key={video.id}
-                    data-highlight-card
-                    href={video.watchUrl}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    onClick={(event) => {
-                      if (drag.current.moved) event.preventDefault();
-                    }}
-                    className="score-cell highlight-card pressable shrink-0 snap-start snap-always select-none no-underline outline-none"
-                  >
-                    <div className="relative aspect-video overflow-hidden bg-[#111]">
-                      {video.thumbnailUrl ? (
-                        // YouTube thumbs; unoptimized so score polling stays off the image optimizer.
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={video.thumbnailUrl}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          width={480}
-                          height={360}
-                          draggable={false}
-                          className="size-full object-cover transition-transform duration-300 ease-out"
-                        />
-                      ) : (
-                        <div className="flex size-full items-center justify-center bg-[#1a1a1a] font-display text-xs tracking-[0.18em] text-white/35">
-                          SAMPLE
-                        </div>
-                      )}
-                      <span className="absolute left-1.5 top-1.5 rounded-sm bg-black/80 px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-white">
-                        {video.kind === "reaction" ? "REACTION" : "HIGHLIGHT"}
-                      </span>
-                      {video.sample ? (
-                        <span className="absolute right-1.5 top-1.5 rounded-sm bg-[#f3c14b] px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-black">
-                          SAMPLE
-                        </span>
-                      ) : null}
-                      <span className="absolute inset-0 flex items-center justify-center">
-                        <span className="inline-flex size-11 items-center justify-center rounded-full bg-[#cc0000] text-white shadow-[0_0_18px_rgb(204_0_0_/_45%)]">
-                          <Play className="size-4 fill-white" />
-                        </span>
-                      </span>
+        <div
+          ref={scrollerRef}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          className="highlights-scroller flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden px-3 pb-2 scroll-pl-3 scroll-pr-8 sm:px-5 sm:pb-3 sm:scroll-pl-5 sm:scroll-pr-5"
+        >
+          {mode === "loading" ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="highlight-card h-[210px] shrink-0 animate-pulse snap-start border border-white/10 bg-[#161616]"
+              />
+            ))
+          ) : mode === "empty-chrome" ? (
+            <>
+              <div
+                data-highlight-empty
+                className="highlight-card flex min-h-[210px] shrink-0 snap-start flex-col justify-center border border-white/10 bg-[#161616] px-3 py-4"
+              >
+                <p className="font-display text-[13px] tracking-[0.16em] text-white sm:text-sm">
+                  {HIGHLIGHTS_EMPTY_HEADLINE}
+                </p>
+                <p className="mt-2 font-mono text-[10px] leading-relaxed tracking-[0.08em] text-white/50">
+                  No current-season {spec.label} clips arrived from YouTube. Empty stays empty —
+                  videos are never invented.
+                </p>
+              </div>
+              <div
+                aria-hidden
+                className="highlight-card h-[210px] shrink-0 snap-start border border-white/5 bg-[#121212]"
+              />
+            </>
+          ) : (
+            videos.map((video) => (
+              <a
+                key={video.id}
+                data-highlight-card
+                href={video.watchUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                onClick={(event) => {
+                  if (drag.current.moved) event.preventDefault();
+                }}
+                className="score-cell highlight-card pressable shrink-0 snap-start snap-always select-none no-underline outline-none"
+              >
+                <div className="relative aspect-video overflow-hidden bg-[#111]">
+                  {video.thumbnailUrl ? (
+                    // YouTube thumbs; unoptimized so score polling stays off the image optimizer.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={video.thumbnailUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      width={480}
+                      height={360}
+                      draggable={false}
+                      className="size-full object-cover transition-transform duration-300 ease-out"
+                    />
+                  ) : (
+                    <div className="flex size-full items-center justify-center bg-[#1a1a1a] font-display text-xs tracking-[0.18em] text-white/35">
+                      SAMPLE
                     </div>
-                    <div className="space-y-1 px-2.5 py-2">
-                      <p className="line-clamp-2 font-display text-[15px] leading-tight tracking-normal text-white sm:text-sm sm:tracking-wide">
-                        {video.title}
-                      </p>
-                      <p className="truncate font-mono text-xs text-white/60">{video.channel}</p>
-                    </div>
-                  </a>
-                ))}
-          </div>
-        )}
+                  )}
+                  <span className="absolute left-1.5 top-1.5 rounded-sm bg-black/80 px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-white">
+                    {video.kind === "reaction" ? "REACTION" : "HIGHLIGHT"}
+                  </span>
+                  {video.sample ? (
+                    <span className="absolute right-1.5 top-1.5 rounded-sm bg-[#f3c14b] px-1.5 py-0.5 font-display text-[10px] tracking-[0.16em] text-black">
+                      SAMPLE
+                    </span>
+                  ) : null}
+                  <span className="absolute inset-0 flex items-center justify-center">
+                    <span className="inline-flex size-11 items-center justify-center rounded-full bg-[#cc0000] text-white shadow-[0_0_18px_rgb(204_0_0_/_45%)]">
+                      <Play className="size-4 fill-white" />
+                    </span>
+                  </span>
+                </div>
+                <div className="space-y-1 px-2.5 py-2">
+                  <p className="line-clamp-2 font-display text-[15px] leading-tight tracking-normal text-white sm:text-sm sm:tracking-wide">
+                    {video.title}
+                  </p>
+                  <p className="truncate font-mono text-xs text-white/60">{video.channel}</p>
+                </div>
+              </a>
+            ))
+          )}
+        </div>
       </div>
     </section>
   );
