@@ -6,6 +6,8 @@ import {
   DEFAULT_ESPN_WEB_ORIGIN,
   espnRequestUrl,
   espnSportPath,
+  espnV2RequestUrl,
+  espnV2SportPath,
   originFromEnv,
   teamLogoUrl,
 } from "./espn-path";
@@ -80,6 +82,18 @@ describe("espnSportPath / espnRequestUrl", () => {
     assert.equal(
       espnRequestUrl(DEFAULT_ESPN_WEB_ORIGIN, "nba", "/scoreboard?dates=20260415&limit=300"),
       "https://site.web.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=20260415&limit=300"
+    );
+  });
+
+  it("builds public /apis/v2 standings URLs separately from site/v2", () => {
+    assert.equal(espnV2SportPath("cfb"), "/apis/v2/sports/football/college-football");
+    assert.equal(
+      espnV2RequestUrl(DEFAULT_ESPN_WEB_ORIGIN, "cfb", "/standings?group=80"),
+      "https://site.web.api.espn.com/apis/v2/sports/football/college-football/standings?group=80"
+    );
+    assert.equal(
+      espnV2RequestUrl(DEFAULT_ESPN_WEB_ORIGIN, "nfl", "/standings"),
+      "https://site.web.api.espn.com/apis/v2/sports/football/nfl/standings"
     );
   });
 });

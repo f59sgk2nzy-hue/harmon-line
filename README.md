@@ -15,7 +15,7 @@ Unit checks for period scores, subdivision labels, poll-clock timezone, week/dat
 npm test
 ```
 
-Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s college football games in US/Eastern**, with a week strip to jump ESPN regular-season weeks. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it. **Rankings** (`/rankings`) lists AP, Coaches, FCS, D2, and D3 football polls from the same public ESPN JSON.
+Open [http://localhost:43173](http://localhost:43173). The home board defaults to **today’s college football games in US/Eastern**, with a week strip to jump ESPN regular-season weeks. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it. **Rankings** (`/rankings`) lists AP, Coaches, FCS, D2, and D3 football polls from the same public ESPN JSON. **Standings** (`/standings`) lists FBS conference tables (and NFL / MLB / NBA / MBB when ESPN publishes them).
 
 ### Switch sports (CFB ↔ MBB ↔ NFL ↔ NBA ↔ MLB)
 
@@ -26,6 +26,7 @@ College football stays the default Saturday home. Men’s college basketball, th
 | Scoreboard | `/` — week chips + Eastern date | `/?league=mbb` — **date arrows only** (`?dates=YYYYMMDD` on ESPN). No football week chips. | `/?league=nfl` — **week-first** (`?week=&year=&seasontype=`). Regular season by default; pre/post chips only if ESPN’s calendar already published them. | `/?league=nba` — **date arrows only** (`?dates=YYYYMMDD`). No week chips, no college groups. | `/?league=mlb` — **date arrows only** (`?dates=YYYYMMDD`). No week chips, no college groups. |
 | Game | `/game/{espnId}` | `/game/{espnId}?league=mbb` — boxscore TEAM STATS / player cats, **plays** PBP (not drives), news links. No Deep Dive / odds / ATS. | `/game/{espnId}?league=nfl` — football situation, drives, scoring plays, TEAM STATS / player box, standings snippet, outbound news. No Deep Dive / CFBD / odds / pickcenter / winprob. | `/game/{espnId}?league=nba` — boxscore TEAM STATS / player BOX, **plays** PBP (quarters, not football drives), outbound news. Honest empty when ESPN omitted a module. No Deep Dive / odds / pickcenter / winprob / ATS. | `/game/{espnId}?league=mlb` — boxscore TEAM STATS / player BOX, **plays** / **atBats** PBP, **inning linescores** (extras only if ESPN published them). Honest empty when ESPN omitted a module. No Deep Dive / odds / pickcenter / winprob / ATS. |
 | Rankings | `/rankings` | `/rankings?league=mbb` — AP and Coaches when ESPN publishes them; honest empty out of season. | Hidden — ESPN `/rankings` **404s**. No invented polls. | Hidden — ESPN `/rankings` **404s**. No invented polls. | Hidden — ESPN `/rankings` **404s**. No invented polls. |
+| Standings | `/standings` — FBS (group 80) conference tables | `/standings?league=mbb` — D1 (group 50) conference tables when ESPN publishes them | `/standings?league=nfl` — AFC / NFC from the public standings feed | `/standings?league=nba` — East / West when ESPN publishes them | `/standings?league=mlb` — AL / NL from the public standings feed |
 | Team | `/team/{espnId}` | `/team/{espnId}?league=mbb` (same NCAA ids as football — always pass `league`) | `/team/{espnId}?league=nfl` (NFL ids — always pass `league`; favorites keys if added later are `{league}:{teamId}`) | `/team/{espnId}?league=nba` (NBA ids — always pass `league`; favorites keys `{league}:{teamId}`) | `/team/{espnId}?league=mlb` (MLB ids — always pass `league`; favorites keys `{league}:{teamId}`) |
 
 Open the MLB board at [http://localhost:43173/?league=mlb](http://localhost:43173/?league=mlb). Jump a night with `/?league=mlb&date=20260915`. Open the NBA board at [http://localhost:43173/?league=nba](http://localhost:43173/?league=nba). Jump a night with `/?league=nba&date=20260415`. Open the NFL board at [http://localhost:43173/?league=nfl](http://localhost:43173/?league=nfl). Jump a published week with `/?league=nfl&week=2&year=2026&seasontype=2`. Scores and poll points are never invented.
@@ -94,9 +95,23 @@ Each row shows ESPN’s current rank, logo, school, record, and a trend arrow **
 
 The header **RANKINGS** nav is on CFB and MBB pages. NFL, NBA, and MLB hide it — ESPN’s public rankings JSON 404s, and this app does not invent polls. On a phone the poll tabs stick under the header (44px targets, horizontal scroll if needed).
 
+## Standings
+
+`/standings` is a live conference board. CFB defaults to **FBS (ESPN group 80)** and lists conference children (SEC, Big Ten, …). Switch sports in the header to see NFL AFC/NFC, MLB AL/NL, NBA East/West, or MBB D1 conferences when ESPN published them. Conference chips filter the tables; each school name opens `/team/{espnId}`. Favorites UI is not in this hub.
+
+**Source:** ESPN’s unofficial public `/apis/v2` standings JSON (not the site/v2 scoreboard path), no API key:
+
+`GET {ESPN_WEB_BASE}/apis/v2/sports/{sport}/{league}/standings` — CFB appends `?group=80`, MBB `?group=50`.
+
+Example: `https://site.web.api.espn.com/apis/v2/sports/football/college-football/standings?group=80`.
+
+Only columns ESPN published on each row are shown (typically W-L, CONF, PF/PA, DIFF, STRK). Empty conferences (no entries) stay off the board. Records are never invented. `demo: false`.
+
+Open [http://localhost:43173/standings](http://localhost:43173/standings). SEC: [http://localhost:43173/standings?conference=8](http://localhost:43173/standings?conference=8). NFL: [http://localhost:43173/standings?league=nfl](http://localhost:43173/standings?league=nfl).
+
 ## Ops / agent graph
 
-`/ops` is a hub-and-spoke **agent map on the board** (not a separate product). Header **OPS** sits next to SCOREBOARD / RANKINGS. The sport switcher still jumps CFB / MBB / NFL / NBA / MLB boards.
+`/ops` is a hub-and-spoke **agent map on the board** (not a separate product). Header **OPS** sits next to SCOREBOARD / RANKINGS / STANDINGS. The sport switcher still jumps CFB / MBB / NFL / NBA / MLB boards.
 
 | Piece | v0 |
 | --- | --- |
@@ -282,10 +297,11 @@ NFL is the second sibling sport on the Phase 0 registry. CFB remains the default
 | NFL scoreboard | `/?league=nfl` — week-first, `?week=&year=&seasontype=`, no college groups. AFC / NFC chips from ESPN standings ids 8 / 7 |
 | NFL game | `/game/{id}?league=nfl` — situation, drives, scoring, TEAM STATS, player box, standings snippet, outbound news. Honest empty when ESPN omitted a module. No Deep Dive / CFBD / odds / pickcenter / winprob / ATS |
 | NFL rankings | Hidden in the header. `/rankings?league=nfl` is an honest empty (ESPN 404) — polls are never invented |
+| NFL standings | `/standings?league=nfl` — AFC / NFC tables from ESPN’s public `/apis/v2` standings JSON |
 | Logos | `https://a.espncdn.com/i/teamlogos/nfl/500/{abbr}.png` |
 | Favorites keys | `{league}:{teamId}` helper so NFL `2` (Bills) is not CFB `2` |
 
-**Deferred:** CFB `/standings` hub; favorites UI; service worker; betting chrome.
+**Deferred:** favorites UI; service worker; betting chrome.
 
 ## Phase 3 — NBA v0
 
@@ -297,10 +313,11 @@ NBA is the third sibling sport on the Phase 0 registry. CFB remains the default 
 | NBA scoreboard | `/?league=nba` — date-first, `?dates=YYYYMMDD`, no college groups, no week chips |
 | NBA game | `/game/{id}?league=nba` — TEAM STATS, player box, scoring, flat `plays[]` PBP (quarters). Honest empty when ESPN omitted a module. No football drives/situation, no Deep Dive / odds / pickcenter / winprob / ATS |
 | NBA rankings | Hidden in the header. `/rankings?league=nba` is an honest empty (ESPN 404) — polls are never invented |
+| NBA standings | `/standings?league=nba` — East / West tables when ESPN published them |
 | Logos | `https://a.espncdn.com/i/teamlogos/nba/500/{abbr}.png` |
 | Favorites keys | `{league}:{teamId}` so NBA `13` (Lakers) is not CFB `13` |
 
-**Deferred:** CFB `/standings` hub; favorites UI; service worker; betting chrome.
+**Deferred:** favorites UI; service worker; betting chrome.
 
 ## Phase 4 — MLB v0
 
@@ -312,9 +329,10 @@ MLB is the fourth sibling sport on the Phase 0 registry. CFB remains the default
 | MLB scoreboard | `/?league=mlb` — date-first, `?dates=YYYYMMDD`, no college groups, no week chips |
 | MLB game | `/game/{id}?league=mlb` — TEAM STATS, player box, scoring, **plays** / **atBats** PBP, **inning linescores**. Extra innings and doubleheaders only if ESPN published them. Honest empty when ESPN omitted a module. No football drives/situation, no Deep Dive / odds / pickcenter / winprob / ATS |
 | MLB rankings | Hidden in the header. `/rankings?league=mlb` is an honest empty (ESPN 404) — polls are never invented |
+| MLB standings | `/standings?league=mlb` — AL / NL tables from ESPN’s public standings JSON |
 | Logos | `https://a.espncdn.com/i/teamlogos/mlb/500/{abbr}.png` |
 | Favorites keys | `{league}:{teamId}` so MLB `15` (Yankees) is not CFB `15` |
 
-**Deferred:** CFB `/standings` hub; favorites UI; service worker; betting chrome; inventing doubleheader grouping.
+**Deferred:** favorites UI; service worker; betting chrome; inventing doubleheader grouping.
 
 All registered leagues ship with `demo: false` and coverage notes. Scores are never invented.

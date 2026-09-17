@@ -3,6 +3,7 @@ import {
   sportOracleHref,
   sportRankingsHref,
   sportResearchHref,
+  sportStandingsHref,
 } from "@/lib/board-url";
 import { DEFAULT_LEAGUE, LEAGUE_IDS, getLeague, shippedLeagues } from "@/lib/leagues";
 import type { LeagueId } from "@/lib/types";
@@ -26,12 +27,14 @@ export function SportSwitcher({
   section = "board",
 }: {
   current?: LeagueId;
-  section?: "board" | "rankings" | "game" | "team" | "ops" | "oracle" | "research";
+  section?: "board" | "rankings" | "standings" | "game" | "team" | "ops" | "oracle" | "research";
 }) {
   const shipped = shippedLeagues().slice().sort(byHeaderOrder);
   const hrefFor = (id: LeagueId) => {
     if (section === "rankings" && !getLeague(id).rankings) return sportBoardHref(id);
     if (section === "rankings") return sportRankingsHref(id);
+    if (section === "standings" && !getLeague(id).standings) return sportBoardHref(id);
+    if (section === "standings") return sportStandingsHref(id);
     if (section === "oracle") return sportOracleHref(id);
     if (section === "research") return sportResearchHref(id);
     return sportBoardHref(id);

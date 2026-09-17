@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { boardHref, gameHref, sportBoardHref, sportRankingsHref } from "./board-url";
+import { boardHref, gameHref, sportBoardHref, sportRankingsHref, sportStandingsHref } from "./board-url";
 import { conferenceLabel, coverageFor, scoreboardGroups } from "./conferences";
 import { parseGamecastDepth, parsePlayerBoxscore, parseTeamBoxStats } from "./espn-gamecast";
 import { assembleRankingsPage, pollTabsFor } from "./espn-rankings";
@@ -115,6 +115,7 @@ describe("MLB hrefs", () => {
   it("scopes board, game, and team URLs with league=mlb and date, not week", () => {
     assert.equal(sportBoardHref("mlb"), "/?league=mlb");
     assert.equal(sportRankingsHref("mlb"), "/rankings?league=mlb");
+    assert.equal(sportStandingsHref("mlb"), "/standings?league=mlb");
     assert.equal(gameHref("401816943", "mlb"), "/game/401816943?league=mlb");
     assert.equal(teamHref("15", "mlb"), "/team/15?league=mlb");
     assert.equal(
