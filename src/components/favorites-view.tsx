@@ -34,7 +34,10 @@ function PinRow({ pin }: { pin: FavoritePin }) {
   const spec = getLeague(pin.league);
   return (
     <div className="flex min-h-14 items-center gap-1 px-2 py-1.5 sm:px-3">
-      <FavoritePinButton league={pin.league} team={pin} />
+      <FavoritePinButton
+        league={pin.league}
+        team={{ ...pin, id: pin.teamId }}
+      />
       <Link
         href={teamHref(pin.teamId, pin.league)}
         transitionTypes={["nav-forward"]}
