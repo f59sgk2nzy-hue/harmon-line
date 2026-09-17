@@ -4,6 +4,7 @@ import type { LeagueId } from "@/lib/types";
 export const DEFAULT_ESPN_WEB_ORIGIN = "https://site.web.api.espn.com";
 export const DEFAULT_ESPN_SITE_ORIGIN = "https://site.api.espn.com";
 export const ESPN_SITE_V2_PREFIX = "/apis/site/v2";
+export const ESPN_V2_PREFIX = "/apis/v2";
 
 /** Host-only origin. Legacy full CFB paths are stripped so the registry can append sport/league. */
 export function originFromEnv(value: string | undefined, fallback: string): string {
@@ -29,6 +30,21 @@ export function espnRequestUrl(
 ): string {
   const suffix = path.startsWith("/") ? path : `/${path}`;
   return `${origin}${espnSportPath(league)}${suffix}`;
+}
+
+/** Standings live on ESPN’s public /apis/v2 tree, not site/v2. */
+export function espnV2SportPath(league: LeagueId = DEFAULT_LEAGUE): string {
+  const spec = getLeague(league);
+  return `${ESPN_V2_PREFIX}/sports/${spec.sport}/${spec.league}`;
+}
+
+export function espnV2RequestUrl(
+  origin: string,
+  league: LeagueId,
+  path: string
+): string {
+  const suffix = path.startsWith("/") ? path : `/${path}`;
+  return `${origin}${espnV2SportPath(league)}${suffix}`;
 }
 
 export function teamLogoUrl(

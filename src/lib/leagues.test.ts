@@ -35,6 +35,7 @@ describe("SportLeague registry", () => {
     assert.equal(cfb.detailModules.primary, "drives");
     assert.equal(cfb.detailModules.footballSituation, true);
     assert.equal(cfb.rankings, true);
+    assert.equal(cfb.standings, true);
     assert.equal(cfb.shortLabel, "CFB");
     assert.match(cfb.coverage.detail, /never invent/i);
   });
@@ -48,6 +49,7 @@ describe("SportLeague registry", () => {
     assert.equal(mbb.detailModules.primary, "plays");
     assert.equal(mbb.detailModules.footballSituation, false);
     assert.equal(mbb.rankings, true);
+    assert.equal(mbb.standings, true);
     assert.equal(mbb.shipped, true);
     assert.equal(mbb.shortLabel, "MBB");
     assert.match(mbb.coverage.headline, /college basketball/i);
@@ -65,6 +67,7 @@ describe("SportLeague registry", () => {
     assert.equal(nba.detailModules.primary, "plays");
     assert.equal(nba.detailModules.footballSituation, false);
     assert.equal(nba.rankings, false);
+    assert.equal(nba.standings, true);
     assert.equal(nba.shipped, true);
     assert.equal(nba.shortLabel, "NBA");
     assert.match(nba.coverage.headline, /nba/i);
@@ -83,6 +86,7 @@ describe("SportLeague registry", () => {
     assert.equal(nfl.detailModules.primary, "drives");
     assert.equal(nfl.detailModules.footballSituation, true);
     assert.equal(nfl.rankings, false);
+    assert.equal(nfl.standings, true);
     assert.equal(nfl.shipped, true);
     assert.equal(nfl.shortLabel, "NFL");
     assert.doesNotMatch(nfl.coverage.headline, /not shipped/i);
@@ -98,6 +102,7 @@ describe("SportLeague registry", () => {
     assert.equal(mlb.detailModules.primary, "atBats");
     assert.equal(mlb.detailModules.footballSituation, false);
     assert.equal(mlb.rankings, false);
+    assert.equal(mlb.standings, true);
     assert.equal(mlb.shipped, true);
     assert.equal(mlb.shortLabel, "MLB");
     assert.match(mlb.coverage.headline, /mlb/i);

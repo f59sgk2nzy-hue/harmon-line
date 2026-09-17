@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { boardHref, gameHref, sportBoardHref, sportRankingsHref } from "./board-url";
+import { boardHref, gameHref, sportBoardHref, sportRankingsHref, sportStandingsHref } from "./board-url";
 import {
   conferenceLabel,
   coverageFor,
@@ -305,6 +305,7 @@ describe("NFL hrefs", () => {
   it("scopes board, game, and team URLs with league=nfl and week/seasontype", () => {
     assert.equal(sportBoardHref("nfl"), "/?league=nfl");
     assert.equal(sportRankingsHref("nfl"), "/rankings?league=nfl");
+    assert.equal(sportStandingsHref("nfl"), "/standings?league=nfl");
     assert.equal(gameHref("401872656", "nfl"), "/game/401872656?league=nfl");
     assert.equal(teamHref("2", "nfl"), "/team/2?league=nfl");
     assert.equal(

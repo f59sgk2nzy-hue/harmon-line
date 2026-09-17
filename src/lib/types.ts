@@ -263,6 +263,38 @@ export type RankingsResponse = {
   coverage: CoverageNote;
 };
 
+export type StandingsColumn = {
+  key: string;
+  label: string;
+};
+
+export type StandingsEntry = {
+  team: RankedTeam;
+  stats: Record<string, string>;
+};
+
+export type StandingsTable = {
+  id: string;
+  name: string;
+  abbreviation: string | null;
+  columns: StandingsColumn[];
+  entries: StandingsEntry[];
+};
+
+export type StandingsResponse = {
+  source: "espn";
+  demo: false;
+  league: LeagueId;
+  generatedAt: string;
+  seasonYear: number | null;
+  groupId: string | null;
+  groupName: string | null;
+  conference: string;
+  conferences: ConferenceOption[];
+  groups: StandingsTable[];
+  coverage: CoverageNote;
+};
+
 export type TeamBoxStatLine = {
   name: string;
   label: string;

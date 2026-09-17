@@ -63,6 +63,18 @@ export function sportRankingsHref(league: LeagueId): string {
   return league === DEFAULT_LEAGUE ? "/rankings" : `/rankings?league=${league}`;
 }
 
+export function sportStandingsHref(
+  league: LeagueId,
+  conference?: string | null
+): string {
+  const params = new URLSearchParams();
+  if (league !== DEFAULT_LEAGUE) params.set("league", league);
+  const group = conference?.trim();
+  if (group && group !== "all") params.set("conference", group);
+  const query = params.toString();
+  return query ? `/standings?${query}` : "/standings";
+}
+
 export function sportOpsHref(league: LeagueId, busy?: string | null): string {
   const params = new URLSearchParams();
   if (league !== DEFAULT_LEAGUE) params.set("league", league);

@@ -23,6 +23,7 @@ export type SportLeague = {
   logoNamespace: LogoNamespace;
   detailModules: DetailModules;
   rankings: boolean;
+  standings: boolean;
   shipped: boolean;
   coverage: CoverageNote;
 };
@@ -46,6 +47,7 @@ export const SPORT_LEAGUES: Record<LeagueId, SportLeague> = {
     logoNamespace: "ncaa",
     detailModules: { primary: "drives", footballSituation: true },
     rankings: true,
+    standings: true,
     shipped: true,
     coverage: {
       headline: "College football — ESPN public scoreboard",
@@ -63,6 +65,7 @@ export const SPORT_LEAGUES: Record<LeagueId, SportLeague> = {
     logoNamespace: "ncaa",
     detailModules: { primary: "plays", footballSituation: false },
     rankings: true,
+    standings: true,
     shipped: true,
     coverage: {
       headline: "Men’s college basketball — ESPN public scoreboard",
@@ -80,6 +83,7 @@ export const SPORT_LEAGUES: Record<LeagueId, SportLeague> = {
     logoNamespace: "nba",
     detailModules: { primary: "plays", footballSituation: false },
     rankings: false,
+    standings: true,
     shipped: true,
     coverage: {
       headline: "NBA — ESPN public scoreboard",
@@ -97,6 +101,7 @@ export const SPORT_LEAGUES: Record<LeagueId, SportLeague> = {
     logoNamespace: "nfl",
     detailModules: { primary: "drives", footballSituation: true },
     rankings: false,
+    standings: true,
     shipped: true,
     coverage: {
       headline: "NFL — ESPN public scoreboard",
@@ -114,6 +119,7 @@ export const SPORT_LEAGUES: Record<LeagueId, SportLeague> = {
     logoNamespace: "mlb",
     detailModules: { primary: "atBats", footballSituation: false },
     rankings: false,
+    standings: true,
     shipped: true,
     coverage: {
       headline: "MLB — ESPN public scoreboard",

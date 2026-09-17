@@ -5,6 +5,7 @@ import {
   sportOracleHref,
   sportRankingsHref,
   sportResearchHref,
+  sportStandingsHref,
 } from "@/lib/board-url";
 import { SportSwitcher } from "@/components/sport-switcher";
 import { DEFAULT_LEAGUE, getLeague } from "@/lib/leagues";
@@ -14,6 +15,7 @@ import Link from "next/link";
 const NAV = [
   { id: "board", label: "SCOREBOARD" },
   { id: "rankings", label: "RANKINGS" },
+  { id: "standings", label: "STANDINGS" },
   { id: "oracle", label: "ORACLE" },
   { id: "research", label: "RESEARCH" },
   { id: "ops", label: "OPS" },
@@ -27,19 +29,22 @@ export function BoardHeader({
 }: {
   dateLabel: string;
   week?: number | null;
-  section?: "board" | "rankings" | "ops" | "oracle" | "research";
+  section?: "board" | "rankings" | "standings" | "ops" | "oracle" | "research";
   league?: LeagueId;
 }) {
   const spec = getLeague(league);
   const boardHref = sportBoardHref(league);
   const rankingsHref = sportRankingsHref(league);
+  const standingsHref = sportStandingsHref(league);
   const opsHref = sportOpsHref(league);
   const oracleHref = sportOracleHref(league);
   const researchHref = sportResearchHref(league);
   const kicker =
     section === "rankings"
       ? `${spec.label.toUpperCase()} RANKINGS`
-      : section === "ops"
+      : section === "standings"
+        ? `${spec.label.toUpperCase()} STANDINGS`
+        : section === "ops"
         ? "AGENT GRAPH"
         : section === "oracle"
           ? "STAT ORACLE"
@@ -48,6 +53,7 @@ export function BoardHeader({
             : `${spec.label.toUpperCase()} SCOREBOARD`;
   const hrefFor = (id: (typeof NAV)[number]["id"]) => {
     if (id === "rankings") return rankingsHref;
+    if (id === "standings") return standingsHref;
     if (id === "ops") return opsHref;
     if (id === "oracle") return oracleHref;
     if (id === "research") return researchHref;
@@ -77,7 +83,14 @@ export function BoardHeader({
       <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0b0b0b]/90 px-3 py-2 backdrop-blur-md sm:px-5">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <nav aria-label="Site" className="flex flex-wrap items-center gap-1">
-            {(spec.rankings ? NAV : NAV.filter((item) => item.id !== "rankings")).map((item) => (
+            {(spec.rankings && spec.standings
+              ? NAV
+              : NAV.filter((item) => {
+                  if (item.id === "rankings") return spec.rankings;
+                  if (item.id === "standings") return spec.standings;
+                  return true;
+                })
+            ).map((item) => (
               <Link
                 key={item.id}
                 href={hrefFor(item.id)}
@@ -96,6 +109,7 @@ export function BoardHeader({
             className={cn(
               "font-display text-[11px] tracking-[0.22em] text-[#f3c14b] sm:text-xs",
               (section === "rankings" ||
+                section === "standings" ||
                 section === "ops" ||
                 section === "oracle" ||
                 section === "research") &&

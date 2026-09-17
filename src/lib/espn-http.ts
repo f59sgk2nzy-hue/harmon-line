@@ -3,6 +3,7 @@ import {
   DEFAULT_ESPN_SITE_ORIGIN,
   DEFAULT_ESPN_WEB_ORIGIN,
   espnRequestUrl,
+  espnV2RequestUrl,
   originFromEnv,
 } from "@/lib/espn-path";
 import type { LeagueId } from "@/lib/types";
@@ -25,16 +26,17 @@ export function espnSiteOrigin(env: NodeJS.ProcessEnv = process.env): string {
   return originFromEnv(env.ESPN_SITE_BASE, DEFAULT_ESPN_SITE_ORIGIN);
 }
 
-export async function espnGet(
+async function espnGetFrom(
   path: string,
-  league: LeagueId = DEFAULT_LEAGUE
+  league: LeagueId,
+  makeUrl: (origin: string, league: LeagueId, path: string) => string
 ): Promise<Json> {
   const spec = parseLeagueParam(league);
   const bases = [espnWebOrigin(), espnSiteOrigin()];
   let lastError: Error | null = null;
 
   for (const base of bases) {
-    const url = espnRequestUrl(base, spec, path);
+    const url = makeUrl(base, spec, path);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     try {
@@ -66,4 +68,18 @@ export async function espnGet(
   }
 
   throw lastError ?? new Error("Unable to reach ESPN public APIs");
+}
+
+export async function espnGet(
+  path: string,
+  league: LeagueId = DEFAULT_LEAGUE
+): Promise<Json> {
+  return espnGetFrom(path, league, espnRequestUrl);
+}
+
+export async function espnGetV2(
+  path: string,
+  league: LeagueId = DEFAULT_LEAGUE
+): Promise<Json> {
+  return espnGetFrom(path, league, espnV2RequestUrl);
 }
