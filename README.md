@@ -27,7 +27,8 @@ College football stays the default Saturday home. Men’s college basketball, th
 | Game | `/game/{espnId}` | `/game/{espnId}?league=mbb` — boxscore TEAM STATS / player cats, **plays** PBP (not drives), news links. No Deep Dive / odds / ATS. | `/game/{espnId}?league=nfl` — football situation, drives, scoring plays, TEAM STATS / player box, standings snippet, outbound news. No Deep Dive / CFBD / odds / pickcenter / winprob. | `/game/{espnId}?league=nba` — boxscore TEAM STATS / player BOX, **plays** PBP (quarters, not football drives), outbound news. Honest empty when ESPN omitted a module. No Deep Dive / odds / pickcenter / winprob / ATS. | `/game/{espnId}?league=mlb` — boxscore TEAM STATS / player BOX, **plays** / **atBats** PBP, **inning linescores** (extras only if ESPN published them). Honest empty when ESPN omitted a module. No Deep Dive / odds / pickcenter / winprob / ATS. |
 | Rankings | `/rankings` | `/rankings?league=mbb` — AP and Coaches when ESPN publishes them; honest empty out of season. | Hidden — ESPN `/rankings` **404s**. No invented polls. | Hidden — ESPN `/rankings` **404s**. No invented polls. | Hidden — ESPN `/rankings` **404s**. No invented polls. |
 | Standings | `/standings` — FBS (group 80) conference tables | `/standings?league=mbb` — D1 (group 50) conference tables when ESPN publishes them | `/standings?league=nfl` — AFC / NFC from the public standings feed | `/standings?league=nba` — East / West when ESPN publishes them | `/standings?league=mlb` — AL / NL from the public standings feed |
-| Team | `/team/{espnId}` | `/team/{espnId}?league=mbb` (same NCAA ids as football — always pass `league`) | `/team/{espnId}?league=nfl` (NFL ids — always pass `league`; favorites keys if added later are `{league}:{teamId}`) | `/team/{espnId}?league=nba` (NBA ids — always pass `league`; favorites keys `{league}:{teamId}`) | `/team/{espnId}?league=mlb` (MLB ids — always pass `league`; favorites keys `{league}:{teamId}`) |
+| Team | `/team/{espnId}` | `/team/{espnId}?league=mbb` (same NCAA ids as football — always pass `league`) | `/team/{espnId}?league=nfl` (NFL ids — always pass `league`; favorites keys are `{league}:{teamId}`) | `/team/{espnId}?league=nba` (NBA ids — always pass `league`; favorites keys `{league}:{teamId}`) | `/team/{espnId}?league=mlb` (MLB ids — always pass `league`; favorites keys `{league}:{teamId}`) |
+| Favorites | `/favorites` — localStorage pins, CFB first when `league` omitted | `/favorites?league=mbb` | `/favorites?league=nfl` | `/favorites?league=nba` | `/favorites?league=mlb` |
 
 Open the MLB board at [http://localhost:43173/?league=mlb](http://localhost:43173/?league=mlb). Jump a night with `/?league=mlb&date=20260915`. Open the NBA board at [http://localhost:43173/?league=nba](http://localhost:43173/?league=nba). Jump a night with `/?league=nba&date=20260415`. Open the NFL board at [http://localhost:43173/?league=nfl](http://localhost:43173/?league=nfl). Jump a published week with `/?league=nfl&week=2&year=2026&seasontype=2`. Scores and poll points are never invented.
 
@@ -108,6 +109,22 @@ Example: `https://site.web.api.espn.com/apis/v2/sports/football/college-football
 Only columns ESPN published on each row are shown (typically W-L, CONF, PF/PA, DIFF, STRK). Empty conferences (no entries) stay off the board. Records are never invented. `demo: false`.
 
 Open [http://localhost:43173/standings](http://localhost:43173/standings). SEC: [http://localhost:43173/standings?conference=8](http://localhost:43173/standings?conference=8). NFL: [http://localhost:43173/standings?league=nfl](http://localhost:43173/standings?league=nfl).
+
+## Favorites / followed teams (local v0)
+
+`/favorites` is a **this-browser** followed-teams hub. Header **FAVORITES** sits next to SCOREBOARD / RANKINGS / STANDINGS. No account. Pins are `localStorage` only (`harmon-line:favorites`).
+
+| Piece | v0 |
+| --- | --- |
+| Key | `favoriteKey(league, teamId)` → `{league}:{teamId}` so NFL `2` (Bills) is not CFB `2` (Auburn) and MLB `15` is not CFB `15` |
+| Pin | Star on **team pages** and on each team row of **board cards** and **Gamecast**. 44px targets on phones. |
+| Hub | Grouped by league (active `?league=` first). Unpin in place. **ON THIS SLATE** shows current ESPN games that involve a pin — honest empty when none. |
+| Board / ticker | When pins exist for that sport, favorite games float first. Bottom line marks them with ★. No pins → original order. |
+| Honesty | Empty hub → **NO TEAMS PINNED**. `demo: false`. Corrupt JSON and `demo: true` sample payloads are dropped. Scores are never invented. |
+
+**Dogfood:** Open [http://localhost:43173/favorites](http://localhost:43173/favorites) with a clean profile — you should see **NO TEAMS PINNED**, not a sample list. Star Alabama on `/team/333` (or a game card), refresh `/favorites`, then unpin. Pin Bills at `/team/2?league=nfl` and confirm they do not replace Auburn if both id `2` are followed. On the home board, followed games should sit at the top and the ticker should show ★.
+
+**Out of scope:** service worker, cross-device sync, paid odds, Coach Cam.
 
 ## Ops / agent graph
 
@@ -255,6 +272,7 @@ The web manifest uses theme/background `#0a0a0a` to match the scoreboard.
 - Open an MLB game for inning linescores, TEAM STATS / player box, scoring, and a plays/at-bats PBP (or a clear empty state). Extra innings and doubleheaders appear only when ESPN published them.
 - Open **DEEP DIVE / SIM** on a CFB game or team page for matchup stats, a simulation range, and prop-feedback cards (CFB only — not on NFL, MBB, NBA, or MLB)
 - Tap a school or NFL club name on the board, a game, or a rankings row to open recent scores, the upcoming slate, and the roster
+- Star a team on a team page or game card; open **FAVORITES** (`/favorites`) for this-browser followed teams (honest empty when none). The board and ticker float those games first.
 - Swipe the highlights / reactions strip on a phone or installed PWA for current-season YouTube clips (every home board, even empty scoreboard days; keyed off `league`, not games today)
 - Open **OPS** for the hub-and-spoke agent map (static roster; live status feed is not connected)
 - Ask **Stat Oracle** (`/oracle`) a named-game, named-team, or historical question. Live slice answers copy public ESPN JSON. With a Gemini key, off-feed questions use Google Search grounding (Evidence vs Inference; SIMULATION when speculative).
@@ -301,7 +319,7 @@ NFL is the second sibling sport on the Phase 0 registry. CFB remains the default
 | Logos | `https://a.espncdn.com/i/teamlogos/nfl/500/{abbr}.png` |
 | Favorites keys | `{league}:{teamId}` helper so NFL `2` (Bills) is not CFB `2` |
 
-**Deferred:** favorites UI; service worker; betting chrome.
+**Deferred:** service worker; betting chrome.
 
 ## Phase 3 — NBA v0
 
@@ -317,7 +335,7 @@ NBA is the third sibling sport on the Phase 0 registry. CFB remains the default 
 | Logos | `https://a.espncdn.com/i/teamlogos/nba/500/{abbr}.png` |
 | Favorites keys | `{league}:{teamId}` so NBA `13` (Lakers) is not CFB `13` |
 
-**Deferred:** favorites UI; service worker; betting chrome.
+**Deferred:** service worker; betting chrome.
 
 ## Phase 4 — MLB v0
 
@@ -333,6 +351,6 @@ MLB is the fourth sibling sport on the Phase 0 registry. CFB remains the default
 | Logos | `https://a.espncdn.com/i/teamlogos/mlb/500/{abbr}.png` |
 | Favorites keys | `{league}:{teamId}` so MLB `15` (Yankees) is not CFB `15` |
 
-**Deferred:** favorites UI; service worker; betting chrome; inventing doubleheader grouping.
+**Deferred:** service worker; betting chrome; inventing doubleheader grouping.
 
 All registered leagues ship with `demo: false` and coverage notes. Scores are never invented.

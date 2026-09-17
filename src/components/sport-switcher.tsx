@@ -1,5 +1,6 @@
 import {
   sportBoardHref,
+  sportFavoritesHref,
   sportOracleHref,
   sportRankingsHref,
   sportResearchHref,
@@ -27,7 +28,7 @@ export function SportSwitcher({
   section = "board",
 }: {
   current?: LeagueId;
-  section?: "board" | "rankings" | "standings" | "game" | "team" | "ops" | "oracle" | "research";
+  section?: "board" | "rankings" | "standings" | "favorites" | "game" | "team" | "ops" | "oracle" | "research";
 }) {
   const shipped = shippedLeagues().slice().sort(byHeaderOrder);
   const hrefFor = (id: LeagueId) => {
@@ -35,6 +36,7 @@ export function SportSwitcher({
     if (section === "rankings") return sportRankingsHref(id);
     if (section === "standings" && !getLeague(id).standings) return sportBoardHref(id);
     if (section === "standings") return sportStandingsHref(id);
+    if (section === "favorites") return sportFavoritesHref(id);
     if (section === "oracle") return sportOracleHref(id);
     if (section === "research") return sportResearchHref(id);
     return sportBoardHref(id);

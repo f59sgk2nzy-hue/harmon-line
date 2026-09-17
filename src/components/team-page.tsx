@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/empty-state";
+import { FavoritePinButton } from "@/components/favorite-pin-button";
 import { TeamLogo } from "@/components/team-logo";
 import { gameHref, sportBoardHref } from "@/lib/board-url";
 import { formatBoardDate, isoToEspnDate } from "@/lib/dates";
@@ -172,6 +173,7 @@ export function TeamPageView({
               {team.standing ? `  ·  ${team.standing}` : ""}
             </p>
           </div>
+          <FavoritePinButton league={league} team={team} />
         </div>
         {league === "cfb" ? (
           <div className="border-t border-white/10 px-3 py-2 sm:px-4">

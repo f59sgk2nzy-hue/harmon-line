@@ -1,6 +1,7 @@
 "use client";
 
 import { ClipOutbound } from "@/components/clip-outbound";
+import { FavoritePinButton } from "@/components/favorite-pin-button";
 import { GamecastDepth } from "@/components/gamecast-depth";
 import { PlayByPlay } from "@/components/play-by-play";
 import { TeamLogo } from "@/components/team-logo";
@@ -37,7 +38,8 @@ function ScoreColumn({
   league: LeagueId;
 }) {
   return (
-    <div className={`flex min-w-0 items-center gap-3 ${winner ? "" : "opacity-80"}`}>
+    <div className={`flex min-w-0 items-center gap-2 sm:gap-3 ${winner ? "" : "opacity-80"}`}>
+      <FavoritePinButton league={league} team={team} />
       <Link
         href={teamHref(team.id, league)}
         transitionTypes={["nav-forward"]}
