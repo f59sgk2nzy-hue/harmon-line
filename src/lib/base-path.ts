@@ -1,5 +1,6 @@
 /**
- * Public mount for the OS reverse proxy and local dogfood.
+ * Public mount `/line` (https://os.versalink.online/line/).
+ * Laptop dogfood uses the same prefix.
  * Next `basePath` prefixes Link, redirect(), and `/_next` assets.
  * Browser fetches, form actions, raw anchors, history.replaceState, and the web manifest do not.
  */

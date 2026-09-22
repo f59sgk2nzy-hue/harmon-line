@@ -9,7 +9,7 @@ import {
 } from "./base-path";
 
 describe("app base path", () => {
-  it("mounts the app at /line for the OS reverse proxy and local dogfood", () => {
+  it("mounts the app at /line for production and laptop dogfood", () => {
     assert.equal(PUBLIC_BASE_PATH, "/line");
     assert.equal(appBasePath(), "/line");
     assert.equal(nextConfig.basePath, "/line");
