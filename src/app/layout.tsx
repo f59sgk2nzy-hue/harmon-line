@@ -1,4 +1,5 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { pwaManifestFields } from "@/lib/base-path";
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Oswald, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
@@ -20,12 +21,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const pwa = pwaManifestFields();
+
 export const metadata: Metadata = {
   title: "The Harmon Line — College Football Scoreboard",
   description:
     "Nostalgic ESPN-style live scoreboard for NCAA Division I, Division II, and NAIA college football, built for Christian Harmon.",
   applicationName: "The Harmon Line",
-  manifest: "/manifest.webmanifest",
+  manifest: pwa.manifestHref,
   appleWebApp: {
     capable: true,
     title: "The Harmon Line",
@@ -33,10 +36,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: pwa.icons[0], sizes: "192x192", type: "image/png" },
+      { url: pwa.icons[1], sizes: "512x512", type: "image/png" },
+      { url: pwa.icons[2], type: "image/svg+xml" },
     ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    apple: [{ url: pwa.appleTouchIcon, sizes: "180x180" }],
   },
   other: {
     "apple-mobile-web-app-capable": "yes",

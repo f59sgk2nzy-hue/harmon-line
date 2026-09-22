@@ -1,6 +1,7 @@
 import { DisclaimerFooter, DisclaimerModal } from "@/components/disclaimer-modal";
 import { EmptyState } from "@/components/empty-state";
 import { FilterChip } from "@/components/filter-chip";
+import { withBasePath } from "@/lib/base-path";
 import { sportBoardHref, sportOracleHref } from "@/lib/board-url";
 import { getLeague } from "@/lib/leagues";
 import { oracleAskLabel, type OracleResponse } from "@/lib/oracle";
@@ -112,7 +113,7 @@ export function OracleView({
 
       <form
         method="get"
-        action="/oracle"
+        action={withBasePath("/oracle")}
         className="mt-4 border border-white/10 bg-[#111] p-3 sm:p-4"
       >
         {league !== "cfb" ? <input type="hidden" name="league" value={league} /> : null}

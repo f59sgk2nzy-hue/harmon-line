@@ -5,6 +5,7 @@ import { FavoritePinButton } from "@/components/favorite-pin-button";
 import { GamecastDepth } from "@/components/gamecast-depth";
 import { PlayByPlay } from "@/components/play-by-play";
 import { TeamLogo } from "@/components/team-logo";
+import { withBasePath } from "@/lib/base-path";
 import { sportBoardHref } from "@/lib/board-url";
 import { formatKickoff, formatPollClock } from "@/lib/dates";
 import { hasPeriodScores, periodLabel, periodSportFor, playPeriodLabel } from "@/lib/espn-parse";
@@ -125,7 +126,7 @@ export function GameDetailView({
   const refresh = useCallback(async () => {
     try {
       const qs = league === DEFAULT_LEAGUE ? "" : `?league=${league}`;
-      const response = await fetch(`/api/game/${gameId}${qs}`, { cache: "no-store" });
+      const response = await fetch(withBasePath(`/api/game/${gameId}${qs}`), { cache: "no-store" });
       const payload = (await response.json()) as GameDetailResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error || "Game request failed");
       setDetail(payload);
@@ -137,7 +138,7 @@ export function GameDetailView({
 
   const refreshHighlights = useCallback(async () => {
     try {
-      const response = await fetch(`/api/highlights?league=${encodeURIComponent(league)}`, {
+      const response = await fetch(withBasePath(`/api/highlights?league=${encodeURIComponent(league)}`), {
         cache: "no-store",
       });
       const payload = (await response.json()) as HighlightsResponse;

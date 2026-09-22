@@ -6,6 +6,7 @@ import { GameCard } from "@/components/game-card";
 import { BottomLine } from "@/components/ticker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WeekStrip } from "@/components/week-strip";
+import { withBasePath } from "@/lib/base-path";
 import { boardHref, parseStatusFilter } from "@/lib/board-url";
 import { formatBoardDate, formatPollClock, shiftEspnDate } from "@/lib/dates";
 import { weekByNumber } from "@/lib/espn-weeks";
@@ -132,7 +133,7 @@ export function ScoreboardView({
         if (league === "nfl" && seasonType) params.set("seasontype", String(seasonType));
       }
       if (league !== DEFAULT_LEAGUE) params.set("league", league);
-      const response = await fetch(`/api/scoreboard?${params}`, { cache: "no-store" });
+      const response = await fetch(withBasePath(`/api/scoreboard?${params}`), { cache: "no-store" });
       const payload = (await response.json()) as ScoreboardResponse & { error?: string };
       if (!response.ok) {
         throw new Error(payload.error || "Scoreboard request failed");
@@ -396,7 +397,7 @@ export function ScoreboardView({
             </div>
 
             <form
-              action="/"
+              action={withBasePath("/")}
               method="get"
               className="flex min-w-0 flex-1 items-center gap-1"
               onSubmit={(event) => {

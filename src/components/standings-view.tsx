@@ -3,6 +3,7 @@
 import { EmptyState } from "@/components/empty-state";
 import { FilterChip } from "@/components/filter-chip";
 import { TeamLogo } from "@/components/team-logo";
+import { withBasePath } from "@/lib/base-path";
 import { sportBoardHref, sportStandingsHref } from "@/lib/board-url";
 import { formatPollClock } from "@/lib/dates";
 import { teamHref } from "@/lib/espn-team";
@@ -117,7 +118,9 @@ export function StandingsView({
       if (league !== DEFAULT_LEAGUE) params.set("league", league);
       if (localConference !== "all") params.set("conference", localConference);
       const qs = params.toString();
-      const response = await fetch(`/api/standings${qs ? `?${qs}` : ""}`, { cache: "no-store" });
+      const response = await fetch(withBasePath(`/api/standings${qs ? `?${qs}` : ""}`), {
+        cache: "no-store",
+      });
       const payload = (await response.json()) as StandingsResponse & { error?: string };
       if (!response.ok) {
         throw new Error(payload.error || "Standings request failed");

@@ -1,5 +1,6 @@
 "use client";
 
+import { withBasePath } from "@/lib/base-path";
 import {
   HIGHLIGHTS_EMPTY_HEADLINE,
   highlightsClientPollOnMount,
@@ -35,7 +36,7 @@ export function HighlightsStrip({
 
   const load = useCallback(async () => {
     try {
-      const response = await fetch(homeHighlightsApiPath(league), {
+      const response = await fetch(withBasePath(homeHighlightsApiPath(league)), {
         cache: "no-store",
       });
       const payload = (await response.json()) as HighlightsResponse & { error?: string };

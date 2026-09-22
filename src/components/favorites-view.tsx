@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/empty-state";
 import { FavoritePinButton } from "@/components/favorite-pin-button";
 import { GameCard } from "@/components/game-card";
 import { TeamLogo } from "@/components/team-logo";
+import { withBasePath } from "@/lib/base-path";
 import { sportBoardHref } from "@/lib/board-url";
 import { teamHref } from "@/lib/espn-team";
 import {
@@ -84,7 +85,7 @@ export function FavoritesView({ league = DEFAULT_LEAGUE }: { league?: LeagueId }
         const params = new URLSearchParams();
         if (id !== DEFAULT_LEAGUE) params.set("league", id);
         if (id === "nfl") params.set("view", "week");
-        const response = await fetch(`/api/scoreboard?${params}`, { cache: "no-store" });
+        const response = await fetch(withBasePath(`/api/scoreboard?${params}`), { cache: "no-store" });
         const payload = (await response.json()) as ScoreboardResponse & { error?: string };
         if (!response.ok) {
           throw new Error(payload.error || "Scoreboard request failed");
