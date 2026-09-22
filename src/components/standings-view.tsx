@@ -136,7 +136,7 @@ export function StandingsView({
 
   const selectConference = (next: string) => {
     setLocalConference(next);
-    window.history.replaceState(null, "", sportStandingsHref(league, next));
+    window.history.replaceState(null, "", withBasePath(sportStandingsHref(league, next)));
   };
 
   const lastStamp = board?.generatedAt ? formatPollClock(board.generatedAt) : null;

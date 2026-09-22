@@ -218,11 +218,13 @@ export function ScoreboardView({
     window.history.replaceState(
       null,
       "",
-      hrefFor({
-        conference: next.conference ?? localConference,
-        status: next.status ?? localStatus,
-        q: next.q ?? localQuery,
-      })
+      withBasePath(
+        hrefFor({
+          conference: next.conference ?? localConference,
+          status: next.status ?? localStatus,
+          q: next.q ?? localQuery,
+        })
+      )
     );
   };
 
@@ -233,11 +235,13 @@ export function ScoreboardView({
       window.history.replaceState(
         null,
         "",
-        hrefFor({
-          conference: localConference,
-          status: localStatus,
-          q: value,
-        })
+        withBasePath(
+          hrefFor({
+            conference: localConference,
+            status: localStatus,
+            q: value,
+          })
+        )
       );
     }, 180);
   };

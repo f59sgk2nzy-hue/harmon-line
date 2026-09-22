@@ -1,7 +1,7 @@
 /**
  * Public mount for the OS reverse proxy and local dogfood.
  * Next `basePath` prefixes Link, redirect(), and `/_next` assets.
- * Browser fetches, form actions, raw anchors, and the web manifest do not.
+ * Browser fetches, form actions, raw anchors, history.replaceState, and the web manifest do not.
  */
 export const PUBLIC_BASE_PATH = "/line";
 
@@ -30,13 +30,23 @@ export function withBasePath(path: string, base: string = appBasePath()): string
   if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
     return `${pathname}${query}${hash}`;
   }
+  // `/` is the app root. Next's canonical URL is `/line`, not `/line/`
+  // (`/line/` 308s). history.replaceState and form actions must use that URL.
+  if (pathname === "/") {
+    return `${prefix}${query}${hash}`;
+  }
   return `${prefix}${pathname}${query}${hash}`;
 }
 
 export function pwaManifestFields(base: string = appBasePath()) {
+  // Scope is the string prefix `/line` (not `/line/`). Next serves the home
+  // board at `/line` and redirects `/line/` there. A scope of `/line/` does
+  // not contain `/line`, so the installed app would leave its own scope on
+  // launch. Child routes (`/line/oracle`, …) still match this prefix.
+  const mount = withBasePath("/", base);
   return {
-    start_url: withBasePath("/", base),
-    scope: withBasePath("/", base),
+    start_url: mount,
+    scope: mount,
     icons: [
       withBasePath("/icons/icon-192.png", base),
       withBasePath("/icons/icon-512.png", base),

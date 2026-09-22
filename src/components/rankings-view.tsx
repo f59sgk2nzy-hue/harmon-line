@@ -112,7 +112,7 @@ export function RankingsView({
 
   const selectPoll = (next: PollId) => {
     setLocalPoll(next);
-    window.history.replaceState(null, "", rankingsHref(next, league));
+    window.history.replaceState(null, "", withBasePath(rankingsHref(next, league)));
   };
 
   const selected = board?.polls.find((item) => item.id === localPoll) ?? board?.selected ?? null;
