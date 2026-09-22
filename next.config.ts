@@ -4,19 +4,20 @@ import type { NextConfig } from "next";
 import os from "node:os";
 
 const nextConfig: NextConfig = {
-  // OS reverse proxy: https://os.versalink.online/line → DELL :43173/line.
-  // Local and Tailscale dogfood use the same prefix. assetPrefix is unset:
-  // basePath already prefixes /_next static assets; a CDN prefix is not used.
+  // Production: https://os.versalink.online/line/ on VPS srv1958956.
+  // Laptop dogfood uses the same prefix at http://localhost:43173/line.
+  // assetPrefix is unset: basePath already prefixes /_next static assets.
   basePath: PUBLIC_BASE_PATH,
   env: {
     NEXT_PUBLIC_BASE_PATH: PUBLIC_BASE_PATH,
   },
   // next dev Origin check: HMR websocket to /line/_next/hmr is rejected for
-  // 127.0.0.1 and Tailscale/LAN hosts unless listed (localhost can work).
-  // `**.ts.net` covers Tailscale MagicDNS. Next does not wildcard IPs, so
-  // this machine's LAN / Tailscale 100.x addresses are collected here.
-  // Production (`npm run build && npm start`) has no HMR and is preferred
-  // for DELL / Home Screen / Tailscale.
+  // 127.0.0.1 unless listed (localhost can work). allowedDevOrigins also
+  // includes `**.ts.net` for laptop MagicDNS during next dev. Next does not
+  // wildcard IPs, so this machine's IPv4 addresses are collected here.
+  // Laptop dogfood prefers `npm run build && npm start` (no HMR) at
+  // http://localhost:43173/line. Production users open
+  // https://os.versalink.online/line/.
   allowedDevOrigins: allowedDevOrigins(ipv4HostsFromInterfaces(os.networkInterfaces())),
   images: {
     remotePatterns: [

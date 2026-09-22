@@ -15,17 +15,16 @@ Unit checks for period scores, subdivision labels, poll-clock timezone, week/dat
 npm test
 ```
 
-The app is mounted at **`/line`** (`basePath`). Open [http://localhost:43173/line](http://localhost:43173/line). The home board defaults to **today’s college football games in US/Eastern**, with a week strip to jump ESPN regular-season weeks. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it. **Rankings** (`/line/rankings`) lists AP, Coaches, FCS, D2, and D3 football polls from the same public ESPN JSON. **Standings** (`/line/standings`) lists FBS conference tables (and NFL / MLB / NBA / MBB when ESPN publishes them).
+The app is mounted at **`/line`** (`basePath`). Production is [https://os.versalink.online/line/](https://os.versalink.online/line/) on VPS `srv1958956`. Laptop dogfood only: [http://localhost:43173/line](http://localhost:43173/line). The home board defaults to **today’s college football games in US/Eastern**, with a week strip to jump ESPN regular-season weeks. Click any game for a detail page with scoring, leaders, and play-by-play when ESPN publishes it. **Rankings** (`/line/rankings`) lists AP, Coaches, FCS, D2, and D3 football polls from the same public ESPN JSON. **Standings** (`/line/standings`) lists FBS conference tables (and NFL / MLB / NBA / MBB when ESPN publishes them).
 
-### Public URL, local dogfood, Tailscale
+### Production and laptop dogfood
 
 | Where | URL |
 | --- | --- |
-| Public (OS reverse proxy → DELL `:43173`) | [https://os.versalink.online/line](https://os.versalink.online/line) |
-| This machine | [http://localhost:43173/line](http://localhost:43173/line) |
-| Tailscale / LAN backup | `http://<tailscale-or-lan-host>:43173/line` (MagicDNS `*.ts.net` is allowed for `next dev` HMR) |
+| Production (VPS `srv1958956`) | [https://os.versalink.online/line/](https://os.versalink.online/line/) |
+| Laptop dogfood only | [http://localhost:43173/line](http://localhost:43173/line) |
 
-`npm run dev` and `npm start` listen on `0.0.0.0:43173`. The board is **not** at `http://host:43173/` — that path is outside `basePath`. Use `/line` on localhost, a Tailscale IP, and the public host. The proxy in front of `os.versalink.online` is configured outside this repo; it should forward `/line` to DELL `:43173` without stripping the prefix. `assetPrefix` is unset because `basePath` already prefixes `/_next` static files. `demo: false` is unchanged.
+`npm run dev` and `npm start` listen on `0.0.0.0:43173` for laptop dogfood. The board is **not** at `http://localhost:43173/` — that path is outside `basePath`. Open `/line`. `assetPrefix` is unset because `basePath` already prefixes `/_next` static files. `demo: false` is unchanged.
 
 ### Switch sports (CFB ↔ MBB ↔ NFL ↔ NBA ↔ MLB)
 
@@ -40,11 +39,11 @@ College football stays the default Saturday home. Men’s college basketball, th
 | Team | `/team/{espnId}` | `/team/{espnId}?league=mbb` (same NCAA ids as football — always pass `league`) | `/team/{espnId}?league=nfl` (NFL ids — always pass `league`; favorites keys are `{league}:{teamId}`) | `/team/{espnId}?league=nba` (NBA ids — always pass `league`; favorites keys `{league}:{teamId}`) | `/team/{espnId}?league=mlb` (MLB ids — always pass `league`; favorites keys `{league}:{teamId}`) |
 | Favorites | `/favorites` — localStorage pins, CFB first when `league` omitted | `/favorites?league=mbb` | `/favorites?league=nfl` | `/favorites?league=nba` | `/favorites?league=mlb` |
 
-Open the MLB board at [http://localhost:43173/line/?league=mlb](http://localhost:43173/line/?league=mlb). Jump a night with `/?league=mlb&date=20260915`. Open the NBA board at [http://localhost:43173/line/?league=nba](http://localhost:43173/line/?league=nba). Jump a night with `/?league=nba&date=20260415`. Open the NFL board at [http://localhost:43173/line/?league=nfl](http://localhost:43173/line/?league=nfl). Jump a published week with `/?league=nfl&week=2&year=2026&seasontype=2`. Scores and poll points are never invented.
+Laptop dogfood: open the MLB board at [http://localhost:43173/line/?league=mlb](http://localhost:43173/line/?league=mlb). Jump a night with `/?league=mlb&date=20260915`. Open the NBA board at [http://localhost:43173/line/?league=nba](http://localhost:43173/line/?league=nba). Jump a night with `/?league=nba&date=20260415`. Open the NFL board at [http://localhost:43173/line/?league=nfl](http://localhost:43173/line/?league=nfl). Jump a published week with `/?league=nfl&week=2&year=2026&seasontype=2`. Scores and poll points are never invented.
 
 September MBB slates are often empty. Jump the date (for example `/?league=mbb&date=20251115`) rather than expecting a football-style week strip. NBA and MLB are the same date-first pattern — use `/?league=nba&date=YYYYMMDD` or `/?league=mlb&date=YYYYMMDD` for a published night.
 
-**DELL / Home Screen / Tailscale:** prefer production (`npm run build && npm start`) and open `/line` (`http://127.0.0.1:43173/line` or `http://<tailscale-host>:43173/line`). `next dev` gates the HMR websocket (`/line/_next/hmr`) with an Origin check. Opening the board as `http://127.0.0.1:43173/line` or a LAN/Tailscale IP can fail that check (`Unauthorized`), so React never hydrates. The highlights strip is server-rendered so cards still paint, but production has no HMR and is the reliable way to pin or share the board. `next.config` sets `allowedDevOrigins` for `localhost`, `127.0.0.1`, Tailscale MagicDNS (`**.ts.net`), and this machine’s LAN/Tailscale IPv4 addresses.
+**Laptop `next dev`:** the HMR websocket (`/line/_next/hmr`) checks `Origin`. Opening the board as `http://127.0.0.1:43173/line` can fail that check (`Unauthorized`), so React never hydrates. The highlights strip is server-rendered, so cards still paint. For laptop dogfood, prefer a production build on the laptop (`npm run build && npm start`) and open [http://localhost:43173/line](http://localhost:43173/line). `next.config` sets `allowedDevOrigins` for `localhost`, `127.0.0.1`, this machine’s IPv4 addresses, and a MagicDNS pattern (`**.ts.net`) so laptop `next dev` can hydrate.
 
 Production-style start:
 
@@ -55,7 +54,7 @@ npm start
 
 ## Environment variables
 
-None required. Copy `.env.example` into `.env.local` on DELL only if you want optional YouTube search, CFBD fills, Gemini-grounded Oracle, or a different ESPN host.
+None required. Copy `.env.example` into `.env.local` on the host that runs the app (production VPS or laptop dogfood) if you want optional YouTube search, CFBD fills, Gemini-grounded Oracle, or a different ESPN host.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
@@ -118,7 +117,7 @@ Example: `https://site.web.api.espn.com/apis/v2/sports/football/college-football
 
 Only columns ESPN published on each row are shown (typically W-L, CONF, PF/PA, DIFF, STRK). Empty conferences (no entries) stay off the board. Records are never invented. `demo: false`.
 
-Open [http://localhost:43173/line/standings](http://localhost:43173/line/standings). SEC: [http://localhost:43173/line/standings?conference=8](http://localhost:43173/line/standings?conference=8). NFL: [http://localhost:43173/line/standings?league=nfl](http://localhost:43173/line/standings?league=nfl).
+Laptop dogfood: open [http://localhost:43173/line/standings](http://localhost:43173/line/standings). SEC: [http://localhost:43173/line/standings?conference=8](http://localhost:43173/line/standings?conference=8). NFL: [http://localhost:43173/line/standings?league=nfl](http://localhost:43173/line/standings?league=nfl).
 
 ## Favorites / followed teams (local v0)
 
@@ -132,7 +131,7 @@ Open [http://localhost:43173/line/standings](http://localhost:43173/line/standin
 | Board / ticker | When pins exist for that sport, favorite games float first. Bottom line marks them with ★. No pins → original order. |
 | Honesty | Empty hub → **NO TEAMS PINNED**. `demo: false`. Corrupt JSON and `demo: true` sample payloads are dropped. Scores are never invented. |
 
-**Dogfood:** Open [http://localhost:43173/line/favorites](http://localhost:43173/line/favorites) with a clean profile — you should see **NO TEAMS PINNED**, not a sample list. Star Alabama on `/team/333` (or a game card), refresh `/favorites`, then unpin. Pin Bills at `/team/2?league=nfl` and confirm they do not replace Auburn if both id `2` are followed. On the home board, followed games should sit at the top and the ticker should show ★.
+**Laptop dogfood:** Open [http://localhost:43173/line/favorites](http://localhost:43173/line/favorites) with a clean profile — you should see **NO TEAMS PINNED**, not a sample list. Star Alabama on `/team/333` (or a game card), refresh `/favorites`, then unpin. Pin Bills at `/team/2?league=nfl` and confirm they do not replace Auburn if both id `2` are followed. On the home board, followed games should sit at the top and the ticker should show ★.
 
 **Out of scope:** service worker, cross-device sync, paid odds, Coach Cam.
 
@@ -150,7 +149,7 @@ Open [http://localhost:43173/line/standings](http://localhost:43173/line/standin
 
 No PnL, Polymarket, Monte Carlo dollars, win probability, or paid-odds chrome. Scores stay on the scoreboard.
 
-Open [http://localhost:43173/line/ops](http://localhost:43173/line/ops). Try [http://localhost:43173/line/ops?busy=board](http://localhost:43173/line/ops?busy=board) to see The Board bright with edge traffic.
+Laptop dogfood: open [http://localhost:43173/line/ops](http://localhost:43173/line/ops). Try [http://localhost:43173/line/ops?busy=board](http://localhost:43173/line/ops?busy=board) to see The Board bright with edge traffic.
 
 ## Stat Oracle v0 (ESPN slice + optional Gemini grounding)
 
@@ -164,12 +163,12 @@ Live named games still copy **the same public ESPN JSON** the board already uses
 | Button | **ASK GOOGLE** when a Gemini key is configured; **ASK ESPN** when the install is ESPN-slice only |
 | API | `GET /api/oracle?q=` and `POST /api/oracle` `{ q, league }` → `{ demo: false, evidence[], inference[], answerMarkdown, sources[], geminiConfigured, simulation }` |
 | Honesty | **Evidence** = published ESPN cells, or Google grounding citations / snippets / URLs. **Inference** = labeled restatement or model synthesis. Speculative synthesis wears a **SIMULATION** badge. Missing scores stay empty — never invented, never 0-0 placeholders, never percentiles or video. |
-| Gemini | Optional. Set `GOOGLE_GENERATIVE_AI_API_KEY` **or** `GOOGLE_API_KEY` **or** `GEMINI_API_KEY` in DELL `.env.local`. Uses Gemini `google_search` grounding (not CSE). |
+| Gemini | Optional. Set `GOOGLE_GENERATIVE_AI_API_KEY` **or** `GOOGLE_API_KEY` **or** `GEMINI_API_KEY` in `.env.local`. Uses Gemini `google_search` grounding (not CSE). |
 | Betting | ATS / spread / odds / pickcenter / winprob / Polymarket questions are **refused**, with the 21+ / 1-800-GAMBLER disclaimer — even when Gemini is configured. |
 | CFBD | Optional. Used only when `CFBD_API_KEY` is set, and only to fill blank ESPN season-stat cells. No invented CFBD numbers. |
 | Not | StatMuse SQL, Custom Search Engine, live agent-feed upgrades, first-party ESPN film, Coach Cam, GM Sandbox, Momentum Wave, Debate Arena |
 
-Open [http://localhost:43173/line/oracle](http://localhost:43173/line/oracle). Try [http://localhost:43173/line/oracle?q=Who+won+the+1974+NBA+Finals%3F](http://localhost:43173/line/oracle?q=Who+won+the+1974+NBA+Finals%3F) — with a Gemini key you should get **Boston Celtics** plus grounded sources; without a key you get **NOT ON THIS FEED** (ESPN-slice only), not a demo champion.
+Laptop dogfood: open [http://localhost:43173/line/oracle](http://localhost:43173/line/oracle). Try [http://localhost:43173/line/oracle?q=Who+won+the+1974+NBA+Finals%3F](http://localhost:43173/line/oracle?q=Who+won+the+1974+NBA+Finals%3F) — with a Gemini key you should get **Boston Celtics** plus grounded sources; without a key you get **NOT ON THIS FEED** (ESPN-slice only), not a demo champion.
 
 ## Deep Lore / Post-Game X-Ray (research v0)
 
@@ -182,11 +181,11 @@ Open [http://localhost:43173/line/oracle](http://localhost:43173/line/oracle). T
 | API | `GET /api/research` and `GET /api/research?id=` → `{ demo: false, latestDeepLore, xrays, briefs, honesty, featuredXrayGraph?, xrayGraph? }` |
 | Honesty | Empty disk → **NO BRIEF ON THIS FEED YET**. Missing ESPN `winprobability` → **WIN PROBABILITY NOT ON THIS FEED**. Anomalies, WPA, odds, ATS, pickcenter, and scores are never invented. Labeled **SAMPLE** only when the file says so. |
 | Ingest | `RESEARCH_DIR` (optional) then repo `research/*.json|*.md`, plus DELL drop folder `public/research/`. Subfolders such as `research/examples/` are not auto-loaded. |
-| Not | Live lab filesystem on DELL, POST ingest, paid odds, Polymarket / PnL, invented WP |
+| Not | Live lab filesystem, POST ingest, paid odds, Polymarket / PnL, invented WP |
 
-Lab cron files (`deep-lore-*.md`, `postgame-xray-*.md`) must be copied onto this app’s disk. On DELL, drop them in `public/research/` (or set `RESEARCH_DIR`) and refresh. Schema and copy-paste SAMPLE fixtures: `research/README.md` and `research/examples/`.
+Lab cron files (`deep-lore-*.md`, `postgame-xray-*.md`) must be copied onto this app’s disk. Drop them in `public/research/` (or set `RESEARCH_DIR`) and refresh. Schema and copy-paste SAMPLE fixtures: `research/README.md` and `research/examples/`.
 
-Open [http://localhost:43173/line/research](http://localhost:43173/line/research). With nothing staged you get the empty state, not a demo brief.
+Laptop dogfood: open [http://localhost:43173/line/research](http://localhost:43173/line/research). With nothing staged you get the empty state, not a demo brief.
 
 ## Week / schedule nav
 
@@ -243,21 +242,21 @@ Game pages (`/game/{espnId}`, including `?league=mbb|nfl|nba|mlb`) add a **CLIP*
 
 Matching is conservative (both teams in the title, or one team plus a distinctive play/player token). Sample cards and `espn.com/video/clip` hrefs are never treated as matches. Mobile/PWA CLIP targets are **≥44px**.
 
-**Dogfood:** Open the board → pick a **FINAL** with scoring plays → tap **CLIP** on a scoring row. Either a YouTube tab opens, or you get **NO CLIP ON THIS FEED**. Example path: `/game/{espnId}` after clicking a completed CFB/NFL/NBA/MLB/MBB card.
+**Laptop dogfood:** Open [http://localhost:43173/line](http://localhost:43173/line) → pick a **FINAL** with scoring plays → tap **CLIP** on a scoring row. Either a YouTube tab opens, or you get **NO CLIP ON THIS FEED**. Example path: `/game/{espnId}` after clicking a completed CFB/NFL/NBA/MLB/MBB card.
 
 **Out of scope:** Coach Cam, Momentum Wave beyond the existing X-Ray graph, paid clip APIs, guaranteed match.
 
 ## Add to Home Screen / pin to desktop
 
-The Harmon Line is a small PWA (dark ESPN theme, standalone display). After it is running in a browser:
+The Harmon Line is a small PWA (dark ESPN theme, standalone display). Install it from production, [https://os.versalink.online/line/](https://os.versalink.online/line/). Laptop dogfood at [http://localhost:43173/line](http://localhost:43173/line) can install the same manifest only on that machine.
 
 **iPhone / iPad (Safari)**
-1. Open the board URL.
+1. Open [https://os.versalink.online/line/](https://os.versalink.online/line/).
 2. Tap the Share button.
 3. Tap **Add to Home Screen**, then Add.
 
 **Android (Chrome)**
-1. Open the board URL.
+1. Open [https://os.versalink.online/line/](https://os.versalink.online/line/).
 2. Tap the menu (⋮) → **Add to Home screen** / **Install app**.
 
 **Windows**
