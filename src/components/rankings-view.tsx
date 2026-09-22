@@ -3,6 +3,7 @@
 import { EmptyState } from "@/components/empty-state";
 import { FilterChip } from "@/components/filter-chip";
 import { TeamLogo } from "@/components/team-logo";
+import { withBasePath } from "@/lib/base-path";
 import { sportBoardHref } from "@/lib/board-url";
 import { formatPollClock } from "@/lib/dates";
 import { pollTabsFor, rankingsHref } from "@/lib/espn-rankings";
@@ -93,7 +94,9 @@ export function RankingsView({
       const params = new URLSearchParams();
       if (league !== DEFAULT_LEAGUE) params.set("league", league);
       const qs = params.toString();
-      const response = await fetch(`/api/rankings${qs ? `?${qs}` : ""}`, { cache: "no-store" });
+      const response = await fetch(withBasePath(`/api/rankings${qs ? `?${qs}` : ""}`), {
+        cache: "no-store",
+      });
       const payload = (await response.json()) as RankingsResponse & { error?: string };
       if (!response.ok) {
         throw new Error(payload.error || "Rankings request failed");
@@ -109,7 +112,7 @@ export function RankingsView({
 
   const selectPoll = (next: PollId) => {
     setLocalPoll(next);
-    window.history.replaceState(null, "", rankingsHref(next, league));
+    window.history.replaceState(null, "", withBasePath(rankingsHref(next, league)));
   };
 
   const selected = board?.polls.find((item) => item.id === localPoll) ?? board?.selected ?? null;

@@ -1,3 +1,4 @@
+import { withBasePath } from "@/lib/base-path";
 import { cn } from "@/lib/utils";
 import { sportBoardHref } from "@/lib/board-url";
 import {
@@ -91,7 +92,7 @@ function SpokeNode({
       data-duty={node.agent.duty}
     >
       {href ? (
-        <a href={href} className="ops-spoke-link">
+        <a href={withBasePath(href)} className="ops-spoke-link">
           {body}
         </a>
       ) : (
